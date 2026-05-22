@@ -4,6 +4,12 @@ version = "0.1.0"
 edition = "2024"
 license = "AGPL-3.0-or-later"
 description = "Nickel-authored contract policy enforcement backed by UCAN capabilities."
+readme = "README.md"
+repository = "https://github.com/OnixResearch/ucan-nickel-contracts"
+homepage = "https://github.com/OnixResearch/ucan-nickel-contracts#readme"
+documentation = "https://github.com/OnixResearch/ucan-nickel-contracts#readme"
+keywords = ["ucan", "nickel", "policy", "capabilities", "authorization"]
+categories = ["authentication", "config"]
 
 [dependencies]
 clap = { version = "4.5", features = ["derive"] }
@@ -20,5 +26,4 @@ all = { level = "deny", priority = -1 }
 pedantic = { level = "deny", priority = -1 }
 nursery = { level = "deny", priority = -1 }
 cargo = { level = "deny", priority = -1 }
-cargo_common_metadata = "allow"
 multiple_crate_versions = "allow"

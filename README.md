@@ -12,6 +12,8 @@ Flow:
 
 This is intentionally a small functional-core / imperative-shell scaffold. Nickel owns policy shape and reviewable defaults; Rust owns runtime enforcement and receipts.
 
+Package metadata is kept in `Cargo.toml` for downstream discovery: the crate stays AGPL-3.0-or-later, points registry/source tooling at the OnixResearch repository and this README, and uses UCAN/Nickel/policy keywords that match the crate purpose above.
+
 ## Quickstart
 
 ```bash
