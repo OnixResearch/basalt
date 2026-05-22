@@ -14,6 +14,10 @@ This is intentionally a small functional-core / imperative-shell scaffold. Nicke
 
 Package metadata is kept in `Cargo.toml` for downstream discovery: the crate stays AGPL-3.0-or-later, points registry/source tooling at the OnixResearch repository and this README, and uses UCAN/Nickel/policy keywords that match the crate purpose above.
 
+## License boundary
+
+This crate is licensed as `AGPL-3.0-or-later`, as declared in `Cargo.toml`. Downstream applications should review that license before adopting the crate. This README does not grant an alternate license, compatibility exception, or legal advice for a specific deployment model.
+
 ## Quickstart
 
 ```bash
@@ -118,7 +122,7 @@ nix flake check -L
 
 Because the crate currently has a private Git dependency, the sandboxed flake check prevalidates the Nickel policy check as a Nix input and emits a verifier receipt that marks Cargo-dependent rails as deferred. Run the direct verifier above for the full release rail before tagging or handoff.
 
-The rail uses fresh `/tmp/ucan-nickel-contracts-release-*` Cargo target directories, clears `RUSTC_WRAPPER`, and enables Git CLI fetching for the private UCAN dependency. It covers policy freshness, `cargo fmt --check`, no-default and CLI-feature test rails through `cargo nextest`, doctests, clippy for both feature sets, package validation, asserted package contents, and no-dependency library docs. Direct runs write `target/release-verify/summary.json` and `target/release-verify/summary.md`; Nix checks redirect those receipts into the check output.
+The rail uses fresh `/tmp/ucan-nickel-contracts-release-*` Cargo target directories, clears `RUSTC_WRAPPER`, and enables Git CLI fetching for the private UCAN dependency. It covers policy freshness, `cargo fmt --check`, AGPL license metadata preservation, no-default and CLI-feature test rails through `cargo nextest`, doctests, clippy for both feature sets, package validation, asserted package contents, and no-dependency library docs. Direct runs write `target/release-verify/summary.json` and `target/release-verify/summary.md`; Nix checks redirect those receipts into the check output.
 
 Individual checks are still useful while iterating:
 

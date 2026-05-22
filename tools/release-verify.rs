@@ -15,6 +15,7 @@ const DEFAULT_TARGET_DIR: &str = "/tmp/ucan-nickel-contracts-release-target";
 const PACKAGE_TARGET_DIR: &str = "/tmp/ucan-nickel-contracts-release-package-target";
 const DEFAULT_RECEIPT_DIR: &str = "target/release-verify";
 const OUTPUT_TAIL_LIMIT: usize = 4_096;
+const REQUIRED_LICENSE: &str = "AGPL-3.0-or-later";
 
 const REQUIRED_PACKAGE_PATHS: &[&str] = &[
     "Cargo.lock",
@@ -42,6 +43,7 @@ struct Step {
 #[derive(Clone, Copy)]
 enum StepKind {
     Normal,
+    LicenseMetadata,
     PolicyFreshness,
     PackageContents,
 }
@@ -88,6 +90,14 @@ fn main() -> ExitCode {
             target_dir: DEFAULT_TARGET_DIR,
             cargo_env: true,
             kind: StepKind::Normal,
+        },
+        Step {
+            name: "license metadata",
+            program: "cargo",
+            args: &["metadata", "--no-deps", "--format-version", "1"],
+            target_dir: DEFAULT_TARGET_DIR,
+            cargo_env: true,
+            kind: StepKind::LicenseMetadata,
         },
         Step {
             name: "library tests",
@@ -260,6 +270,8 @@ fn run_step(root: &Path, step: &Step) -> StepReceipt {
             let package_ok = if matches!(step.kind, StepKind::PackageContents) && output.status.success()
             {
                 validate_package_contents(&stdout)
+            } else if matches!(step.kind, StepKind::LicenseMetadata) && output.status.success() {
+                validate_license_metadata(&root.join("Cargo.toml"), &stdout)
             } else {
                 Ok(())
             };
@@ -313,6 +325,28 @@ fn validate_package_contents(package_list: &str) -> Result<(), String> {
             missing.join(", ")
         ))
     }
+}
+
+fn validate_license_metadata(manifest_path: &Path, metadata_json: &str) -> Result<(), String> {
+    let manifest = fs::read_to_string(manifest_path).map_err(|error| {
+        format!(
+            "could not read manifest for license metadata check {}: {error}",
+            manifest_path.display()
+        )
+    })?;
+    let manifest_license = format!("license = \"{REQUIRED_LICENSE}\"");
+    let metadata_license = format!("\"license\":\"{REQUIRED_LICENSE}\"");
+    if !manifest.lines().any(|line| line.trim() == manifest_license) {
+        return Err(format!(
+            "manifest license metadata must remain {REQUIRED_LICENSE}"
+        ));
+    }
+    if !metadata_json.contains(&metadata_license) {
+        return Err(format!(
+            "cargo metadata did not report package license {REQUIRED_LICENSE}"
+        ));
+    }
+    Ok(())
 }
 
 fn write_receipts(dir: &Path, passed: bool, receipts: &[StepReceipt]) -> Result<(), String> {
