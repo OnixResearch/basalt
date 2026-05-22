@@ -10,12 +10,30 @@ let ContractPolicy = {
   resource_prefixes | Array NonEmptyString,
   abilities | Array NonEmptyString,
 } in
+let BackendPolicy = {
+  id | NonEmptyString,
+  description | String | default = "",
+  supports_higher_order | Bool | default = false,
+} in
 let Policy = {
   schema_version | NonEmptyString,
+  backends | { _ : BackendPolicy } | default = {},
   contracts | { _ : ContractPolicy },
 } in
 {
   schema_version = "ucan-nickel-contracts.policy.v1",
+  backends = {
+    nickel = {
+      id = "nickel",
+      description = "Nickel-authored static policy contracts.",
+      supports_higher_order = false,
+    },
+    steel = {
+      id = "steel",
+      description = "Steel Scheme dynamic predicate contracts.",
+      supports_higher_order = true,
+    },
+  },
   contracts = {
     document-read = {
       id = "document-read",

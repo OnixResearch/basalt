@@ -66,6 +66,375 @@ pub const SUPPORTED_SCHEMA_VERSION: &str = "ucan-nickel-contracts.policy.v1";
 /// reviewed policy JSON to [`parse_policy_json`].
 pub const DEFAULT_POLICY_JSON: &str = include_str!("../contracts/generated/policy.json");
 
+/// Supported contract backend ids for UCAN contract envelopes.
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub enum ContractBackendKind {
+    /// Nickel-authored static policy/config backend.
+    Nickel,
+    /// Steel Scheme dynamic predicate/callable backend.
+    Steel,
+}
+
+impl ContractBackendKind {
+    /// Return the stable backend id string.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Nickel => "nickel",
+            Self::Steel => "steel",
+        }
+    }
+}
+
+/// Backend policy metadata exported with the contract policy artifact.
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+pub struct ContractBackendPolicy {
+    /// Stable backend id, for example `nickel` or `steel`.
+    pub id: String,
+    /// Human-readable backend description.
+    #[serde(default)]
+    pub description: String,
+    /// Whether the backend may declare higher-order callable descriptors.
+    #[serde(default)]
+    pub supports_higher_order: bool,
+}
+
+impl ContractBackendPolicy {
+    /// Return true when this metadata describes a supported backend id.
+    #[must_use]
+    pub fn is_supported(&self) -> bool {
+        supported_backend(self.id.as_str()).is_some()
+    }
+}
+
+/// Backend-neutral contract envelope shared by Nickel and Steel contract adapters.
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+pub struct ContractEnvelope {
+    /// Backend id such as `nickel` or `steel`.
+    pub backend: String,
+    /// Stable contract id.
+    pub contract_id: String,
+    /// Contract schema/version marker.
+    pub contract_version: String,
+    /// Hash of normalized source material, excluding display-only paths.
+    pub normalized_source_hash: String,
+    /// Stable input schema id or hash.
+    pub input_schema: String,
+    /// Stable output schema id or hash.
+    pub output_schema: String,
+    /// Receipt schema version emitted by this backend.
+    pub receipt_schema_version: String,
+}
+
+impl ContractEnvelope {
+    /// Construct a backend-neutral contract envelope.
+    #[must_use]
+    pub fn new(
+        backend: impl Into<String>,
+        contract_id: impl Into<String>,
+        contract_version: impl Into<String>,
+        normalized_source_hash: impl Into<String>,
+        input_schema: impl Into<String>,
+        output_schema: impl Into<String>,
+        receipt_schema_version: impl Into<String>,
+    ) -> Self {
+        Self {
+            backend: backend.into(),
+            contract_id: contract_id.into(),
+            contract_version: contract_version.into(),
+            normalized_source_hash: normalized_source_hash.into(),
+            input_schema: input_schema.into(),
+            output_schema: output_schema.into(),
+            receipt_schema_version: receipt_schema_version.into(),
+        }
+    }
+
+    /// Return the supported backend kind when the envelope backend id is known.
+    #[must_use]
+    pub fn backend_kind(&self) -> Option<ContractBackendKind> {
+        supported_backend(self.backend.as_str())
+    }
+}
+
+/// Deterministic validation receipt for backend-neutral contract envelopes.
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+pub struct ContractEnvelopeReceipt {
+    /// Whether the envelope is supported and sufficiently bound for evaluation.
+    pub accepted: bool,
+    /// Stable validation reason.
+    pub reason: String,
+}
+
+impl ContractEnvelopeReceipt {
+    /// Return true when the envelope may proceed to backend-specific evaluation.
+    #[must_use]
+    pub const fn is_accepted(&self) -> bool {
+        self.accepted
+    }
+}
+
+fn supported_backend(backend: &str) -> Option<ContractBackendKind> {
+    match backend {
+        "nickel" => Some(ContractBackendKind::Nickel),
+        "steel" => Some(ContractBackendKind::Steel),
+        _ => None,
+    }
+}
+
+/// Validate shared envelope fields before any backend-specific evaluation is trusted.
+#[must_use]
+pub fn validate_contract_envelope(envelope: &ContractEnvelope) -> ContractEnvelopeReceipt {
+    if supported_backend(envelope.backend.as_str()).is_none() {
+        return ContractEnvelopeReceipt {
+            accepted: false,
+            reason: format!("unsupported contract backend {:?}", envelope.backend),
+        };
+    }
+    if envelope.normalized_source_hash.is_empty() {
+        return ContractEnvelopeReceipt {
+            accepted: false,
+            reason: "missing normalized source hash".to_owned(),
+        };
+    }
+    ContractEnvelopeReceipt {
+        accepted: true,
+        reason: "accepted".to_owned(),
+    }
+}
+
+/// Declared effect class for dynamic contract callables.
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ContractEffectClass {
+    /// Pure deterministic predicate with no host effects.
+    Pure,
+    /// Predicate may inspect declared UCAN capability context only.
+    ReadsDeclaredCapabilities,
+    /// Predicate requests a host effect that must be separately authorized.
+    HostEffect,
+}
+
+/// Higher-order callable or predicate descriptor crossing the UCAN contract boundary.
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+pub struct CallableContractDescriptor {
+    /// Stable callable id within the contract source.
+    pub callable_id: String,
+    /// Expected positional arity.
+    pub arity: usize,
+    /// Argument contract ids or hashes in call order.
+    pub argument_contracts: Vec<String>,
+    /// Return contract id or hash.
+    pub return_contract: String,
+    /// UCAN capabilities required before invocation is trusted.
+    #[serde(default)]
+    pub required_capabilities: Vec<CapabilityGrant>,
+    /// Declared determinism/effect class.
+    pub effect_class: ContractEffectClass,
+    /// Hash of normalized callable source/content.
+    pub content_hash: String,
+    /// Redaction class for evidence emitted by the callable.
+    pub redaction_class: String,
+}
+
+/// Bounded Steel Scheme evaluation request DTO.
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+pub struct SteelEvaluationRequest {
+    /// Steel contract envelope selected for evaluation.
+    pub envelope: ContractEnvelope,
+    /// JSON DTO input supplied to Steel.
+    pub input: serde_json::Value,
+    /// Maximum serialized input bytes accepted by Rust before evaluation.
+    pub max_input_bytes: usize,
+    /// Optional higher-order callable descriptor selected for invocation.
+    #[serde(default)]
+    pub callable: Option<CallableContractDescriptor>,
+    /// Host capability requested by Steel; any value is denied by this crate boundary.
+    #[serde(default)]
+    pub requested_host_capability: Option<String>,
+}
+
+/// Steel backend receipt bound to request, authority evidence, and deterministic hash material.
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+pub struct SteelEvaluationReceipt {
+    /// Backend id that produced this receipt.
+    pub backend: String,
+    /// Contract id evaluated by the backend.
+    pub contract_id: String,
+    /// Normalized contract source hash.
+    pub normalized_source_hash: String,
+    /// Hash of the request DTO.
+    pub request_hash: String,
+    /// Whether Steel returned an allow decision.
+    pub allowed: bool,
+    /// Stable decision reason.
+    pub reason: String,
+    /// Structured caveat evidence with deterministic key ordering.
+    #[serde(default)]
+    pub caveat_evidence: BTreeMap<String, String>,
+    /// Declared effect class for the evaluated predicate/callable.
+    pub effect_class: ContractEffectClass,
+    /// Capabilities required by the callable or receipt.
+    #[serde(default)]
+    pub required_capabilities: Vec<CapabilityGrant>,
+    /// Capabilities Rust verified before trusting an allow decision.
+    #[serde(default)]
+    pub checked_capabilities: Vec<CapabilityGrant>,
+    /// Optional BLAKE3 hash of this receipt with this field omitted.
+    #[serde(default)]
+    pub receipt_hash: Option<String>,
+}
+
+/// Validate a higher-order callable descriptor before invocation.
+#[must_use]
+pub fn validate_callable_descriptor(
+    descriptor: &CallableContractDescriptor,
+) -> ContractEnvelopeReceipt {
+    if descriptor.callable_id.is_empty() {
+        return ContractEnvelopeReceipt {
+            accepted: false,
+            reason: "missing callable id".to_owned(),
+        };
+    }
+    if descriptor.arity != descriptor.argument_contracts.len() {
+        return ContractEnvelopeReceipt {
+            accepted: false,
+            reason: "callable arity does not match argument contracts".to_owned(),
+        };
+    }
+    if descriptor.content_hash.is_empty() {
+        return ContractEnvelopeReceipt {
+            accepted: false,
+            reason: "missing callable content hash".to_owned(),
+        };
+    }
+    if descriptor.effect_class == ContractEffectClass::HostEffect
+        && descriptor.required_capabilities.is_empty()
+    {
+        return ContractEnvelopeReceipt {
+            accepted: false,
+            reason: "effectful callable lacks required UCAN capabilities".to_owned(),
+        };
+    }
+    ContractEnvelopeReceipt {
+        accepted: true,
+        reason: "accepted".to_owned(),
+    }
+}
+
+/// Validate a Steel evaluation request without granting any ambient host authority.
+#[must_use]
+pub fn validate_steel_evaluation_request(
+    request: &SteelEvaluationRequest,
+) -> ContractEnvelopeReceipt {
+    let envelope_receipt = validate_contract_envelope(&request.envelope);
+    if !envelope_receipt.accepted {
+        return envelope_receipt;
+    }
+    if request.envelope.backend_kind() != Some(ContractBackendKind::Steel) {
+        return ContractEnvelopeReceipt {
+            accepted: false,
+            reason: "Steel evaluation requires steel backend envelope".to_owned(),
+        };
+    }
+    if request.requested_host_capability.is_some() {
+        return ContractEnvelopeReceipt {
+            accepted: false,
+            reason: "Steel host capability requests are denied by default".to_owned(),
+        };
+    }
+    let input_bytes = match serde_json::to_vec(&request.input) {
+        Ok(bytes) => bytes.len(),
+        Err(_) => {
+            return ContractEnvelopeReceipt {
+                accepted: false,
+                reason: "Steel input DTO is not serializable".to_owned(),
+            };
+        }
+    };
+    if input_bytes > request.max_input_bytes {
+        return ContractEnvelopeReceipt {
+            accepted: false,
+            reason: "Steel input DTO exceeds byte limit".to_owned(),
+        };
+    }
+    if let Some(callable) = &request.callable {
+        let callable_receipt = validate_callable_descriptor(callable);
+        if !callable_receipt.accepted {
+            return callable_receipt;
+        }
+    }
+    ContractEnvelopeReceipt {
+        accepted: true,
+        reason: "accepted".to_owned(),
+    }
+}
+
+/// Compute a stable BLAKE3 hash for a Steel request DTO.
+///
+/// # Panics
+///
+/// Panics only if `serde_json` fails to serialize the crate-owned request DTO shape.
+#[must_use]
+pub fn steel_request_hash(request: &SteelEvaluationRequest) -> String {
+    let bytes = serde_json::to_vec(request).expect("Steel request DTO serialization is infallible");
+    format!("blake3:{}", blake3::hash(bytes.as_slice()).to_hex())
+}
+
+/// Compute a stable BLAKE3 hash for a Steel receipt with `receipt_hash` omitted.
+///
+/// # Panics
+///
+/// Panics only if `serde_json` fails to serialize the crate-owned receipt DTO shape.
+#[must_use]
+pub fn steel_receipt_hash(receipt: &SteelEvaluationReceipt) -> String {
+    let mut hash_material = receipt.clone();
+    hash_material.receipt_hash = None;
+    let bytes =
+        serde_json::to_vec(&hash_material).expect("Steel receipt DTO serialization is infallible");
+    format!("blake3:{}", blake3::hash(bytes.as_slice()).to_hex())
+}
+
+/// Validate authority evidence and optional hash binding for a Steel receipt.
+#[must_use]
+pub fn validate_steel_evaluation_receipt(
+    receipt: &SteelEvaluationReceipt,
+) -> ContractEnvelopeReceipt {
+    if receipt.backend != ContractBackendKind::Steel.as_str() {
+        return ContractEnvelopeReceipt {
+            accepted: false,
+            reason: "Steel receipt uses unsupported backend id".to_owned(),
+        };
+    }
+    if receipt.allowed {
+        let all_required_checked = receipt.required_capabilities.iter().all(|required| {
+            receipt
+                .checked_capabilities
+                .iter()
+                .any(|checked| checked == required)
+        });
+        if !all_required_checked {
+            return ContractEnvelopeReceipt {
+                accepted: false,
+                reason: "Steel allow receipt lacks required UCAN authority evidence".to_owned(),
+            };
+        }
+    }
+    if let Some(expected_hash) = &receipt.receipt_hash {
+        let actual_hash = steel_receipt_hash(receipt);
+        if expected_hash != &actual_hash {
+            return ContractEnvelopeReceipt {
+                accepted: false,
+                reason: "Steel receipt hash mismatch".to_owned(),
+            };
+        }
+    }
+    ContractEnvelopeReceipt {
+        accepted: true,
+        reason: "accepted".to_owned(),
+    }
+}
+
 /// Nickel-exported policy document consumed by [`enforce`].
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub struct Policy {
@@ -73,6 +442,9 @@ pub struct Policy {
     pub schema_version: String,
     /// Policies keyed by contract id.
     pub contracts: BTreeMap<String, ContractPolicy>,
+    /// Contract backend metadata keyed by backend id.
+    #[serde(default)]
+    pub backends: BTreeMap<String, ContractBackendPolicy>,
 }
 
 impl Policy {
@@ -80,6 +452,12 @@ impl Policy {
     #[must_use]
     pub fn contract(&self, id: &str) -> Option<&ContractPolicy> {
         self.contracts.get(id)
+    }
+
+    /// Return backend metadata by id.
+    #[must_use]
+    pub fn backend(&self, id: &str) -> Option<&ContractBackendPolicy> {
+        self.backends.get(id)
     }
 
     /// Return the schema version string carried by this policy.
@@ -386,6 +764,18 @@ mod tests {
 
     const POLICY_JSON: &str = r#"{
       "schema_version": "ucan-nickel-contracts.policy.v1",
+      "backends": {
+        "nickel": {
+          "id": "nickel",
+          "description": "Nickel-authored static policy contracts.",
+          "supports_higher_order": false
+        },
+        "steel": {
+          "id": "steel",
+          "description": "Steel Scheme dynamic predicate contracts.",
+          "supports_higher_order": true
+        }
+      },
       "contracts": {
         "document-write": {
           "id": "document-write",
@@ -546,5 +936,192 @@ mod tests {
         .expect_err("missing allowlists should fail parsing");
 
         assert!(matches!(error, EnforcementError::PolicyJson { .. }));
+    }
+
+    #[test]
+    fn validates_shared_contract_envelope_for_steel_backend() {
+        let envelope = ContractEnvelope::new(
+            "steel",
+            "document-write-predicate",
+            "v1",
+            "blake3:steel-source",
+            "ucan.contract.input.v1",
+            "ucan.contract.output.v1",
+            "ucan.contract.receipt.v1",
+        );
+
+        assert_eq!(envelope.backend_kind(), Some(ContractBackendKind::Steel));
+        let receipt = validate_contract_envelope(&envelope);
+
+        assert!(receipt.is_accepted());
+        assert_eq!(receipt.reason, "accepted");
+    }
+
+    #[test]
+    fn denies_unsupported_contract_envelope_backend() {
+        let envelope = ContractEnvelope::new(
+            "lua",
+            "document-write-predicate",
+            "v1",
+            "blake3:lua-source",
+            "ucan.contract.input.v1",
+            "ucan.contract.output.v1",
+            "ucan.contract.receipt.v1",
+        );
+
+        let receipt = validate_contract_envelope(&envelope);
+
+        assert!(!receipt.is_accepted());
+        assert!(receipt.reason.contains("unsupported contract backend"));
+    }
+
+    #[test]
+    fn parses_backend_policy_metadata() {
+        let policy = parse_policy_json(POLICY_JSON).expect("policy should parse");
+
+        let nickel = policy.backend("nickel").expect("nickel backend exists");
+        assert!(nickel.is_supported());
+        assert!(!nickel.supports_higher_order);
+
+        let steel = policy.backend("steel").expect("steel backend exists");
+        assert!(steel.is_supported());
+        assert!(steel.supports_higher_order);
+    }
+    fn steel_envelope() -> ContractEnvelope {
+        ContractEnvelope::new(
+            "steel",
+            "document-write-predicate",
+            "v1",
+            "blake3:steel-source",
+            "ucan.contract.input.v1",
+            "ucan.contract.output.v1",
+            "ucan.contract.receipt.v1",
+        )
+    }
+
+    fn callable_descriptor() -> CallableContractDescriptor {
+        CallableContractDescriptor {
+            callable_id: "can-write-document".to_owned(),
+            arity: 1,
+            argument_contracts: vec!["document-request.v1".to_owned()],
+            return_contract: "bool".to_owned(),
+            required_capabilities: vec![CapabilityGrant::new(
+                "did:key:z6Mkresource/docs/report",
+                "document/write",
+            )],
+            effect_class: ContractEffectClass::ReadsDeclaredCapabilities,
+            content_hash: "blake3:callable-source".to_owned(),
+            redaction_class: "safe-summary".to_owned(),
+        }
+    }
+
+    #[test]
+    fn validates_bounded_steel_dto_request() {
+        let request = SteelEvaluationRequest {
+            envelope: steel_envelope(),
+            input: serde_json::json!({"resource":"did:key:z6Mkresource/docs/report"}),
+            max_input_bytes: 256,
+            callable: Some(callable_descriptor()),
+            requested_host_capability: None,
+        };
+
+        let receipt = validate_steel_evaluation_request(&request);
+
+        assert!(receipt.is_accepted());
+        assert_eq!(receipt.reason, "accepted");
+        assert!(steel_request_hash(&request).starts_with("blake3:"));
+    }
+
+    #[test]
+    fn denies_steel_request_for_ambient_host_capability() {
+        let request = SteelEvaluationRequest {
+            envelope: steel_envelope(),
+            input: serde_json::json!({"resource":"did:key:z6Mkresource/docs/report"}),
+            max_input_bytes: 256,
+            callable: None,
+            requested_host_capability: Some("filesystem.read".to_owned()),
+        };
+
+        let receipt = validate_steel_evaluation_request(&request);
+
+        assert!(!receipt.is_accepted());
+        assert!(receipt.reason.contains("denied by default"));
+    }
+
+    #[test]
+    fn validates_higher_order_callable_descriptor() {
+        let receipt = validate_callable_descriptor(&callable_descriptor());
+
+        assert!(receipt.is_accepted());
+    }
+
+    #[test]
+    fn denies_opaque_callable_without_content_hash() {
+        let mut descriptor = callable_descriptor();
+        descriptor.content_hash.clear();
+
+        let receipt = validate_callable_descriptor(&descriptor);
+
+        assert!(!receipt.is_accepted());
+        assert!(receipt.reason.contains("content hash"));
+    }
+
+    #[test]
+    fn denies_callable_arity_mismatch() {
+        let mut descriptor = callable_descriptor();
+        descriptor.arity = 2;
+
+        let receipt = validate_callable_descriptor(&descriptor);
+
+        assert!(!receipt.is_accepted());
+        assert!(receipt.reason.contains("arity"));
+    }
+
+    #[test]
+    fn steel_receipt_hash_is_stable() {
+        let capability = CapabilityGrant::new("did:key:z6Mkresource/docs/report", "document/write");
+        let mut receipt = SteelEvaluationReceipt {
+            backend: "steel".to_owned(),
+            contract_id: "document-write-predicate".to_owned(),
+            normalized_source_hash: "blake3:steel-source".to_owned(),
+            request_hash: "blake3:request".to_owned(),
+            allowed: true,
+            reason: "allowed".to_owned(),
+            caveat_evidence: BTreeMap::from([("predicate".to_owned(), "passed".to_owned())]),
+            effect_class: ContractEffectClass::ReadsDeclaredCapabilities,
+            required_capabilities: vec![capability.clone()],
+            checked_capabilities: vec![capability],
+            receipt_hash: None,
+        };
+        let hash = steel_receipt_hash(&receipt);
+        receipt.receipt_hash = Some(hash.clone());
+
+        assert_eq!(steel_receipt_hash(&receipt), hash);
+        assert!(validate_steel_evaluation_receipt(&receipt).is_accepted());
+    }
+
+    #[test]
+    fn rejects_steel_allow_receipt_missing_authority_evidence() {
+        let receipt = SteelEvaluationReceipt {
+            backend: "steel".to_owned(),
+            contract_id: "document-write-predicate".to_owned(),
+            normalized_source_hash: "blake3:steel-source".to_owned(),
+            request_hash: "blake3:request".to_owned(),
+            allowed: true,
+            reason: "allowed".to_owned(),
+            caveat_evidence: BTreeMap::new(),
+            effect_class: ContractEffectClass::ReadsDeclaredCapabilities,
+            required_capabilities: vec![CapabilityGrant::new(
+                "did:key:z6Mkresource/docs/report",
+                "document/write",
+            )],
+            checked_capabilities: Vec::new(),
+            receipt_hash: None,
+        };
+
+        let validation = validate_steel_evaluation_receipt(&receipt);
+
+        assert!(!validation.is_accepted());
+        assert!(validation.reason.contains("authority evidence"));
     }
 }

@@ -1,4 +1,16 @@
 {
+  "backends": {
+    "nickel": {
+      "description": "Nickel-authored static policy contracts.",
+      "id": "nickel",
+      "supports_higher_order": false
+    },
+    "steel": {
+      "description": "Steel Scheme dynamic predicate contracts.",
+      "id": "steel",
+      "supports_higher_order": true
+    }
+  },
   "contracts": {
     "document-read": {
       "abilities": [
