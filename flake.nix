@@ -1,5 +1,5 @@
 {
-  description = "UCAN + Nickel contract enforcement scaffold";
+  description = "Basalt UCAN contract boundary toolkit";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -24,7 +24,7 @@
           ];
         };
 
-        checks.policy-export = pkgs.runCommand "ucan-nickel-policy-export" {
+        checks.policy-export = pkgs.runCommand "basalt-policy-export" {
           nativeBuildInputs = [ pkgs.nickel ];
         } ''
           nickel export ${./contracts/policy.ncl} > exported-policy.json
@@ -32,7 +32,7 @@
           cp exported-policy.json $out
         '';
 
-        checks.release = pkgs.runCommandLocal "ucan-nickel-release-verify" {
+        checks.release = pkgs.runCommandLocal "basalt-release-verify" {
           nativeBuildInputs = [
             pkgs.cargo
             pkgs.cargo-nextest
@@ -52,9 +52,9 @@
           export RELEASE_VERIFY_POLICY_FRESH=1
           export RELEASE_VERIFY_CARGO_STEPS=0
           mkdir -p "$HOME" "$CARGO_HOME" "$out"
-          rustc ${./tools/release-verify.rs} -o "$TMPDIR/ucan-nickel-release-verify"
+          rustc ${./tools/release-verify.rs} -o "$TMPDIR/basalt-release-verify"
           cd ${./.}
-          "$TMPDIR/ucan-nickel-release-verify"
+          "$TMPDIR/basalt-release-verify"
         '';
       });
 }

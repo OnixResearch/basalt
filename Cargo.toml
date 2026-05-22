@@ -1,13 +1,13 @@
 [package]
-name = "ucan-nickel-contracts"
+name = "basalt"
 version = "0.1.0"
 edition = "2024"
 license = "AGPL-3.0-or-later"
-description = "Nickel-authored contract policy enforcement backed by UCAN capabilities."
+description = "Hardened UCAN contract boundaries for Nickel and Steel policy backends."
 readme = "README.md"
-repository = "https://github.com/OnixResearch/ucan-nickel-contracts"
-homepage = "https://github.com/OnixResearch/ucan-nickel-contracts#readme"
-documentation = "https://github.com/OnixResearch/ucan-nickel-contracts#readme"
+repository = "https://github.com/OnixResearch/basalt"
+homepage = "https://github.com/OnixResearch/basalt#readme"
+documentation = "https://github.com/OnixResearch/basalt#readme"
 keywords = ["ucan", "nickel", "policy", "capabilities", "authorization"]
 categories = ["authentication", "config"]
 include = [
@@ -25,7 +25,7 @@ default = []
 cli = ["dep:clap"]
 
 [[bin]]
-name = "ucan-nickel-contracts"
+name = "basalt"
 path = "src/main.rs"
 required-features = ["cli"]
 

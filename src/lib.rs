@@ -5,7 +5,7 @@
 //! [`EnforcementRequest`], and inspect the returned [`EnforcementReceipt`]:
 //!
 //! ```
-//! use ucan_nickel_contracts::{CapabilityGrant, EnforcementRequest, enforce, parse_policy_json};
+//! use basalt::{CapabilityGrant, EnforcementRequest, enforce, parse_policy_json};
 //!
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! let policy_json = r#"{
@@ -42,7 +42,7 @@
 //!
 //! ```
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
-//! let policy = ucan_nickel_contracts::default_policy()?;
+//! let policy = basalt::default_policy()?;
 //! assert!(policy.contract("document-write").is_some());
 //! # Ok(())
 //! # }
@@ -56,6 +56,9 @@ use snafu::Snafu;
 use std::collections::BTreeMap;
 
 /// Policy schema version supported by this crate.
+///
+/// The pre-Basalt schema identifier is intentionally stable because the policy JSON
+/// shape did not change during the package rename.
 pub const SUPPORTED_SCHEMA_VERSION: &str = "ucan-nickel-contracts.policy.v1";
 
 /// Packaged Nickel-exported example policy JSON.

@@ -4,7 +4,7 @@ use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 fn cli_binary() -> Option<&'static str> {
-    let binary = option_env!("CARGO_BIN_EXE_ucan-nickel-contracts")?;
+    let binary = option_env!("CARGO_BIN_EXE_basalt")?;
     if Path::new(binary).exists() {
         Some(binary)
     } else {
@@ -20,7 +20,7 @@ fn unique_policy_path(name: &str) -> PathBuf {
         .expect("system time should be after epoch")
         .as_nanos();
     std::env::temp_dir().join(format!(
-        "ucan-nickel-contracts-{name}-{}-{unique}.json",
+        "basalt-{name}-{}-{unique}.json",
         std::process::id()
     ))
 }

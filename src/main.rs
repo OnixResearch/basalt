@@ -1,12 +1,12 @@
+use basalt::CapabilityGrant;
+use basalt::EnforcementRequest;
+use basalt::enforce;
+use basalt::parse_policy_json;
 use clap::Parser;
 use clap::Subcommand;
 use snafu::ResultExt;
 use snafu::Snafu;
 use std::fs;
-use ucan_nickel_contracts::CapabilityGrant;
-use ucan_nickel_contracts::EnforcementRequest;
-use ucan_nickel_contracts::enforce;
-use ucan_nickel_contracts::parse_policy_json;
 
 #[derive(Debug, Parser)]
 #[command(version, about)]
@@ -42,9 +42,7 @@ enum CliError {
         source: std::io::Error,
     },
     #[snafu(display("enforcement failed: {source}"))]
-    Enforce {
-        source: ucan_nickel_contracts::EnforcementError,
-    },
+    Enforce { source: basalt::EnforcementError },
     #[snafu(display("failed to serialize receipt: {source}"))]
     Serialize { source: serde_json::Error },
 }

@@ -1,4 +1,4 @@
-use ucan_nickel_contracts::{
+use basalt::{
     CapabilityGrant, EnforcementError, EnforcementRequest, default_policy, enforce,
     parse_policy_json,
 };
