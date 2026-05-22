@@ -109,6 +109,7 @@ nix build .#checks.$(nix eval --raw --impure --expr builtins.currentSystem).poli
 nix develop -c env CARGO_TARGET_DIR=/tmp/ucan-nickel-contracts-target RUSTC_WRAPPER= CARGO_NET_GIT_FETCH_WITH_CLI=true cargo fmt --check
 nix develop -c env CARGO_TARGET_DIR=/tmp/ucan-nickel-contracts-target RUSTC_WRAPPER= CARGO_NET_GIT_FETCH_WITH_CLI=true cargo test --no-default-features
 nix develop -c env CARGO_TARGET_DIR=/tmp/ucan-nickel-contracts-target RUSTC_WRAPPER= CARGO_NET_GIT_FETCH_WITH_CLI=true cargo test --features cli
+# The feature-enabled test rail includes the external-style CLI smoke in tests/cli_feature.rs.
 nix develop -c env CARGO_TARGET_DIR=/tmp/ucan-nickel-contracts-target RUSTC_WRAPPER= CARGO_NET_GIT_FETCH_WITH_CLI=true cargo clippy --all-targets --features cli -- -D warnings
 nix develop -c env CARGO_TARGET_DIR=/tmp/ucan-nickel-contracts-package-target RUSTC_WRAPPER= CARGO_NET_GIT_FETCH_WITH_CLI=true cargo package --allow-dirty --no-verify
 ```
