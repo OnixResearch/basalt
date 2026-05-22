@@ -101,3 +101,26 @@ fn public_api_reports_invalid_capability() {
 
     assert!(matches!(error, EnforcementError::InvalidCapability { .. }));
 }
+
+#[test]
+fn public_api_dtos_serialize_and_expose_accessors() {
+    let grant = CapabilityGrant::new("did:key:z6Mkresource/docs/report", "document/write");
+    assert_eq!(grant.resource(), "did:key:z6Mkresource/docs/report");
+    assert_eq!(grant.ability(), "document/write");
+
+    let request = EnforcementRequest::new(
+        "document-write",
+        "did:key:z6Mkresource/docs/report",
+        "document/write",
+    )
+    .with_capability(grant.clone());
+    assert_eq!(request.contract(), "document-write");
+    assert_eq!(request.resource(), "did:key:z6Mkresource/docs/report");
+    assert_eq!(request.ability(), "document/write");
+    assert_eq!(request.capabilities(), &[grant]);
+
+    let json = serde_json::to_string(&request).expect("request should serialize");
+    let roundtrip: EnforcementRequest =
+        serde_json::from_str(&json).expect("request should deserialize");
+    assert_eq!(roundtrip, request);
+}

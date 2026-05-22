@@ -37,6 +37,16 @@
 //! # Ok(())
 //! # }
 //! ```
+//!
+//! The packaged example policy is also available for smoke tests:
+//!
+//! ```
+//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
+//! let policy = ucan_nickel_contracts::default_policy()?;
+//! assert!(policy.contract("document-write").is_some());
+//! # Ok(())
+//! # }
+//! ```
 
 #![allow(clippy::multiple_crate_versions)]
 
@@ -446,5 +456,95 @@ mod tests {
 
         assert!(!receipt.allowed);
         assert!(receipt.reason.contains("ucan capability set"));
+    }
+
+    #[test]
+    fn denies_resource_prefix_sibling_boundary() {
+        let policy = parse_policy_json(POLICY_JSON).expect("policy should parse");
+        let receipt = enforce(
+            &policy,
+            &request("did:key:z6Mkresource/docs-private/report", "document/write"),
+        )
+        .expect("enforcement should not error");
+
+        assert!(receipt.is_denied());
+        assert!(receipt.reason().contains("outside contract"));
+    }
+
+    #[test]
+    fn allows_when_one_of_many_capabilities_authorizes_request() {
+        let policy = parse_policy_json(POLICY_JSON).expect("policy should parse");
+        let request = EnforcementRequest::new(
+            "document-write",
+            "did:key:z6Mkresource/docs/report",
+            "document/write",
+        )
+        .with_capabilities(vec![
+            CapabilityGrant::new("did:key:z6Mkresource/docs/other", "document/write"),
+            CapabilityGrant::new("did:key:z6Mkresource/docs/report", "document/write"),
+        ]);
+
+        let receipt = enforce(&policy, &request).expect("enforcement should not error");
+
+        assert!(receipt.is_allowed());
+    }
+
+    #[test]
+    fn denies_unknown_contract_without_ucan_check() {
+        let policy = parse_policy_json(POLICY_JSON).expect("policy should parse");
+        let request = EnforcementRequest::new(
+            "unknown-contract",
+            "did:key:z6Mkresource/docs/report",
+            "document/write",
+        )
+        .with_capability(CapabilityGrant::new("", ""));
+
+        let receipt = enforce(&policy, &request).expect("unknown contract should deny");
+
+        assert!(receipt.is_denied());
+        assert!(receipt.reason().contains("unknown contract"));
+    }
+
+    #[test]
+    fn denies_contract_key_and_policy_id_mismatch() {
+        let policy_json = r#"{
+          "schema_version": "ucan-nickel-contracts.policy.v1",
+          "contracts": {
+            "document-write": {
+              "id": "other-contract",
+              "description": "Mismatched id.",
+              "resource_prefixes": ["did:key:z6Mkresource/docs/"],
+              "abilities": ["document/write"]
+            }
+          }
+        }"#;
+        let policy = parse_policy_json(policy_json).expect("policy should parse");
+
+        let receipt = enforce(
+            &policy,
+            &request("did:key:z6Mkresource/docs/report", "document/write"),
+        )
+        .expect("id mismatch should deny");
+
+        assert!(receipt.is_denied());
+        assert!(receipt.reason().contains("does not match policy id"));
+    }
+
+    #[test]
+    fn malformed_contract_shape_fails_closed_at_parse() {
+        let error = parse_policy_json(
+            r#"{
+              "schema_version": "ucan-nickel-contracts.policy.v1",
+              "contracts": {
+                "document-write": {
+                  "id": "document-write",
+                  "description": "Missing required allowlists."
+                }
+              }
+            }"#,
+        )
+        .expect_err("missing allowlists should fail parsing");
+
+        assert!(matches!(error, EnforcementError::PolicyJson { .. }));
     }
 }

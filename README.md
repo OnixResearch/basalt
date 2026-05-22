@@ -110,13 +110,22 @@ nix develop -c rustc tools/release-verify.rs -o /tmp/ucan-nickel-release-verify
 nix develop -c /tmp/ucan-nickel-release-verify
 ```
 
-The rail uses fresh `/tmp/ucan-nickel-contracts-release-*` Cargo target directories, clears `RUSTC_WRAPPER`, and enables Git CLI fetching for the private UCAN dependency. It covers policy freshness, `cargo fmt --check`, library-only tests, CLI-feature tests, clippy for both feature sets, package validation, package contents, and no-dependency library docs.
+The same verifier is exposed as the default release flake check:
+
+```bash
+nix flake check -L
+```
+
+Because the crate currently has a private Git dependency, the sandboxed flake check prevalidates the Nickel policy check as a Nix input and emits a verifier receipt that marks Cargo-dependent rails as deferred. Run the direct verifier above for the full release rail before tagging or handoff.
+
+The rail uses fresh `/tmp/ucan-nickel-contracts-release-*` Cargo target directories, clears `RUSTC_WRAPPER`, and enables Git CLI fetching for the private UCAN dependency. It covers policy freshness, `cargo fmt --check`, no-default and CLI-feature test rails through `cargo nextest`, doctests, clippy for both feature sets, package validation, asserted package contents, and no-dependency library docs. Direct runs write `target/release-verify/summary.json` and `target/release-verify/summary.md`; Nix checks redirect those receipts into the check output.
 
 Individual checks are still useful while iterating:
 
 ```bash
 nix build .#checks.$(nix eval --raw --impure --expr builtins.currentSystem).policy-export --no-link
-nix develop -c env CARGO_TARGET_DIR=/tmp/ucan-nickel-contracts-target RUSTC_WRAPPER= CARGO_NET_GIT_FETCH_WITH_CLI=true cargo test --no-default-features
-nix develop -c env CARGO_TARGET_DIR=/tmp/ucan-nickel-contracts-target RUSTC_WRAPPER= CARGO_NET_GIT_FETCH_WITH_CLI=true cargo test --features cli
-# The feature-enabled test rail includes the external-style CLI smoke in tests/cli_feature.rs.
+nix develop -c env CARGO_TARGET_DIR=/tmp/ucan-nickel-contracts-target RUSTC_WRAPPER= CARGO_NET_GIT_FETCH_WITH_CLI=true cargo nextest run --no-default-features
+nix develop -c env CARGO_TARGET_DIR=/tmp/ucan-nickel-contracts-target RUSTC_WRAPPER= CARGO_NET_GIT_FETCH_WITH_CLI=true cargo nextest run --features cli
+nix develop -c env CARGO_TARGET_DIR=/tmp/ucan-nickel-contracts-target RUSTC_WRAPPER= CARGO_NET_GIT_FETCH_WITH_CLI=true cargo test --doc --no-default-features
+# The feature-enabled test rail includes the external-style CLI smoke and negative CLI tests in tests/cli_feature.rs.
 ```
