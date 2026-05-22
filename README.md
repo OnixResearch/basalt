@@ -20,7 +20,7 @@ Package metadata is kept in `Cargo.toml` for downstream discovery: the crate sta
 mkdir -p contracts/generated
 nickel export contracts/policy.ncl > contracts/generated/policy.json
 cargo test
-cargo run -- enforce \
+cargo run --features cli -- enforce \
   --policy contracts/generated/policy.json \
   --contract document-write \
   --resource did:key:z6Mkresource/docs/report \
@@ -32,6 +32,14 @@ Expected CLI output for the sample request:
 
 ```json
 {"allowed":true,"reason":"allowed"}
+```
+
+## CLI feature
+
+Library consumers get enforcement APIs without enabling CLI parser dependencies by default. Operators who want the bundled `ucan-nickel-contracts` command should enable the `cli` feature:
+
+```bash
+cargo run --features cli -- enforce --help
 ```
 
 ## UCAN dependency source
@@ -59,7 +67,8 @@ crates.io `ucan` package.
 ```bash
 nix develop -c nickel export contracts/policy.ncl >/tmp/ucan-nickel-policy.json
 nix develop -c env CARGO_TARGET_DIR=/tmp/ucan-nickel-contracts-target RUSTC_WRAPPER= CARGO_NET_GIT_FETCH_WITH_CLI=true cargo fmt --check
-nix develop -c env CARGO_TARGET_DIR=/tmp/ucan-nickel-contracts-target RUSTC_WRAPPER= CARGO_NET_GIT_FETCH_WITH_CLI=true cargo test
-nix develop -c env CARGO_TARGET_DIR=/tmp/ucan-nickel-contracts-target RUSTC_WRAPPER= CARGO_NET_GIT_FETCH_WITH_CLI=true cargo clippy --all-targets -- -D warnings
+nix develop -c env CARGO_TARGET_DIR=/tmp/ucan-nickel-contracts-target RUSTC_WRAPPER= CARGO_NET_GIT_FETCH_WITH_CLI=true cargo test --no-default-features
+nix develop -c env CARGO_TARGET_DIR=/tmp/ucan-nickel-contracts-target RUSTC_WRAPPER= CARGO_NET_GIT_FETCH_WITH_CLI=true cargo test --features cli
+nix develop -c env CARGO_TARGET_DIR=/tmp/ucan-nickel-contracts-target RUSTC_WRAPPER= CARGO_NET_GIT_FETCH_WITH_CLI=true cargo clippy --all-targets --features cli -- -D warnings
 nix develop -c env CARGO_TARGET_DIR=/tmp/ucan-nickel-contracts-package-target RUSTC_WRAPPER= CARGO_NET_GIT_FETCH_WITH_CLI=true cargo package --allow-dirty --no-verify
 ```

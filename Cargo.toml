@@ -11,8 +11,17 @@ documentation = "https://github.com/OnixResearch/ucan-nickel-contracts#readme"
 keywords = ["ucan", "nickel", "policy", "capabilities", "authorization"]
 categories = ["authentication", "config"]
 
+[features]
+default = []
+cli = ["dep:clap"]
+
+[[bin]]
+name = "ucan-nickel-contracts"
+path = "src/main.rs"
+required-features = ["cli"]
+
 [dependencies]
-clap = { version = "4.5", features = ["derive"] }
+clap = { version = "4.5", features = ["derive"], optional = true }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 snafu = "0.8"
