@@ -10,6 +10,15 @@ homepage = "https://github.com/OnixResearch/ucan-nickel-contracts#readme"
 documentation = "https://github.com/OnixResearch/ucan-nickel-contracts#readme"
 keywords = ["ucan", "nickel", "policy", "capabilities", "authorization"]
 categories = ["authentication", "config"]
+include = [
+    "src/**",
+    "tests/**",
+    "contracts/policy.ncl",
+    "contracts/generated/policy.json",
+    "README.md",
+    "Cargo.toml",
+    "Cargo.lock",
+]
 
 [features]
 default = []

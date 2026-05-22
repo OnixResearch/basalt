@@ -1,6 +1,7 @@
 //! Public API for enforcing Nickel-authored contract policy with UCAN capability checks.
 //!
-//! Library consumers typically parse a Nickel-exported JSON policy, build an
+//! Library consumers either parse their own Nickel-exported JSON policy or start
+//! from the packaged [`DEFAULT_POLICY_JSON`] example policy, build an
 //! [`EnforcementRequest`], and inspect the returned [`EnforcementReceipt`]:
 //!
 //! ```
@@ -46,6 +47,14 @@ use std::collections::BTreeMap;
 
 /// Policy schema version supported by this crate.
 pub const SUPPORTED_SCHEMA_VERSION: &str = "ucan-nickel-contracts.policy.v1";
+
+/// Packaged Nickel-exported example policy JSON.
+///
+/// This is generated from `contracts/policy.ncl` and is included in the crate
+/// package so downstream applications can smoke-test integration without
+/// carrying a Nickel toolchain. Production applications may provide their own
+/// reviewed policy JSON to [`parse_policy_json`].
+pub const DEFAULT_POLICY_JSON: &str = include_str!("../contracts/generated/policy.json");
 
 /// Nickel-exported policy document consumed by [`enforce`].
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
@@ -264,6 +273,16 @@ pub enum EnforcementError {
 }
 
 pub type EnforcementResult<T> = Result<T, EnforcementError>;
+
+/// Load the packaged example policy JSON.
+///
+/// # Errors
+///
+/// Returns [`EnforcementError`] if the checked-in generated policy artifact is malformed
+/// or carries an unsupported schema version.
+pub fn default_policy() -> EnforcementResult<Policy> {
+    parse_policy_json(DEFAULT_POLICY_JSON)
+}
 
 /// Load a Nickel-exported JSON policy and validate the schema version expected by this crate.
 ///

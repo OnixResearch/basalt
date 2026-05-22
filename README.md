@@ -34,14 +34,29 @@ Expected CLI output for the sample request:
 {"allowed":true,"reason":"allowed"}
 ```
 
+## Policy artifact consumption
+
+The crate ships `contracts/policy.ncl` as the reviewed Nickel source and `contracts/generated/policy.json` as the packaged example policy artifact. The Rust library exposes that generated artifact as `DEFAULT_POLICY_JSON` plus `default_policy()` so downstream applications can smoke-test without a Nickel toolchain.
+
+Production applications should either:
+
+- supply their own reviewed Nickel-exported policy JSON to `parse_policy_json`; or
+- intentionally use the packaged example policy via `default_policy()` when its contracts match their application.
+
+The generated artifact is package-included in `Cargo.toml`. Release verification must run the Nickel freshness check so drift between `contracts/policy.ncl` and `contracts/generated/policy.json` fails before packaging:
+
+```bash
+nix build .#checks.$(nix eval --raw --impure --expr builtins.currentSystem).policy-export --no-link
+```
+
 ## Library API
 
 Applications can depend on the crate with default features and call the public enforcement API directly:
 
 ```rust
-use ucan_nickel_contracts::{CapabilityGrant, EnforcementRequest, enforce, parse_policy_json};
+use ucan_nickel_contracts::{CapabilityGrant, EnforcementRequest, default_policy, enforce};
 
-let policy = parse_policy_json(policy_json)?;
+let policy = default_policy()?;
 let request = EnforcementRequest::new(
     "document-write",
     "did:key:z6Mkresource/docs/report",
@@ -90,6 +105,7 @@ crates.io `ucan` package.
 
 ```bash
 nix develop -c nickel export contracts/policy.ncl >/tmp/ucan-nickel-policy.json
+nix build .#checks.$(nix eval --raw --impure --expr builtins.currentSystem).policy-export --no-link
 nix develop -c env CARGO_TARGET_DIR=/tmp/ucan-nickel-contracts-target RUSTC_WRAPPER= CARGO_NET_GIT_FETCH_WITH_CLI=true cargo fmt --check
 nix develop -c env CARGO_TARGET_DIR=/tmp/ucan-nickel-contracts-target RUSTC_WRAPPER= CARGO_NET_GIT_FETCH_WITH_CLI=true cargo test --no-default-features
 nix develop -c env CARGO_TARGET_DIR=/tmp/ucan-nickel-contracts-target RUSTC_WRAPPER= CARGO_NET_GIT_FETCH_WITH_CLI=true cargo test --features cli

@@ -24,7 +24,9 @@
         checks.policy-export = pkgs.runCommand "ucan-nickel-policy-export" {
           nativeBuildInputs = [ pkgs.nickel ];
         } ''
-          nickel export ${./contracts/policy.ncl} > $out
+          nickel export ${./contracts/policy.ncl} > exported-policy.json
+          cmp exported-policy.json ${./contracts/generated/policy.json}
+          cp exported-policy.json $out
         '';
       });
 }
