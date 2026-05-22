@@ -120,9 +120,9 @@ The same verifier is exposed as the default release flake check:
 nix flake check -L
 ```
 
-Because the crate currently has a private Git dependency, the sandboxed flake check prevalidates the Nickel policy check as a Nix input and emits a verifier receipt that marks Cargo-dependent rails as deferred. Run the direct verifier above for the full release rail before tagging or handoff.
+Because the crate currently has a private Git dependency, the sandboxed flake check prevalidates the Nickel policy check as a Nix input and emits a verifier receipt that marks Cargo-dependent rails as deferred. Run the direct verifier above for the full release rail before tagging or handoff. The checked-in GitHub Actions workflow runs this sandbox-safe `nix flake check -L` path without repository secrets; maintainers with private UCAN dependency access should run the direct verifier in their trusted environment for full Cargo coverage.
 
-The rail uses fresh `/tmp/basalt-release-*` Cargo target directories, clears `RUSTC_WRAPPER`, and enables Git CLI fetching for the private UCAN dependency. It covers policy freshness, `cargo fmt --check`, AGPL license metadata preservation, no-default and CLI-feature test rails through `cargo nextest`, doctests, clippy for both feature sets, package validation, asserted package contents, and no-dependency library docs. Direct runs write `target/release-verify/summary.json` and `target/release-verify/summary.md`; Nix checks redirect those receipts into the check output.
+The rail uses fresh `/tmp/basalt-release-*` Cargo target directories, clears `RUSTC_WRAPPER`, and enables Git CLI fetching for the private UCAN dependency. It covers policy freshness, `cargo fmt --check`, AGPL license metadata preservation, no-default and CLI-feature test rails through `cargo nextest`, deterministic property/Steel-adapter/UCAN-token fixture tests, doctests, clippy for both feature sets, package validation, asserted package contents, the `../clankers/` downstream consumer fixture when present, and no-dependency library docs. Direct runs write `target/release-verify/summary.json` and `target/release-verify/summary.md`; Nix checks redirect those receipts into the check output, and CI uploads the summary files when the build result exposes them.
 
 Individual checks are still useful while iterating:
 

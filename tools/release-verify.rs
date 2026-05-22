@@ -13,6 +13,8 @@ const POLICY_FRESH_ENV: &str = "RELEASE_VERIFY_POLICY_FRESH";
 const CARGO_STEPS_ENV: &str = "RELEASE_VERIFY_CARGO_STEPS";
 const DEFAULT_TARGET_DIR: &str = "/tmp/basalt-release-target";
 const PACKAGE_TARGET_DIR: &str = "/tmp/basalt-release-package-target";
+const CLANKERS_TARGET_DIR: &str = "/tmp/basalt-clankers-consumer-target";
+const CLANKERS_CONSUMER_MANIFEST: &str = "../clankers/examples/basalt-consumer-fixture/Cargo.toml";
 const DEFAULT_RECEIPT_DIR: &str = "target/release-verify";
 const OUTPUT_TAIL_LIMIT: usize = 4_096;
 const REQUIRED_LICENSE: &str = "AGPL-3.0-or-later";
@@ -28,7 +30,10 @@ const REQUIRED_PACKAGE_PATHS: &[&str] = &[
     "tests/cli_feature.rs",
     "tests/consumer_boundary.rs",
     "tests/policy_artifact.rs",
+    "tests/production_ucan_token_flow.rs",
+    "tests/property_harness.rs",
     "tests/public_api.rs",
+    "tests/steel_adapter_fixture.rs",
 ];
 
 struct Step {
@@ -46,6 +51,7 @@ enum StepKind {
     LicenseMetadata,
     PolicyFreshness,
     PackageContents,
+    ClankersConsumerFixture,
 }
 
 struct StepReceipt {
@@ -103,6 +109,40 @@ fn main() -> ExitCode {
             name: "library tests",
             program: "cargo",
             args: &["nextest", "run", "--no-default-features"],
+            target_dir: DEFAULT_TARGET_DIR,
+            cargo_env: true,
+            kind: StepKind::Normal,
+        },
+        Step {
+            name: "property harness tests",
+            program: "cargo",
+            args: &["test", "--test", "property_harness", "--no-default-features"],
+            target_dir: DEFAULT_TARGET_DIR,
+            cargo_env: true,
+            kind: StepKind::Normal,
+        },
+        Step {
+            name: "Steel adapter fixture tests",
+            program: "cargo",
+            args: &[
+                "test",
+                "--test",
+                "steel_adapter_fixture",
+                "--no-default-features",
+            ],
+            target_dir: DEFAULT_TARGET_DIR,
+            cargo_env: true,
+            kind: StepKind::Normal,
+        },
+        Step {
+            name: "UCAN token flow fixture tests",
+            program: "cargo",
+            args: &[
+                "test",
+                "--test",
+                "production_ucan_token_flow",
+                "--no-default-features",
+            ],
             target_dir: DEFAULT_TARGET_DIR,
             cargo_env: true,
             kind: StepKind::Normal,
@@ -171,6 +211,19 @@ fn main() -> ExitCode {
             kind: StepKind::PackageContents,
         },
         Step {
+            name: "Clankers consumer fixture",
+            program: "cargo",
+            args: &[
+                "test",
+                "--manifest-path",
+                CLANKERS_CONSUMER_MANIFEST,
+                "--no-default-features",
+            ],
+            target_dir: CLANKERS_TARGET_DIR,
+            cargo_env: true,
+            kind: StepKind::ClankersConsumerFixture,
+        },
+        Step {
             name: "library docs",
             program: "cargo",
             args: &["doc", "--no-deps", "--no-default-features"],
@@ -230,6 +283,23 @@ fn run_step(root: &Path, step: &Step) -> StepReceipt {
             success: true,
             elapsed: Duration::ZERO,
             stdout_tail: "skipped: run the direct release verifier for Cargo-dependent rails".to_owned(),
+            stderr_tail: String::new(),
+        };
+    }
+
+    if matches!(step.kind, StepKind::ClankersConsumerFixture)
+        && !root.join(CLANKERS_CONSUMER_MANIFEST).exists()
+    {
+        println!("==> {}", step.name);
+        return StepReceipt {
+            name: step.name,
+            command: format!("cargo test --manifest-path {CLANKERS_CONSUMER_MANIFEST}"),
+            status: Some(0),
+            success: true,
+            elapsed: Duration::ZERO,
+            stdout_tail: format!(
+                "deferred: {CLANKERS_CONSUMER_MANIFEST} is unavailable in this checkout"
+            ),
             stderr_tail: String::new(),
         };
     }

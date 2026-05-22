@@ -371,3 +371,87 @@ r[crate_consumability.rename_basalt.rename_verification.gates]
 - GIVEN the Basalt rename is implemented
 - WHEN formatting, tests, clippy, policy freshness, Nix flake checks, Cairn validation, and stale-name classification run
 - THEN the renamed crate is ready to commit without unreviewed stale identity references
+
+### Requirement: The repo MUST provide a checked-in default CI release-readiness workflow.
+
+r[crate_consumability.ci_release_workflow.default_flake_ci] The repo MUST provide a checked-in default CI release-readiness workflow.
+
+#### Scenario: Default flake CI
+
+r[crate_consumability.ci_release_workflow.default_flake_ci.workflow_runs_flake_check]
+
+- GIVEN a maintainer opens a change against the crate
+- WHEN the default CI workflow runs without private dependency credentials
+- THEN it runs the sandbox-safe flake release gate and fails if the flake verifier or policy freshness check fails
+
+### Requirement: The default CI workflow MUST be safe to run without repository secrets.
+
+r[crate_consumability.ci_release_workflow.secret_safe_default] The default CI workflow MUST be safe to run without repository secrets.
+
+#### Scenario: No default secrets
+
+r[crate_consumability.ci_release_workflow.secret_safe_default.no_secret_required]
+
+- GIVEN the default CI workflow is reviewed
+- WHEN no private SSH key, deploy token, or credential secret is configured
+- THEN the workflow still runs its public/sandbox-safe checks and does not embed credential values in repository content
+
+### Requirement: The full direct release verifier path MUST be documented for CI environments with private dependency access.
+
+r[crate_consumability.ci_release_workflow.full_verifier_private_access] The full direct release verifier path MUST be documented for CI environments with private dependency access.
+
+#### Scenario: Private access verifier
+
+r[crate_consumability.ci_release_workflow.full_verifier_private_access.documented_full_mode]
+
+- GIVEN a maintainer provisions private UCAN dependency access in CI
+- WHEN they configure the full release verifier job
+- THEN the docs identify the direct verifier command and the private dependency access boundary without committing credentials
+
+### Requirement: CI release verification SHOULD retain inspectable verifier receipts.
+
+r[crate_consumability.ci_release_workflow.receipt_artifacts] CI release verification SHOULD retain inspectable verifier receipts.
+
+#### Scenario: Receipt artifacts
+
+r[crate_consumability.ci_release_workflow.receipt_artifacts.inspectable_receipts]
+
+- GIVEN CI runs the release verifier or flake release gate
+- WHEN verifier receipts are produced
+- THEN JSON and Markdown summaries are retained as logs or artifacts for reviewer inspection
+
+### Requirement: The release rail MUST build Clankers as the separate consumer fixture against Basalt's public package surface.
+
+r[crate_consumability.external_consumer_fixture.separate_consumer] The release rail MUST build `../clankers/` as the separate consumer fixture against Basalt's public package surface rather than relying only on in-package integration tests.
+
+#### Scenario: Separate consumer build
+
+r[crate_consumability.external_consumer_fixture.separate_consumer.build]
+
+- GIVEN `../clankers/` depends on Basalt through the public package surface or an explicit sibling-repo override
+- WHEN the fixture builds with the default library feature set
+- THEN it imports `basalt` through public APIs without requiring CLI-only dependencies, private Basalt internals, or broad Clankers architecture rewrites
+
+### Requirement: The consumer fixture MUST exercise policy consumption and enforcement receipts through public APIs.
+
+r[crate_consumability.external_consumer_fixture.public_api_behavior] The Clankers consumer fixture MUST exercise policy consumption and enforcement receipts through public APIs.
+
+#### Scenario: Consumer policy and receipts
+
+r[crate_consumability.external_consumer_fixture.public_api_behavior.policy_and_receipts]
+
+- GIVEN the Clankers fixture uses packaged default policy and supplied policy JSON
+- WHEN it constructs requests, supplies capabilities, and inspects receipts
+- THEN allowed, denied, and malformed/unsupported policy cases behave deterministically through public APIs
+
+### Requirement: The release verifier MUST record consumer-fixture evidence.
+
+r[crate_consumability.external_consumer_fixture.release_evidence] The release verifier MUST record Clankers consumer-fixture evidence in its machine-readable and human-readable receipts.
+
+#### Scenario: Fixture receipt
+
+r[crate_consumability.external_consumer_fixture.release_evidence.receipt_step]
+
+- GIVEN release verification runs
+- WHEN the Clankers consumer fixture step passes, fails, or is explicitly deferred because `../clankers/` or private dependency access is unavailable
+- THEN the verifier receipt records the fixture command, status, bounded output, and deferral reason if any
