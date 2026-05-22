@@ -34,6 +34,30 @@ Expected CLI output for the sample request:
 {"allowed":true,"reason":"allowed"}
 ```
 
+## Library API
+
+Applications can depend on the crate with default features and call the public enforcement API directly:
+
+```rust
+use ucan_nickel_contracts::{CapabilityGrant, EnforcementRequest, enforce, parse_policy_json};
+
+let policy = parse_policy_json(policy_json)?;
+let request = EnforcementRequest::new(
+    "document-write",
+    "did:key:z6Mkresource/docs/report",
+    "document/write",
+)
+.with_capability(CapabilityGrant::new(
+    "did:key:z6Mkresource/docs/report",
+    "document/write",
+));
+
+let receipt = enforce(&policy, &request)?;
+assert!(receipt.is_allowed());
+assert_eq!(receipt.reason(), "allowed");
+# Ok::<(), Box<dyn std::error::Error>>(())
+```
+
 ## CLI feature
 
 Library consumers get enforcement APIs without enabling CLI parser dependencies by default. Operators who want the bundled `ucan-nickel-contracts` command should enable the `cli` feature:
