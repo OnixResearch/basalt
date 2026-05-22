@@ -1,0 +1,5 @@
+[net]
+git-fetch-with-cli = true
+
+[patch.crates-io]
+ucan = { git = "ssh://git@github.com/OnixResearch/ucan.git", rev = "ad61b53e89fa45f9bf7d313ce14c45de645bf53d" }

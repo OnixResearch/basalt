@@ -32,11 +32,32 @@ Expected CLI output for the sample request:
 {"allowed":true,"reason":"allowed"}
 ```
 
+## UCAN dependency source
+
+The crate consumes `ucan` from the authoritative remote repository so downstream
+applications use the same SSH-authenticated remote that this private repository
+uses, instead of requiring this repo to be checked out next to a sibling
+`../ucan` tree. For local UCAN development, keep the public manifest
+remote-based and use a consumer-local Cargo patch in the consuming application's
+`.cargo/config.toml` instead:
+
+```toml
+[patch."ssh://git@github.com/OnixResearch/ucan.git"]
+ucan = { path = "../ucan" }
+```
+
 ## Verification
+
+Use a fresh target directory and no inherited Rust compiler wrapper to avoid
+shared stale Cargo artifact failures. This repo also checks in `.cargo/config.toml`
+so Cargo uses the Git CLI for the private SSH dependency and keeps package
+preparation pointed at the reviewed remote UCAN revision instead of the stale
+crates.io `ucan` package.
 
 ```bash
 nix develop -c nickel export contracts/policy.ncl >/tmp/ucan-nickel-policy.json
-nix develop -c cargo fmt --check
-nix develop -c cargo test
-nix develop -c cargo clippy --all-targets -- -D warnings
+nix develop -c env CARGO_TARGET_DIR=/tmp/ucan-nickel-contracts-target RUSTC_WRAPPER= CARGO_NET_GIT_FETCH_WITH_CLI=true cargo fmt --check
+nix develop -c env CARGO_TARGET_DIR=/tmp/ucan-nickel-contracts-target RUSTC_WRAPPER= CARGO_NET_GIT_FETCH_WITH_CLI=true cargo test
+nix develop -c env CARGO_TARGET_DIR=/tmp/ucan-nickel-contracts-target RUSTC_WRAPPER= CARGO_NET_GIT_FETCH_WITH_CLI=true cargo clippy --all-targets -- -D warnings
+nix develop -c env CARGO_TARGET_DIR=/tmp/ucan-nickel-contracts-package-target RUSTC_WRAPPER= CARGO_NET_GIT_FETCH_WITH_CLI=true cargo package --allow-dirty --no-verify
 ```
