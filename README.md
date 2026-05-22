@@ -103,13 +103,20 @@ so Cargo uses the Git CLI for the private SSH dependency and keeps package
 preparation pointed at the reviewed remote UCAN revision instead of the stale
 crates.io `ucan` package.
 
+Run the single release rail before tagging or handing the crate to downstream applications:
+
 ```bash
-nix develop -c nickel export contracts/policy.ncl >/tmp/ucan-nickel-policy.json
+nix develop -c rustc tools/release-verify.rs -o /tmp/ucan-nickel-release-verify
+nix develop -c /tmp/ucan-nickel-release-verify
+```
+
+The rail uses fresh `/tmp/ucan-nickel-contracts-release-*` Cargo target directories, clears `RUSTC_WRAPPER`, and enables Git CLI fetching for the private UCAN dependency. It covers policy freshness, `cargo fmt --check`, library-only tests, CLI-feature tests, clippy for both feature sets, package validation, package contents, and no-dependency library docs.
+
+Individual checks are still useful while iterating:
+
+```bash
 nix build .#checks.$(nix eval --raw --impure --expr builtins.currentSystem).policy-export --no-link
-nix develop -c env CARGO_TARGET_DIR=/tmp/ucan-nickel-contracts-target RUSTC_WRAPPER= CARGO_NET_GIT_FETCH_WITH_CLI=true cargo fmt --check
 nix develop -c env CARGO_TARGET_DIR=/tmp/ucan-nickel-contracts-target RUSTC_WRAPPER= CARGO_NET_GIT_FETCH_WITH_CLI=true cargo test --no-default-features
 nix develop -c env CARGO_TARGET_DIR=/tmp/ucan-nickel-contracts-target RUSTC_WRAPPER= CARGO_NET_GIT_FETCH_WITH_CLI=true cargo test --features cli
 # The feature-enabled test rail includes the external-style CLI smoke in tests/cli_feature.rs.
-nix develop -c env CARGO_TARGET_DIR=/tmp/ucan-nickel-contracts-target RUSTC_WRAPPER= CARGO_NET_GIT_FETCH_WITH_CLI=true cargo clippy --all-targets --features cli -- -D warnings
-nix develop -c env CARGO_TARGET_DIR=/tmp/ucan-nickel-contracts-package-target RUSTC_WRAPPER= CARGO_NET_GIT_FETCH_WITH_CLI=true cargo package --allow-dirty --no-verify
 ```
