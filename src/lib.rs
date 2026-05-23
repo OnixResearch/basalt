@@ -50,6 +50,8 @@
 
 #![allow(clippy::multiple_crate_versions)]
 
+pub use ucan;
+
 use serde::Deserialize;
 use serde::Serialize;
 use snafu::Snafu;
