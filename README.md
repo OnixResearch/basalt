@@ -133,3 +133,14 @@ nix develop -c env CARGO_TARGET_DIR=/tmp/basalt-target RUSTC_WRAPPER= CARGO_NET_
 nix develop -c env CARGO_TARGET_DIR=/tmp/basalt-target RUSTC_WRAPPER= CARGO_NET_GIT_FETCH_WITH_CLI=true cargo test --doc --no-default-features
 # The feature-enabled test rail includes the external-style CLI smoke and negative CLI tests in tests/cli_feature.rs.
 ```
+
+## Downstream compatibility
+
+Basalt keeps a focused downstream compatibility runner for consumers that exercise the public Basalt boundary:
+
+```bash
+nix develop -c rustc --edition=2024 tools/downstream-compat.rs -o /tmp/basalt-downstream-compat
+/tmp/basalt-downstream-compat --workspace-root .. --consumer clankers --consumer aspen --consumer onix-modules --require-present
+```
+
+The runner creates temporary worktrees under `target/downstream-compat/`, links the current Basalt checkout into each consumer, and runs narrow checks for Clankers, Aspen, and Onix Modules. It is intentionally local-only: keep sibling checkouts under the same workspace root and do not require GitHub Actions tokens for this compatibility matrix.
