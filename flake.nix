@@ -5,7 +5,7 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
     ucan = {
-      url = "github:OnixResearch/ucan/ad61b53e89fa45f9bf7d313ce14c45de645bf53d";
+      url = "github:OnixResearch/ucan/2aad993027d48ff148028c537cdaf91f6e5285ca";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
