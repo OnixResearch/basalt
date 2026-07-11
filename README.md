@@ -140,7 +140,7 @@ Basalt keeps a focused downstream compatibility runner for consumers that exerci
 
 ```bash
 nix develop -c rustc --edition=2024 tools/downstream-compat.rs -o /tmp/basalt-downstream-compat
-/tmp/basalt-downstream-compat --workspace-root .. --consumer clankers --consumer aspen --consumer onix-modules --require-present
+/tmp/basalt-downstream-compat --workspace-root .. --consumer clankers --consumer aspen --consumer onixos --require-present
 ```
 
-The runner creates temporary worktrees under `target/downstream-compat/`, links the current Basalt checkout into each consumer, and runs narrow checks for Clankers, Aspen, and Onix Modules. It is intentionally local-only: keep sibling checkouts under the same workspace root and do not require GitHub Actions tokens for this compatibility matrix.
+The runner creates temporary worktrees under `target/downstream-compat/`, links the current Basalt checkout into each consumer, and runs narrow checks for Clankers, Aspen, and OnixOS. The legacy `--consumer onix-modules` spelling remains an alias for `onixos`. It is intentionally local-only: keep sibling checkouts under the same workspace root and do not require GitHub Actions tokens for this compatibility matrix.

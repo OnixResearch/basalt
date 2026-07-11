@@ -7,7 +7,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 const BASALT_REPO_DIR: &str = "basalt";
 const CLANKERS_NAME: &str = "clankers";
 const ASPEN_NAME: &str = "aspen";
-const ONIX_MODULES_NAME: &str = "onix-modules";
+const ONIXOS_NAME: &str = "onixos";
+const ONIX_MODULES_COMPAT_NAME: &str = "onix-modules";
 const UCAN_REPO_DIR: &str = "ucan";
 const TARGET_ROOT: &str = "target/downstream-compat";
 const WORKTREE_ROOT_DIR: &str = "worktrees";
@@ -42,8 +43,8 @@ const CONSUMERS: &[ConsumerSpec] = &[
         shell_root: NixShellRoot::Consumer,
     },
     ConsumerSpec {
-        name: ONIX_MODULES_NAME,
-        repo_dir: ONIX_MODULES_NAME,
+        name: ONIXOS_NAME,
+        repo_dir: ONIXOS_NAME,
         shell_root: NixShellRoot::Basalt,
     },
 ];
@@ -215,7 +216,11 @@ where
 fn help_text() -> String {
     format!(
         "usage: downstream-compat [--workspace-root PATH] [--basalt-root PATH] [--consumer NAME] [--require-present] [--direct] [--rustup-toolchain TOOLCHAIN] [--list]\n\nConsumers: {}",
-        CONSUMERS.iter().map(|consumer| consumer.name).collect::<Vec<_>>().join(", ")
+        CONSUMERS
+            .iter()
+            .map(|consumer| consumer.name)
+            .collect::<Vec<_>>()
+            .join(", ")
     )
 }
 
@@ -226,9 +231,13 @@ fn select_consumers(requested: &[String]) -> Result<Vec<&'static ConsumerSpec>, 
 
     let mut selected = Vec::new();
     for name in requested {
+        let canonical_name = match name.as_str() {
+            ONIX_MODULES_COMPAT_NAME => ONIXOS_NAME,
+            other => other,
+        };
         let consumer = CONSUMERS
             .iter()
-            .find(|consumer| consumer.name == name.as_str())
+            .find(|consumer| consumer.name == canonical_name)
             .ok_or_else(|| format!("unknown downstream consumer {name}"))?;
         selected.push(consumer);
     }
@@ -281,7 +290,7 @@ fn prepare_consumer(
         return Err(format!("git worktree add failed for {}", spec.name));
     }
 
-    if spec.name == ONIX_MODULES_NAME {
+    if spec.name == ONIXOS_NAME {
         create_symlink(&basalt_link, &worktree_path.join(BASALT_REPO_DIR))?;
         let ucan_repo = config.workspace_root.join(UCAN_REPO_DIR);
         if ucan_repo.exists() {
@@ -404,7 +413,7 @@ fn cargo_args(spec: ConsumerSpec, compat_root: &Path, worktree_path: &Path) -> V
                 compat_root.join(BASALT_REPO_DIR).display()
             ),
         ],
-        ONIX_MODULES_NAME => vec![
+        ONIXOS_NAME => vec![
             "check".to_owned(),
             "--manifest-path".to_owned(),
             worktree_path.join("cli/Cargo.toml").display().to_string(),
@@ -493,6 +502,17 @@ mod tests {
     }
 
     #[test]
+    fn accepts_onix_modules_compatibility_alias() {
+        let requested = vec![ONIX_MODULES_COMPAT_NAME.to_owned()];
+
+        let selected = select_consumers(&requested).expect("compatibility alias should resolve");
+
+        assert_eq!(selected.len(), 1);
+        assert_eq!(selected[0].name, ONIXOS_NAME);
+        assert_eq!(selected[0].repo_dir, ONIXOS_NAME);
+    }
+
+    #[test]
     fn rejects_unknown_consumer_selection() {
         let requested = vec!["unknown".to_owned()];
 
@@ -522,41 +542,49 @@ mod tests {
 
         assert_eq!(command.program, "cargo");
         assert_eq!(command.args.first().map(String::as_str), Some("+nightly"));
-        assert!(command
-            .args
-            .iter()
-            .any(|arg| arg.contains(PATCHED_BASALT_SOURCE)));
-        assert!(command
-            .args
-            .iter()
-            .any(|arg| arg.contains("/workspace/.compat/aspen/basalt")));
+        assert!(
+            command
+                .args
+                .iter()
+                .any(|arg| arg.contains(PATCHED_BASALT_SOURCE))
+        );
+        assert!(
+            command
+                .args
+                .iter()
+                .any(|arg| arg.contains("/workspace/.compat/aspen/basalt"))
+        );
     }
 
     #[test]
-    fn nix_onix_modules_command_uses_basalt_shell_and_cli_manifest() {
+    fn nix_onixos_command_uses_basalt_shell_and_cli_manifest() {
         let config = test_config(&[]);
         let prepared = PreparedConsumer {
             spec: CONSUMERS
                 .iter()
-                .find(|consumer| consumer.name == ONIX_MODULES_NAME)
+                .find(|consumer| consumer.name == ONIXOS_NAME)
                 .copied()
-                .expect("onix-modules spec"),
-            original_repo: PathBuf::from("/workspace/onix-modules"),
-            compat_root: PathBuf::from("/workspace/.compat/onix-modules"),
-            worktree_path: PathBuf::from("/workspace/.compat/onix-modules/onix-modules"),
+                .expect("onixos spec"),
+            original_repo: PathBuf::from("/workspace/onixos"),
+            compat_root: PathBuf::from("/workspace/.compat/onixos"),
+            worktree_path: PathBuf::from("/workspace/.compat/onixos/onixos"),
         };
 
         let command = build_command(&config, &prepared);
 
         assert_eq!(command.program, "nix");
-        assert!(command
-            .args
-            .windows(2)
-            .any(|window| window == ["develop", "/workspace/basalt"]));
-        assert!(command
-            .args
-            .iter()
-            .any(|arg| arg.ends_with("onix-modules/cli/Cargo.toml")));
+        assert!(
+            command
+                .args
+                .windows(2)
+                .any(|window| window == ["develop", "/workspace/basalt"])
+        );
+        assert!(
+            command
+                .args
+                .iter()
+                .any(|arg| arg.ends_with("onixos/cli/Cargo.toml"))
+        );
     }
 
     #[test]
@@ -570,9 +598,10 @@ mod tests {
         let args = cargo_args(spec, Path::new("/compat"), Path::new("/compat/clankers"));
 
         assert_eq!(args.first().map(String::as_str), Some("test"));
-        assert!(args
-            .iter()
-            .any(|arg| arg.ends_with("examples/basalt-consumer-fixture/Cargo.toml")));
+        assert!(
+            args.iter()
+                .any(|arg| arg.ends_with("examples/basalt-consumer-fixture/Cargo.toml"))
+        );
         assert!(args.iter().any(|arg| arg == "--no-default-features"));
     }
 }
