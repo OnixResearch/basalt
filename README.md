@@ -12,6 +12,15 @@ Flow:
 
 This is intentionally a small functional-core / imperative-shell scaffold. Nickel owns policy shape and reviewable defaults; Rust owns runtime enforcement and receipts.
 
+## Publication status
+
+Basalt is under active development. Its current Cargo dependency on UCAN is
+pinned to an authenticated SSH source, so anonymous source builds are not yet a
+supported path. This access limitation does not strengthen any policy,
+security, or verification claim. Before public consumers adopt Basalt, the
+reviewed UCAN revision must be available through an anonymous HTTPS source or
+an equivalently reviewed vendored boundary.
+
 Package metadata is kept in `Cargo.toml` for downstream discovery: the crate stays AGPL-3.0-or-later, points registry/source tooling at the OnixResearch Basalt repository and this README, and uses UCAN/Nickel/Steel/policy keywords that match the crate purpose above. Basalt was formerly named `ucan-nickel-contracts`; that former name may remain in historical Cairn archives and stable policy schema identifiers.
 
 ## License boundary
@@ -87,12 +96,12 @@ cargo run --features cli -- enforce --help
 
 ## UCAN dependency source
 
-The crate consumes `ucan` from the authoritative remote repository so downstream
-applications use the same SSH-authenticated remote that this private repository
-uses, instead of requiring this repo to be checked out next to a sibling
-`../ucan` tree. For local UCAN development, keep the public manifest
-remote-based and use a consumer-local Cargo patch in the consuming application's
-`.cargo/config.toml` instead:
+The crate currently consumes `ucan` from an exact revision of its authoritative
+repository through an authenticated SSH URL. That keeps the reviewed source
+identity explicit, but it prevents anonymous builds and is not the intended
+public-consumer boundary. For local UCAN development, keep the committed
+manifest remote-based and use a consumer-local Cargo patch in the consuming
+application's `.cargo/config.toml` instead:
 
 ```toml
 [patch."ssh://git@github.com/OnixResearch/ucan.git"]
@@ -103,9 +112,9 @@ ucan = { path = "../ucan" }
 
 Use a fresh target directory and no inherited Rust compiler wrapper to avoid
 shared stale Cargo artifact failures. This repo also checks in `.cargo/config.toml`
-so Cargo uses the Git CLI for the private SSH dependency and keeps package
-preparation pointed at the reviewed remote UCAN revision instead of the stale
-crates.io `ucan` package.
+so Cargo uses the Git CLI for the authenticated SSH dependency and keeps
+package preparation pointed at the reviewed remote UCAN revision instead of
+the stale crates.io `ucan` package.
 
 Run the single release rail before tagging or handing the crate to downstream applications:
 
@@ -120,9 +129,9 @@ The same verifier is exposed as the default release flake check:
 nix flake check -L
 ```
 
-Because the crate currently has a private Git dependency, the sandboxed flake check prevalidates the Nickel policy check as a Nix input and emits a verifier receipt that marks Cargo-dependent rails as deferred. Run the direct verifier above for the full release rail before tagging or handoff. The checked-in GitHub Actions workflow runs this sandbox-safe `nix flake check -L` path without repository secrets; maintainers with private UCAN dependency access should run the direct verifier in their trusted environment for full Cargo coverage.
+Because the crate currently has an authentication-required Git dependency, the sandboxed flake check prevalidates the Nickel policy check as a Nix input and emits a verifier receipt that marks Cargo-dependent rails as deferred. Run the direct verifier above for the full release rail before tagging or handoff. The checked-in GitHub Actions workflow runs this sandbox-safe `nix flake check -L` path without repository secrets; maintainers with UCAN dependency access should run the direct verifier in their trusted environment for full Cargo coverage.
 
-The rail uses fresh `/tmp/basalt-release-*` Cargo target directories, clears `RUSTC_WRAPPER`, and enables Git CLI fetching for the private UCAN dependency. It covers policy freshness, `cargo fmt --check`, AGPL license metadata preservation, no-default and CLI-feature test rails through `cargo nextest`, deterministic property/Steel-adapter/UCAN-token fixture tests, doctests, clippy for both feature sets, package validation, asserted package contents, the `../clankers/` downstream consumer fixture when present, and no-dependency library docs. Direct runs write `target/release-verify/summary.json` and `target/release-verify/summary.md`; Nix checks redirect those receipts into the check output, and CI uploads the summary files when the build result exposes them.
+The rail uses fresh `/tmp/basalt-release-*` Cargo target directories, clears `RUSTC_WRAPPER`, and enables Git CLI fetching for the authenticated UCAN dependency. It covers policy freshness, `cargo fmt --check`, AGPL license metadata preservation, no-default and CLI-feature test rails through `cargo nextest`, deterministic property/Steel-adapter/UCAN-token fixture tests, doctests, clippy for both feature sets, package validation, asserted package contents, the `../clankers/` downstream consumer fixture when present, and no-dependency library docs. Direct runs write `target/release-verify/summary.json` and `target/release-verify/summary.md`; Nix checks redirect those receipts into the check output, and CI uploads the summary files when the build result exposes them.
 
 Individual checks are still useful while iterating:
 
