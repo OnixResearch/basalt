@@ -16,7 +16,7 @@ Package metadata is kept in `Cargo.toml` for downstream discovery: the crate sta
 
 ## License boundary
 
-This crate is licensed as `AGPL-3.0-or-later`, as declared in `Cargo.toml`. Downstream applications should review that license before adopting the crate. This README does not grant an alternate license, compatibility exception, or legal advice for a specific deployment model.
+This crate is licensed as `AGPL-3.0-or-later`, as declared in `Cargo.toml`; the complete text is in [`LICENSE`](LICENSE). Downstream applications should review that license before adopting the crate. Third-party dependencies retain their own terms. Earlier grants remain valid. This README does not grant an alternate license, compatibility exception, or legal advice for a specific deployment model.
 
 ## Quickstart
 
