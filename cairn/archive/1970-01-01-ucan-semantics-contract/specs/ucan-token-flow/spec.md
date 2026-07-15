@@ -1,10 +1,6 @@
-# Ucan Token Flow Specification
+# Ucan Token Flow Delta
 
-## Purpose
-
-Adds Basalt-facing UCAN semantics contracts for policy enforcement compatibility.
-
-## Requirements
+## ADDED Requirements
 
 ### Requirement: UCAN semantics fixture contract
 r[ucan_semantics_contract.contract] Basalt MUST define a reviewed fixture contract for the UCAN authorization semantics consumed by Basalt policy enforcement.
