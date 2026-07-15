@@ -5,9 +5,15 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, ExitCode};
 use std::time::{Duration, Instant};
 
+#[path = "../src/authority_identity.rs"]
+mod authority_identity;
 #[path = "../src/ucan_semantics_identity.rs"]
 mod ucan_semantics_identity;
 
+use authority_identity::{
+    AUTHORITY_DECISION_SCHEMA, AUTHORITY_FIXTURE_SCHEMA, AUTHORITY_INPUT_SCHEMA,
+    AUTHORITY_RELEASE_RECEIPT_SCHEMA,
+};
 use ucan_semantics_identity::{
     BASALT_POLICY_BLAKE3, UCAN_RUNTIME_REVISION, UCAN_SEMANTICS_FIXTURE_SCHEMA,
     UCAN_SUPPORT_CATALOG_BLAKE3, UCAN_SUPPORT_CATALOG_REVISION,
@@ -18,6 +24,7 @@ const WRAPPER_ENV: &str = "RUSTC_WRAPPER";
 const GIT_FETCH_ENV: &str = "CARGO_NET_GIT_FETCH_WITH_CLI";
 const RECEIPT_DIR_ENV: &str = "RELEASE_VERIFY_RECEIPT_DIR";
 const POLICY_FRESH_ENV: &str = "RELEASE_VERIFY_POLICY_FRESH";
+const AUTHORITY_FRESH_ENV: &str = "RELEASE_VERIFY_AUTHORITY_FRESH";
 const SEMANTICS_FRESH_ENV: &str = "RELEASE_VERIFY_SEMANTICS_FRESH";
 const CARGO_STEPS_ENV: &str = "RELEASE_VERIFY_CARGO_STEPS";
 const DEFAULT_TARGET_DIR: &str = "/tmp/basalt-release-target";
@@ -28,6 +35,8 @@ const DEFAULT_RECEIPT_DIR: &str = "target/release-verify";
 const OUTPUT_TAIL_LIMIT: usize = 4_096;
 const REQUIRED_LICENSE: &str = "AGPL-3.0-or-later";
 const POLICY_FRESH_STEP_NAME: &str = "policy freshness";
+const AUTHORITY_FRESH_STEP_NAME: &str = "authority-core fixture freshness";
+const AUTHORITY_REPLAY_STEP_NAME: &str = "authority-core fixture tests";
 const SEMANTICS_FRESH_STEP_NAME: &str = "UCAN semantics fixture freshness";
 const SEMANTICS_REPLAY_STEP_NAME: &str = "UCAN semantics contract tests";
 
@@ -37,16 +46,25 @@ const REQUIRED_PACKAGE_PATHS: &[&str] = &[
     "README.md",
     "contracts/generated/policy.json",
     "contracts/policy.ncl",
+    "contracts/authority-core/contracts.ncl",
+    "contracts/authority-core/fixtures/generated/negative/authority-overclaim.json",
+    "contracts/authority-core/fixtures/generated/positive/direct-match.json",
+    "contracts/authority-core/fixtures/negative/authority-overclaim.ncl",
+    "contracts/authority-core/fixtures/positive/direct-match.ncl",
     "contracts/ucan-semantics/contracts.ncl",
     "contracts/ucan-semantics/fixtures/generated/negative/over-delegation.json",
     "contracts/ucan-semantics/fixtures/generated/positive/allow.json",
     "contracts/ucan-semantics/fixtures/negative/over-delegation.ncl",
     "contracts/ucan-semantics/fixtures/positive/allow.ncl",
+    "docs/authority-core.md",
     "docs/ucan-semantics-contract.md",
+    "src/authority_core.rs",
+    "src/authority_identity.rs",
     "src/lib.rs",
     "src/main.rs",
     "src/ucan_semantics.rs",
     "src/ucan_semantics_identity.rs",
+    "tests/authority_core.rs",
     "tests/cli_feature.rs",
     "tests/consumer_boundary.rs",
     "tests/policy_artifact.rs",
@@ -71,6 +89,7 @@ enum StepKind {
     Normal,
     LicenseMetadata,
     PolicyFreshness,
+    AuthorityFixtureFreshness,
     SemanticsFixtureFreshness,
     PackageContents,
     ClankersConsumerFixture,
@@ -110,6 +129,14 @@ fn main() -> ExitCode {
             target_dir: DEFAULT_TARGET_DIR,
             cargo_env: false,
             kind: StepKind::PolicyFreshness,
+        },
+        Step {
+            name: AUTHORITY_FRESH_STEP_NAME,
+            program: "nix",
+            args: &["build", "--no-link"],
+            target_dir: DEFAULT_TARGET_DIR,
+            cargo_env: false,
+            kind: StepKind::AuthorityFixtureFreshness,
         },
         Step {
             name: SEMANTICS_FRESH_STEP_NAME,
@@ -191,6 +218,14 @@ fn main() -> ExitCode {
                 "ucan_semantics_contract",
                 "--no-default-features",
             ],
+            target_dir: DEFAULT_TARGET_DIR,
+            cargo_env: true,
+            kind: StepKind::Normal,
+        },
+        Step {
+            name: AUTHORITY_REPLAY_STEP_NAME,
+            program: "cargo",
+            args: &["test", "--test", "authority_core", "--no-default-features"],
             target_dir: DEFAULT_TARGET_DIR,
             cargo_env: true,
             kind: StepKind::Normal,
@@ -326,6 +361,9 @@ fn run_step(root: &Path, step: &Step) -> StepReceipt {
     if matches!(step.kind, StepKind::PolicyFreshness) && env_flag(POLICY_FRESH_ENV) {
         return prevalidated_receipt(step, POLICY_FRESH_ENV);
     }
+    if matches!(step.kind, StepKind::AuthorityFixtureFreshness) && env_flag(AUTHORITY_FRESH_ENV) {
+        return prevalidated_receipt(step, AUTHORITY_FRESH_ENV);
+    }
     if matches!(step.kind, StepKind::SemanticsFixtureFreshness) && env_flag(SEMANTICS_FRESH_ENV) {
         return prevalidated_receipt(step, SEMANTICS_FRESH_ENV);
     }
@@ -363,6 +401,7 @@ fn run_step(root: &Path, step: &Step) -> StepReceipt {
     let mut args: Vec<OsString> = step.args.iter().map(OsString::from).collect();
     let check_name = match step.kind {
         StepKind::PolicyFreshness => Some("policy-export"),
+        StepKind::AuthorityFixtureFreshness => Some("authority-core-fixtures"),
         StepKind::SemanticsFixtureFreshness => Some("ucan-semantics-fixtures"),
         _ => None,
     };
@@ -484,9 +523,12 @@ fn validate_license_metadata(manifest_path: &Path, metadata_json: &str) -> Resul
 fn write_receipts(dir: &Path, passed: bool, receipts: &[StepReceipt]) -> Result<(), String> {
     let summary_path = dir.join("summary.json");
     let markdown_path = dir.join("summary.md");
+    let authority_path = dir.join("authority-core.json");
     let semantics_path = dir.join("ucan-semantics.json");
     fs::write(summary_path, render_json(passed, receipts)).map_err(|error| error.to_string())?;
     fs::write(markdown_path, render_markdown(passed, receipts))
+        .map_err(|error| error.to_string())?;
+    fs::write(authority_path, render_authority_receipt(passed, receipts))
         .map_err(|error| error.to_string())?;
     fs::write(
         semantics_path,
@@ -500,6 +542,24 @@ fn render_json(passed: bool, receipts: &[StepReceipt]) -> String {
     let mut output = String::new();
     output.push_str("{\n");
     output.push_str(&format!("  \"passed\": {},\n", passed));
+    output.push_str("  \"authority_core\": {\n");
+    output.push_str(&format!(
+        "    \"input_schema\": {},\n",
+        json_string(AUTHORITY_INPUT_SCHEMA)
+    ));
+    output.push_str(&format!(
+        "    \"fixture_schema\": {},\n",
+        json_string(AUTHORITY_FIXTURE_SCHEMA)
+    ));
+    output.push_str(&format!(
+        "    \"decision_schema\": {},\n",
+        json_string(AUTHORITY_DECISION_SCHEMA)
+    ));
+    output.push_str(&format!(
+        "    \"basalt_policy_blake3\": {}\n",
+        json_string(BASALT_POLICY_BLAKE3)
+    ));
+    output.push_str("  },\n");
     output.push_str("  \"ucan_semantics\": {\n");
     output.push_str(&format!(
         "    \"fixture_schema\": {},\n",
@@ -556,6 +616,41 @@ fn render_json(passed: bool, receipts: &[StepReceipt]) -> String {
     output
 }
 
+fn render_authority_receipt(passed: bool, receipts: &[StepReceipt]) -> String {
+    let fixture_freshness_passed = step_succeeded(receipts, AUTHORITY_FRESH_STEP_NAME);
+    let replay = receipts
+        .iter()
+        .find(|receipt| receipt.name == AUTHORITY_REPLAY_STEP_NAME);
+    let runtime_replay_passed = replay.is_some_and(|receipt| receipt.success);
+    let runtime_replay_executed =
+        replay.is_some_and(|receipt| !receipt.command.contains("skipped in sandboxed flake check"));
+
+    format!(
+        concat!(
+            "{{\n",
+            "  \"schema\": {},\n",
+            "  \"release_passed\": {},\n",
+            "  \"input_schema\": {},\n",
+            "  \"fixture_schema\": {},\n",
+            "  \"decision_schema\": {},\n",
+            "  \"basalt_policy_blake3\": {},\n",
+            "  \"fixture_freshness_passed\": {},\n",
+            "  \"runtime_replay_executed\": {},\n",
+            "  \"runtime_replay_passed\": {}\n",
+            "}}\n"
+        ),
+        json_string(AUTHORITY_RELEASE_RECEIPT_SCHEMA),
+        passed,
+        json_string(AUTHORITY_INPUT_SCHEMA),
+        json_string(AUTHORITY_FIXTURE_SCHEMA),
+        json_string(AUTHORITY_DECISION_SCHEMA),
+        json_string(BASALT_POLICY_BLAKE3),
+        fixture_freshness_passed,
+        runtime_replay_executed,
+        runtime_replay_passed,
+    )
+}
+
 fn render_ucan_semantics_receipt(passed: bool, receipts: &[StepReceipt]) -> String {
     let policy_freshness_passed = step_succeeded(receipts, POLICY_FRESH_STEP_NAME);
     let fixture_freshness_passed = step_succeeded(receipts, SEMANTICS_FRESH_STEP_NAME);
@@ -610,6 +705,15 @@ fn render_markdown(passed: bool, receipts: &[StepReceipt]) -> String {
     } else {
         "Status: FAIL\n\n"
     });
+    output.push_str("## Authority core identity\n\n");
+    output.push_str(&format!("- Input schema: `{AUTHORITY_INPUT_SCHEMA}`\n"));
+    output.push_str(&format!("- Fixture schema: `{AUTHORITY_FIXTURE_SCHEMA}`\n"));
+    output.push_str(&format!(
+        "- Decision schema: `{AUTHORITY_DECISION_SCHEMA}`\n"
+    ));
+    output.push_str(&format!(
+        "- Basalt policy BLAKE3: `{BASALT_POLICY_BLAKE3}`\n\n"
+    ));
     output.push_str("## UCAN semantics identity\n\n");
     output.push_str(&format!(
         "- Fixture schema: `{UCAN_SEMANTICS_FIXTURE_SCHEMA}`\n"

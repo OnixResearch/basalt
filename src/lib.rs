@@ -50,8 +50,10 @@
 
 #![allow(clippy::multiple_crate_versions)]
 
+mod authority_identity;
 mod ucan_semantics_identity;
 
+pub mod authority_core;
 pub mod ucan_semantics;
 
 pub use ucan;

@@ -108,6 +108,12 @@ application's `.cargo/config.toml` instead:
 ucan = { path = "../ucan" }
 ```
 
+## UCAN/Basalt authority core
+
+`basalt::authority_core` provides a pure deterministic decision boundary over loaded Basalt policy values and caller-supplied references to already-verified UCAN grants and receipts. It validates exact request, policy, grant, receipt, caveat, replay, and non-claim bindings before routing one selected grant through the existing `enforce` core. `adapt_enforcement_request` preserves existing public request fields but requires one explicit verified reference binding for every capability.
+
+The core never parses tokens, verifies signatures, resolves keys, reads clocks, loads proofs, consults revocation/replay stores, evaluates Nickel, or treats token/content-reference possession as current authority. An allow applies only to the exact contract/resource/ability/request binding and does not grant transport, storage, persistence, replay-store, key-resolution, business, release, or whole-system authority. See [`docs/authority-core.md`](docs/authority-core.md).
+
 ## UCAN semantics compatibility
 
 The typed fixtures under `contracts/ucan-semantics/` bind Basalt's exact runtime UCAN revision, the reviewed UCAN support-catalog revision and BLAKE3 identity, and the generated Basalt policy identity. `basalt::ucan_semantics` consumes caller-supplied delegation, caveat, proof-traversal, and replay decisions, fails closed on every non-admitted fact, and passes only admitted direct and effective delegated grants to the existing `enforce` core.
@@ -137,12 +143,13 @@ nix flake check -L
 
 Because the crate currently has an authentication-required Git dependency, the sandboxed flake check prevalidates the Nickel policy check as a Nix input and emits a verifier receipt that marks Cargo-dependent rails as deferred. Run the direct verifier above for the full release rail before tagging or handoff. The checked-in GitHub Actions workflow runs this sandbox-safe `nix flake check -L` path without repository secrets; maintainers with UCAN dependency access should run the direct verifier in their trusted environment for full Cargo coverage.
 
-The rail uses fresh `/tmp/basalt-release-*` Cargo target directories, clears `RUSTC_WRAPPER`, and enables Git CLI fetching for the authenticated UCAN dependency. It covers policy and UCAN-semantics fixture freshness, `cargo fmt --check`, AGPL license metadata preservation, no-default and CLI-feature test rails through `cargo nextest`, deterministic property/Steel-adapter/UCAN-token/UCAN-semantics fixture tests, doctests, clippy for both feature sets, package validation, asserted package contents, the `../clankers/` downstream consumer fixture when present, and no-dependency library docs. Direct runs write `target/release-verify/summary.json` and `target/release-verify/summary.md`; Nix checks redirect those receipts into the check output, and CI uploads the summary files when the build result exposes them.
+The rail uses fresh `/tmp/basalt-release-*` Cargo target directories, clears `RUSTC_WRAPPER`, and enables Git CLI fetching for the authenticated UCAN dependency. It covers policy, authority-core, and UCAN-semantics fixture freshness, `cargo fmt --check`, AGPL license metadata preservation, no-default and CLI-feature test rails through `cargo nextest`, deterministic authority/property/Steel-adapter/UCAN-token/UCAN-semantics fixture tests, doctests, clippy for both feature sets, package validation, asserted package contents, the `../clankers/` downstream consumer fixture when present, and no-dependency library docs. Direct runs write `target/release-verify/summary.json`, `summary.md`, `authority-core.json`, and `ucan-semantics.json`; Nix checks redirect those receipts into the check output, and CI uploads the summary files when the build result exposes them.
 
 Individual checks are still useful while iterating:
 
 ```bash
 nix build .#checks.$(nix eval --raw --impure --expr builtins.currentSystem).policy-export --no-link
+nix build .#checks.$(nix eval --raw --impure --expr builtins.currentSystem).authority-core-fixtures --no-link
 nix build .#checks.$(nix eval --raw --impure --expr builtins.currentSystem).ucan-semantics-fixtures --no-link
 nix develop -c env CARGO_TARGET_DIR=/tmp/basalt-target RUSTC_WRAPPER= CARGO_NET_GIT_FETCH_WITH_CLI=true cargo nextest run --no-default-features
 nix develop -c env CARGO_TARGET_DIR=/tmp/basalt-target RUSTC_WRAPPER= CARGO_NET_GIT_FETCH_WITH_CLI=true cargo nextest run --features cli
