@@ -108,6 +108,12 @@ application's `.cargo/config.toml` instead:
 ucan = { path = "../ucan" }
 ```
 
+## UCAN semantics compatibility
+
+The typed fixtures under `contracts/ucan-semantics/` bind Basalt's exact runtime UCAN revision, the reviewed UCAN support-catalog revision and BLAKE3 identity, and the generated Basalt policy identity. `basalt::ucan_semantics` consumes caller-supplied delegation, caveat, proof-traversal, and replay decisions, fails closed on every non-admitted fact, and passes only admitted direct and effective delegated grants to the existing `enforce` core.
+
+This boundary does not reimplement UCAN token semantics in Nickel or Rust. It does not prove revocation-backend freshness, key-resolution truth, UCAN cryptographic correctness, consumer replay-store durability, or application-level authorization completeness. See [`docs/ucan-semantics-contract.md`](docs/ucan-semantics-contract.md) for the identity split, fixture matrix, flow, and validation commands.
+
 ## Verification
 
 Use a fresh target directory and no inherited Rust compiler wrapper to avoid
@@ -131,12 +137,13 @@ nix flake check -L
 
 Because the crate currently has an authentication-required Git dependency, the sandboxed flake check prevalidates the Nickel policy check as a Nix input and emits a verifier receipt that marks Cargo-dependent rails as deferred. Run the direct verifier above for the full release rail before tagging or handoff. The checked-in GitHub Actions workflow runs this sandbox-safe `nix flake check -L` path without repository secrets; maintainers with UCAN dependency access should run the direct verifier in their trusted environment for full Cargo coverage.
 
-The rail uses fresh `/tmp/basalt-release-*` Cargo target directories, clears `RUSTC_WRAPPER`, and enables Git CLI fetching for the authenticated UCAN dependency. It covers policy freshness, `cargo fmt --check`, AGPL license metadata preservation, no-default and CLI-feature test rails through `cargo nextest`, deterministic property/Steel-adapter/UCAN-token fixture tests, doctests, clippy for both feature sets, package validation, asserted package contents, the `../clankers/` downstream consumer fixture when present, and no-dependency library docs. Direct runs write `target/release-verify/summary.json` and `target/release-verify/summary.md`; Nix checks redirect those receipts into the check output, and CI uploads the summary files when the build result exposes them.
+The rail uses fresh `/tmp/basalt-release-*` Cargo target directories, clears `RUSTC_WRAPPER`, and enables Git CLI fetching for the authenticated UCAN dependency. It covers policy and UCAN-semantics fixture freshness, `cargo fmt --check`, AGPL license metadata preservation, no-default and CLI-feature test rails through `cargo nextest`, deterministic property/Steel-adapter/UCAN-token/UCAN-semantics fixture tests, doctests, clippy for both feature sets, package validation, asserted package contents, the `../clankers/` downstream consumer fixture when present, and no-dependency library docs. Direct runs write `target/release-verify/summary.json` and `target/release-verify/summary.md`; Nix checks redirect those receipts into the check output, and CI uploads the summary files when the build result exposes them.
 
 Individual checks are still useful while iterating:
 
 ```bash
 nix build .#checks.$(nix eval --raw --impure --expr builtins.currentSystem).policy-export --no-link
+nix build .#checks.$(nix eval --raw --impure --expr builtins.currentSystem).ucan-semantics-fixtures --no-link
 nix develop -c env CARGO_TARGET_DIR=/tmp/basalt-target RUSTC_WRAPPER= CARGO_NET_GIT_FETCH_WITH_CLI=true cargo nextest run --no-default-features
 nix develop -c env CARGO_TARGET_DIR=/tmp/basalt-target RUSTC_WRAPPER= CARGO_NET_GIT_FETCH_WITH_CLI=true cargo nextest run --features cli
 nix develop -c env CARGO_TARGET_DIR=/tmp/basalt-target RUSTC_WRAPPER= CARGO_NET_GIT_FETCH_WITH_CLI=true cargo test --doc --no-default-features

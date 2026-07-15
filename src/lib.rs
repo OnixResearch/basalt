@@ -50,6 +50,10 @@
 
 #![allow(clippy::multiple_crate_versions)]
 
+mod ucan_semantics_identity;
+
+pub mod ucan_semantics;
+
 pub use ucan;
 
 use serde::Deserialize;

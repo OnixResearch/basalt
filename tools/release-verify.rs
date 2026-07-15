@@ -5,11 +5,20 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, ExitCode};
 use std::time::{Duration, Instant};
 
+#[path = "../src/ucan_semantics_identity.rs"]
+mod ucan_semantics_identity;
+
+use ucan_semantics_identity::{
+    BASALT_POLICY_BLAKE3, UCAN_RUNTIME_REVISION, UCAN_SEMANTICS_FIXTURE_SCHEMA,
+    UCAN_SUPPORT_CATALOG_BLAKE3, UCAN_SUPPORT_CATALOG_REVISION,
+};
+
 const TARGET_ENV: &str = "CARGO_TARGET_DIR";
 const WRAPPER_ENV: &str = "RUSTC_WRAPPER";
 const GIT_FETCH_ENV: &str = "CARGO_NET_GIT_FETCH_WITH_CLI";
 const RECEIPT_DIR_ENV: &str = "RELEASE_VERIFY_RECEIPT_DIR";
 const POLICY_FRESH_ENV: &str = "RELEASE_VERIFY_POLICY_FRESH";
+const SEMANTICS_FRESH_ENV: &str = "RELEASE_VERIFY_SEMANTICS_FRESH";
 const CARGO_STEPS_ENV: &str = "RELEASE_VERIFY_CARGO_STEPS";
 const DEFAULT_TARGET_DIR: &str = "/tmp/basalt-release-target";
 const PACKAGE_TARGET_DIR: &str = "/tmp/basalt-release-package-target";
@@ -18,6 +27,9 @@ const CLANKERS_CONSUMER_MANIFEST: &str = "../clankers/examples/basalt-consumer-f
 const DEFAULT_RECEIPT_DIR: &str = "target/release-verify";
 const OUTPUT_TAIL_LIMIT: usize = 4_096;
 const REQUIRED_LICENSE: &str = "AGPL-3.0-or-later";
+const POLICY_FRESH_STEP_NAME: &str = "policy freshness";
+const SEMANTICS_FRESH_STEP_NAME: &str = "UCAN semantics fixture freshness";
+const SEMANTICS_REPLAY_STEP_NAME: &str = "UCAN semantics contract tests";
 
 const REQUIRED_PACKAGE_PATHS: &[&str] = &[
     "Cargo.lock",
@@ -25,8 +37,16 @@ const REQUIRED_PACKAGE_PATHS: &[&str] = &[
     "README.md",
     "contracts/generated/policy.json",
     "contracts/policy.ncl",
+    "contracts/ucan-semantics/contracts.ncl",
+    "contracts/ucan-semantics/fixtures/generated/negative/over-delegation.json",
+    "contracts/ucan-semantics/fixtures/generated/positive/allow.json",
+    "contracts/ucan-semantics/fixtures/negative/over-delegation.ncl",
+    "contracts/ucan-semantics/fixtures/positive/allow.ncl",
+    "docs/ucan-semantics-contract.md",
     "src/lib.rs",
     "src/main.rs",
+    "src/ucan_semantics.rs",
+    "src/ucan_semantics_identity.rs",
     "tests/cli_feature.rs",
     "tests/consumer_boundary.rs",
     "tests/policy_artifact.rs",
@@ -34,6 +54,7 @@ const REQUIRED_PACKAGE_PATHS: &[&str] = &[
     "tests/property_harness.rs",
     "tests/public_api.rs",
     "tests/steel_adapter_fixture.rs",
+    "tests/ucan_semantics_contract.rs",
 ];
 
 struct Step {
@@ -50,6 +71,7 @@ enum StepKind {
     Normal,
     LicenseMetadata,
     PolicyFreshness,
+    SemanticsFixtureFreshness,
     PackageContents,
     ClankersConsumerFixture,
 }
@@ -82,12 +104,20 @@ fn main() -> ExitCode {
 
     let steps = [
         Step {
-            name: "policy freshness",
+            name: POLICY_FRESH_STEP_NAME,
             program: "nix",
             args: &["build", "--no-link"],
             target_dir: DEFAULT_TARGET_DIR,
             cargo_env: false,
             kind: StepKind::PolicyFreshness,
+        },
+        Step {
+            name: SEMANTICS_FRESH_STEP_NAME,
+            program: "nix",
+            args: &["build", "--no-link"],
+            target_dir: DEFAULT_TARGET_DIR,
+            cargo_env: false,
+            kind: StepKind::SemanticsFixtureFreshness,
         },
         Step {
             name: "format",
@@ -116,7 +146,12 @@ fn main() -> ExitCode {
         Step {
             name: "property harness tests",
             program: "cargo",
-            args: &["test", "--test", "property_harness", "--no-default-features"],
+            args: &[
+                "test",
+                "--test",
+                "property_harness",
+                "--no-default-features",
+            ],
             target_dir: DEFAULT_TARGET_DIR,
             cargo_env: true,
             kind: StepKind::Normal,
@@ -141,6 +176,19 @@ fn main() -> ExitCode {
                 "test",
                 "--test",
                 "production_ucan_token_flow",
+                "--no-default-features",
+            ],
+            target_dir: DEFAULT_TARGET_DIR,
+            cargo_env: true,
+            kind: StepKind::Normal,
+        },
+        Step {
+            name: SEMANTICS_REPLAY_STEP_NAME,
+            program: "cargo",
+            args: &[
+                "test",
+                "--test",
+                "ucan_semantics_contract",
                 "--no-default-features",
             ],
             target_dir: DEFAULT_TARGET_DIR,
@@ -261,18 +309,25 @@ fn main() -> ExitCode {
     }
 }
 
+fn prevalidated_receipt(step: &Step, environment_name: &str) -> StepReceipt {
+    println!("==> {}", step.name);
+    StepReceipt {
+        name: step.name,
+        command: format!("{environment_name}=1 prevalidated by flake check input"),
+        status: Some(0),
+        success: true,
+        elapsed: Duration::ZERO,
+        stdout_tail: String::new(),
+        stderr_tail: String::new(),
+    }
+}
+
 fn run_step(root: &Path, step: &Step) -> StepReceipt {
     if matches!(step.kind, StepKind::PolicyFreshness) && env_flag(POLICY_FRESH_ENV) {
-        println!("==> {}", step.name);
-        return StepReceipt {
-            name: step.name,
-            command: format!("{}=1 prevalidated by flake check input", POLICY_FRESH_ENV),
-            status: Some(0),
-            success: true,
-            elapsed: Duration::ZERO,
-            stdout_tail: String::new(),
-            stderr_tail: String::new(),
-        };
+        return prevalidated_receipt(step, POLICY_FRESH_ENV);
+    }
+    if matches!(step.kind, StepKind::SemanticsFixtureFreshness) && env_flag(SEMANTICS_FRESH_ENV) {
+        return prevalidated_receipt(step, SEMANTICS_FRESH_ENV);
     }
     if step.cargo_env && env::var_os(CARGO_STEPS_ENV).is_some_and(|value| value == "0") {
         println!("==> {}", step.name);
@@ -282,7 +337,8 @@ fn run_step(root: &Path, step: &Step) -> StepReceipt {
             status: Some(0),
             success: true,
             elapsed: Duration::ZERO,
-            stdout_tail: "skipped: run the direct release verifier for Cargo-dependent rails".to_owned(),
+            stdout_tail: "skipped: run the direct release verifier for Cargo-dependent rails"
+                .to_owned(),
             stderr_tail: String::new(),
         };
     }
@@ -305,8 +361,13 @@ fn run_step(root: &Path, step: &Step) -> StepReceipt {
     }
 
     let mut args: Vec<OsString> = step.args.iter().map(OsString::from).collect();
-    if matches!(step.kind, StepKind::PolicyFreshness) {
-        match policy_check_attr() {
+    let check_name = match step.kind {
+        StepKind::PolicyFreshness => Some("policy-export"),
+        StepKind::SemanticsFixtureFreshness => Some("ucan-semantics-fixtures"),
+        _ => None,
+    };
+    if let Some(check_name) = check_name {
+        match check_attr(check_name) {
             Ok(attr) => args.push(attr),
             Err(error) => {
                 return StepReceipt {
@@ -337,7 +398,8 @@ fn run_step(root: &Path, step: &Step) -> StepReceipt {
         Ok(output) => {
             let stdout = String::from_utf8_lossy(&output.stdout).into_owned();
             let stderr = String::from_utf8_lossy(&output.stderr).into_owned();
-            let package_ok = if matches!(step.kind, StepKind::PackageContents) && output.status.success()
+            let package_ok = if matches!(step.kind, StepKind::PackageContents)
+                && output.status.success()
             {
                 validate_package_contents(&stdout)
             } else if matches!(step.kind, StepKind::LicenseMetadata) && output.status.success() {
@@ -422,8 +484,15 @@ fn validate_license_metadata(manifest_path: &Path, metadata_json: &str) -> Resul
 fn write_receipts(dir: &Path, passed: bool, receipts: &[StepReceipt]) -> Result<(), String> {
     let summary_path = dir.join("summary.json");
     let markdown_path = dir.join("summary.md");
+    let semantics_path = dir.join("ucan-semantics.json");
     fs::write(summary_path, render_json(passed, receipts)).map_err(|error| error.to_string())?;
-    fs::write(markdown_path, render_markdown(passed, receipts)).map_err(|error| error.to_string())?;
+    fs::write(markdown_path, render_markdown(passed, receipts))
+        .map_err(|error| error.to_string())?;
+    fs::write(
+        semantics_path,
+        render_ucan_semantics_receipt(passed, receipts),
+    )
+    .map_err(|error| error.to_string())?;
     Ok(())
 }
 
@@ -431,6 +500,28 @@ fn render_json(passed: bool, receipts: &[StepReceipt]) -> String {
     let mut output = String::new();
     output.push_str("{\n");
     output.push_str(&format!("  \"passed\": {},\n", passed));
+    output.push_str("  \"ucan_semantics\": {\n");
+    output.push_str(&format!(
+        "    \"fixture_schema\": {},\n",
+        json_string(UCAN_SEMANTICS_FIXTURE_SCHEMA)
+    ));
+    output.push_str(&format!(
+        "    \"runtime_ucan_revision\": {},\n",
+        json_string(UCAN_RUNTIME_REVISION)
+    ));
+    output.push_str(&format!(
+        "    \"support_catalog_revision\": {},\n",
+        json_string(UCAN_SUPPORT_CATALOG_REVISION)
+    ));
+    output.push_str(&format!(
+        "    \"support_catalog_blake3\": {},\n",
+        json_string(UCAN_SUPPORT_CATALOG_BLAKE3)
+    ));
+    output.push_str(&format!(
+        "    \"basalt_policy_blake3\": {}\n",
+        json_string(BASALT_POLICY_BLAKE3)
+    ));
+    output.push_str("  },\n");
     output.push_str("  \"steps\": [\n");
     for (index, receipt) in receipts.iter().enumerate() {
         if index > 0 {
@@ -438,7 +529,10 @@ fn render_json(passed: bool, receipts: &[StepReceipt]) -> String {
         }
         output.push_str("    {\n");
         output.push_str(&format!("      \"name\": {},\n", json_string(receipt.name)));
-        output.push_str(&format!("      \"command\": {},\n", json_string(&receipt.command)));
+        output.push_str(&format!(
+            "      \"command\": {},\n",
+            json_string(&receipt.command)
+        ));
         match receipt.status {
             Some(status) => output.push_str(&format!("      \"status\": {status},\n")),
             None => output.push_str("      \"status\": null,\n"),
@@ -462,10 +556,76 @@ fn render_json(passed: bool, receipts: &[StepReceipt]) -> String {
     output
 }
 
+fn render_ucan_semantics_receipt(passed: bool, receipts: &[StepReceipt]) -> String {
+    let policy_freshness_passed = step_succeeded(receipts, POLICY_FRESH_STEP_NAME);
+    let fixture_freshness_passed = step_succeeded(receipts, SEMANTICS_FRESH_STEP_NAME);
+    let replay = receipts
+        .iter()
+        .find(|receipt| receipt.name == SEMANTICS_REPLAY_STEP_NAME);
+    let runtime_replay_passed = replay.is_some_and(|receipt| receipt.success);
+    let runtime_replay_executed =
+        replay.is_some_and(|receipt| !receipt.command.contains("skipped in sandboxed flake check"));
+
+    format!(
+        concat!(
+            "{{\n",
+            "  \"schema\": \"basalt.ucan-semantics-receipt.v1\",\n",
+            "  \"release_passed\": {},\n",
+            "  \"fixture_schema\": {},\n",
+            "  \"runtime_ucan_revision\": {},\n",
+            "  \"support_catalog_revision\": {},\n",
+            "  \"support_catalog_blake3\": {},\n",
+            "  \"basalt_policy_blake3\": {},\n",
+            "  \"policy_freshness_passed\": {},\n",
+            "  \"fixture_freshness_passed\": {},\n",
+            "  \"runtime_replay_executed\": {},\n",
+            "  \"runtime_replay_passed\": {}\n",
+            "}}\n"
+        ),
+        passed,
+        json_string(UCAN_SEMANTICS_FIXTURE_SCHEMA),
+        json_string(UCAN_RUNTIME_REVISION),
+        json_string(UCAN_SUPPORT_CATALOG_REVISION),
+        json_string(UCAN_SUPPORT_CATALOG_BLAKE3),
+        json_string(BASALT_POLICY_BLAKE3),
+        policy_freshness_passed,
+        fixture_freshness_passed,
+        runtime_replay_executed,
+        runtime_replay_passed,
+    )
+}
+
+fn step_succeeded(receipts: &[StepReceipt], name: &str) -> bool {
+    receipts
+        .iter()
+        .find(|receipt| receipt.name == name)
+        .is_some_and(|receipt| receipt.success)
+}
+
 fn render_markdown(passed: bool, receipts: &[StepReceipt]) -> String {
     let mut output = String::new();
     output.push_str("# Release Verification Summary\n\n");
-    output.push_str(if passed { "Status: PASS\n\n" } else { "Status: FAIL\n\n" });
+    output.push_str(if passed {
+        "Status: PASS\n\n"
+    } else {
+        "Status: FAIL\n\n"
+    });
+    output.push_str("## UCAN semantics identity\n\n");
+    output.push_str(&format!(
+        "- Fixture schema: `{UCAN_SEMANTICS_FIXTURE_SCHEMA}`\n"
+    ));
+    output.push_str(&format!(
+        "- Runtime UCAN revision: `{UCAN_RUNTIME_REVISION}`\n"
+    ));
+    output.push_str(&format!(
+        "- Support catalog revision: `{UCAN_SUPPORT_CATALOG_REVISION}`\n"
+    ));
+    output.push_str(&format!(
+        "- Support catalog BLAKE3: `{UCAN_SUPPORT_CATALOG_BLAKE3}`\n"
+    ));
+    output.push_str(&format!(
+        "- Basalt policy BLAKE3: `{BASALT_POLICY_BLAKE3}`\n\n"
+    ));
     output.push_str("| Step | Result | Status | Elapsed ms |\n");
     output.push_str("| --- | --- | --- | ---: |\n");
     for receipt in receipts {
@@ -483,7 +643,7 @@ fn render_markdown(passed: bool, receipts: &[StepReceipt]) -> String {
     output
 }
 
-fn policy_check_attr() -> Result<OsString, String> {
+fn check_attr(check_name: &str) -> Result<OsString, String> {
     let output = Command::new("nix")
         .args([
             "eval",
@@ -505,7 +665,7 @@ fn policy_check_attr() -> Result<OsString, String> {
     let system = String::from_utf8(output.stdout)
         .map_err(|error| format!("Nix system was not UTF-8: {error}"))?;
     Ok(OsString::from(format!(
-        ".#checks.{}.policy-export",
+        "path:.#checks.{}.{check_name}",
         system.trim()
     )))
 }
