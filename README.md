@@ -1,33 +1,47 @@
 # Basalt
 
-Basalt is a standalone Rust/Nix repo for hardened UCAN contract boundaries across Nickel policy artifacts and Steel DTO evaluation backends.
+Basalt enforces UCAN contract boundaries across Nickel policy artifacts and Steel DTO backends. It is a standalone Rust and Nix repository.
 
-Flow:
+## Flow
 
-1. Author declarative contract policy in `contracts/policy.ncl`.
-2. Export/check it with Nickel: `nickel export contracts/policy.ncl > contracts/generated/policy.json`.
-3. Rust loads the generated JSON and enforces both:
-   - the selected contract permits the requested resource/ability; and
-   - the supplied UCAN capabilities authorize the same resource/ability via `ucan`.
+1. Author contract policy in `contracts/policy.ncl`.
+2. Export the policy with Nickel.
+3. Load the generated JSON in Rust.
+4. Make sure that the selected contract permits the resource and ability.
+5. Make sure that supplied UCAN capabilities authorize the same resource and ability.
 
-This is intentionally a small functional-core / imperative-shell scaffold. Nickel owns policy shape and reviewable defaults; Rust owns runtime enforcement and receipts.
+Export the policy with this command:
+
+```bash
+nickel export contracts/policy.ncl > contracts/generated/policy.json
+```
+
+The repository uses a small functional core and imperative shell. Nickel owns policy structure and reviewed defaults. Rust owns runtime enforcement and receipts.
 
 ## Publication status
 
-Basalt is under active development. Its current Cargo dependency on UCAN is
-pinned to an authenticated SSH source, so anonymous source builds are not yet a
-supported path. This access limitation does not strengthen any policy,
-security, or verification claim. Before public consumers adopt Basalt, the
-reviewed UCAN revision must be available through an anonymous HTTPS source or
-an equivalently reviewed vendored boundary.
+Basalt is under active development. Its current UCAN dependency uses an authenticated SSH source.
 
-Package metadata is kept in `Cargo.toml` for downstream discovery: the crate stays AGPL-3.0-or-later, points registry/source tooling at the OnixResearch Basalt repository and this README, and uses UCAN/Nickel/Steel/policy keywords that match the crate purpose above. Basalt was formerly named `ucan-nickel-contracts`; that former name may remain in historical Cairn archives and stable policy schema identifiers.
+Anonymous source builds are not supported yet. This access limit does not strengthen a policy, security, or formal claim.
+
+Before public adoption, the reviewed UCAN revision needs one of these sources:
+
+- an anonymous HTTPS source
+- an equivalently reviewed vendored boundary
+
+`Cargo.toml` contains package metadata for downstream discovery. The crate retains the `AGPL-3.0-or-later` license.
+
+Basalt was previously named `ucan-nickel-contracts`. That name can remain in historical Cairn archives and stable policy schema identifiers.
 
 ## License boundary
 
-This crate is licensed as `AGPL-3.0-or-later`, as declared in `Cargo.toml`; the complete text is in [`LICENSE`](LICENSE). Downstream applications should review that license before adopting the crate. Third-party dependencies retain their own terms. Earlier grants remain valid. This README does not grant an alternate license, compatibility exception, or legal advice for a specific deployment model.
+`Cargo.toml` declares `AGPL-3.0-or-later`. [`LICENSE`](LICENSE) contains the complete license text.
 
-## Quickstart
+Downstream applications must review the license before adoption. Third-party dependencies retain their own terms.
+
+Earlier grants remain valid. This README does not grant an alternate license, a compatibility exception, or legal advice.
+
+## Quick start
 
 ```bash
 mkdir -p contracts/generated
@@ -41,22 +55,29 @@ cargo run --features cli -- enforce \
   --capability did:key:z6Mkresource/docs/report=document/write
 ```
 
-Expected CLI output for the sample request:
+The sample request produces this output:
 
 ```json
 {"allowed":true,"reason":"allowed"}
 ```
 
-## Policy artifact consumption
+## Policy artifacts
 
-The crate ships `contracts/policy.ncl` as the reviewed Nickel source and `contracts/generated/policy.json` as the packaged example policy artifact. The Rust library exposes that generated artifact as `DEFAULT_POLICY_JSON` plus `default_policy()` so downstream applications can smoke-test without a Nickel toolchain.
+The crate includes these policy artifacts:
 
-Production applications should either:
+- reviewed Nickel source at `contracts/policy.ncl`
+- generated JSON at `contracts/generated/policy.json`
 
-- supply their own reviewed Nickel-exported policy JSON to `parse_policy_json`; or
-- intentionally use the packaged example policy via `default_policy()` when its contracts match their application.
+The Rust library exposes the generated artifact through `DEFAULT_POLICY_JSON` and `default_policy()`.
 
-The generated artifact is package-included in `Cargo.toml`. Release verification must run the Nickel freshness check so drift between `contracts/policy.ncl` and `contracts/generated/policy.json` fails before packaging:
+A downstream application can use the packaged policy for a smoke test. A production application must select one of these options:
+
+- supply reviewed Nickel-exported JSON to `parse_policy_json`
+- use `default_policy()` when the packaged contracts match the application
+
+`Cargo.toml` includes the generated artifact in the package. The release rail checks source and generated artifact freshness.
+
+Run the focused freshness check:
 
 ```bash
 nix build .#checks.$(nix eval --raw --impure --expr builtins.currentSystem).policy-export --no-link
@@ -64,7 +85,7 @@ nix build .#checks.$(nix eval --raw --impure --expr builtins.currentSystem).poli
 
 ## Library API
 
-Applications can depend on the crate with default features and call the public enforcement API directly:
+Applications can use the enforcement API with default features:
 
 ```rust
 use basalt::{CapabilityGrant, EnforcementRequest, default_policy, enforce};
@@ -88,7 +109,7 @@ assert_eq!(receipt.reason(), "allowed");
 
 ## CLI feature
 
-Library consumers get enforcement APIs without enabling CLI parser dependencies by default. Operators who want the bundled `basalt` command should enable the `cli` feature:
+Default library use does not include CLI parser dependencies. Enable the `cli` feature to use the `basalt` command:
 
 ```bash
 cargo run --features cli -- enforce --help
@@ -96,56 +117,123 @@ cargo run --features cli -- enforce --help
 
 ## UCAN dependency source
 
-The crate currently consumes `ucan` from an exact revision of its authoritative
-repository through an authenticated SSH URL. That keeps the reviewed source
-identity explicit, but it prevents anonymous builds and is not the intended
-public-consumer boundary. For local UCAN development, keep the committed
-manifest remote-based and use a consumer-local Cargo patch in the consuming
-application's `.cargo/config.toml` instead:
+The crate pins an exact UCAN revision from its authoritative repository. The source currently uses an authenticated SSH URL.
+
+This source keeps reviewed identity explicit, but it prevents anonymous builds. It is not the intended public-consumer boundary.
+
+For local UCAN development, keep the committed manifest remote-based. Add a local patch to the consuming application `.cargo/config.toml`:
 
 ```toml
 [patch."ssh://git@github.com/OnixResearch/ucan.git"]
 ucan = { path = "../ucan" }
 ```
 
-## UCAN/Basalt authority core
+## UCAN and Basalt authority core
 
-`basalt::authority_core` provides a pure deterministic decision boundary over loaded Basalt policy values and caller-supplied references to already-verified UCAN grants and receipts. It validates exact request, policy, grant, receipt, caveat, replay, and non-claim bindings before routing one selected grant through the existing `enforce` core. `adapt_enforcement_request` preserves existing public request fields but requires one explicit verified reference binding for every capability.
+`basalt::authority_core` is a pure deterministic decision boundary. It accepts loaded policy values and references to already-verified UCAN grants and receipts.
 
-The core never parses tokens, verifies signatures, resolves keys, reads clocks, loads proofs, consults revocation/replay stores, evaluates Nickel, or treats token/content-reference possession as current authority. An allow applies only to the exact contract/resource/ability/request binding and does not grant transport, storage, persistence, replay-store, key-resolution, business, release, or whole-system authority. See [`docs/authority-core.md`](docs/authority-core.md).
+The core checks exact bindings for these values:
+
+- request and policy
+- grant and receipt
+- caveat and replay decision
+- non-claims
+
+Then it routes one selected grant through the existing `enforce` core.
+
+`adapt_enforcement_request` preserves existing public request fields. It requires one explicit verified reference for each capability.
+
+The core does not perform these functions:
+
+- parse tokens or check signatures
+- resolve keys
+- read clocks
+- load proofs
+- consult revocation or replay stores
+- evaluate Nickel
+- treat token possession as current authority
+
+An allow applies only to the exact contract, resource, ability, and request binding.
+
+It does not grant transport, storage, persistence, replay-store, key-resolution, business, release, or whole-system authority.
+
+Read [`docs/authority-core.md`](docs/authority-core.md) for the full boundary.
 
 ## UCAN semantics compatibility
 
-The typed fixtures under `contracts/ucan-semantics/` bind Basalt's exact runtime UCAN revision, the reviewed UCAN support-catalog revision and BLAKE3 identity, and the generated Basalt policy identity. `basalt::ucan_semantics` consumes caller-supplied delegation, caveat, proof-traversal, and replay decisions, fails closed on every non-admitted fact, and passes only admitted direct and effective delegated grants to the existing `enforce` core.
+Typed fixtures in `contracts/ucan-semantics/` bind these identities:
 
-This boundary does not reimplement UCAN token semantics in Nickel or Rust. It does not prove revocation-backend freshness, key-resolution truth, UCAN cryptographic correctness, consumer replay-store durability, or application-level authorization completeness. See [`docs/ucan-semantics-contract.md`](docs/ucan-semantics-contract.md) for the identity split, fixture matrix, flow, and validation commands.
+- the exact runtime UCAN revision
+- the reviewed UCAN support-catalog revision and BLAKE3 identity
+- the generated Basalt policy identity
 
-## Verification
+`basalt::ucan_semantics` accepts caller-supplied decisions for delegation, caveats, proof traversal, and replay.
 
-Use a fresh target directory and no inherited Rust compiler wrapper to avoid
-shared stale Cargo artifact failures. This repo also checks in `.cargo/config.toml`
-so Cargo uses the Git CLI for the authenticated SSH dependency and keeps
-package preparation pointed at the reviewed remote UCAN revision instead of
-the stale crates.io `ucan` package.
+It fails closed for each fact that is not admitted. It sends only admitted direct and delegated grants to `enforce`.
 
-Run the single release rail before tagging or handing the crate to downstream applications:
+This boundary does not reimplement UCAN token semantics in Nickel or Rust. It does not prove these properties:
+
+- current revocation data
+- correct key resolution
+- UCAN cryptographic correctness
+- durable replay storage
+- complete application authorization
+
+Read [`docs/ucan-semantics-contract.md`](docs/ucan-semantics-contract.md) for identities, fixtures, flow, and commands.
+
+## Release checks
+
+Use a fresh target directory and clear inherited Rust compiler wrappers. This avoids stale shared Cargo artifacts.
+
+The checked-in `.cargo/config.toml` makes Cargo use the Git CLI for the authenticated dependency. Package preparation remains pinned to the reviewed UCAN revision.
+
+Before a tag or downstream handoff, run the full release rail:
 
 ```bash
 nix develop -c rustc tools/release-verify.rs -o /tmp/basalt-release-verify
 nix develop -c /tmp/basalt-release-verify
 ```
 
-The same verifier is exposed as the default release flake check:
+The default flake check exposes the same verifier:
 
 ```bash
 nix flake check -L
 ```
 
-Because the crate currently has an authentication-required Git dependency, the sandboxed flake check prevalidates the Nickel policy check as a Nix input and emits a verifier receipt that marks Cargo-dependent rails as deferred. Run the direct verifier above for the full release rail before tagging or handoff. The checked-in GitHub Actions workflow runs this sandbox-safe `nix flake check -L` path without repository secrets; maintainers with UCAN dependency access should run the direct verifier in their trusted environment for full Cargo coverage.
+The sandboxed flake check cannot access the authenticated Git dependency. It prechecks the Nickel policy as a Nix input.
 
-The rail uses fresh `/tmp/basalt-release-*` Cargo target directories, clears `RUSTC_WRAPPER`, and enables Git CLI fetching for the authenticated UCAN dependency. It covers policy, authority-core, and UCAN-semantics fixture freshness, `cargo fmt --check`, AGPL license metadata preservation, no-default and CLI-feature test rails through `cargo nextest`, deterministic authority/property/Steel-adapter/UCAN-token/UCAN-semantics fixture tests, doctests, clippy for both feature sets, package validation, asserted package contents, the `../clankers/` downstream consumer fixture when present, and no-dependency library docs. Direct runs write `target/release-verify/summary.json`, `summary.md`, `authority-core.json`, and `ucan-semantics.json`; Nix checks redirect those receipts into the check output, and CI uploads the summary files when the build result exposes them.
+Its receipt marks Cargo-dependent checks as deferred. Run the direct verifier in a trusted environment for full Cargo coverage.
 
-Individual checks are still useful while iterating:
+The GitHub Actions workflow uses the sandbox-safe flake check without repository secrets.
+
+### Release rail coverage
+
+The direct rail performs these checks:
+
+- policy, authority-core, and UCAN-semantics fixture freshness
+- `cargo fmt --check`
+- AGPL license metadata
+- no-default and CLI-feature tests through `cargo nextest`
+- deterministic authority, property, Steel-adapter, token, and semantics fixtures
+- doctests and Clippy for both feature sets
+- package structure and contents
+- the `../clankers/` consumer fixture when present
+- library documentation without dependencies
+
+The rail uses fresh `/tmp/basalt-release-*` target directories. It clears `RUSTC_WRAPPER` and enables Git CLI fetching.
+
+Direct runs write these receipts:
+
+- `target/release-verify/summary.json`
+- `target/release-verify/summary.md`
+- `target/release-verify/authority-core.json`
+- `target/release-verify/ucan-semantics.json`
+
+Nix checks place these receipts in the check output. CI uploads summary files when the build result provides them.
+
+### Focused checks
+
+Use these commands during development:
 
 ```bash
 nix build .#checks.$(nix eval --raw --impure --expr builtins.currentSystem).policy-export --no-link
@@ -159,11 +247,15 @@ nix develop -c env CARGO_TARGET_DIR=/tmp/basalt-target RUSTC_WRAPPER= CARGO_NET_
 
 ## Downstream compatibility
 
-Basalt keeps a focused downstream compatibility runner for consumers that exercise the public Basalt boundary:
+Run focused consumer checks with this command:
 
 ```bash
 nix develop -c rustc --edition=2024 tools/downstream-compat.rs -o /tmp/basalt-downstream-compat
 /tmp/basalt-downstream-compat --workspace-root .. --consumer clankers --consumer aspen --consumer onixos --require-present
 ```
 
-The runner creates temporary worktrees under `target/downstream-compat/`, links the current Basalt checkout into each consumer, and runs narrow checks for Clankers, Aspen, and OnixOS. The legacy `--consumer onix-modules` spelling remains an alias for `onixos`. It is intentionally local-only: keep sibling checkouts under the same workspace root and do not require GitHub Actions tokens for this compatibility matrix.
+The runner creates temporary worktrees in `target/downstream-compat/`. It links the current Basalt checkout into each consumer.
+
+Then it runs narrow checks for Clankers, Aspen, and OnixOS. The old `--consumer onix-modules` spelling remains an alias for `onixos`.
+
+The runner is local-only. Keep sibling checkouts under the same workspace root. Do not require GitHub Actions tokens for this matrix.
