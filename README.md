@@ -259,3 +259,7 @@ The runner creates temporary worktrees in `target/downstream-compat/`. It links 
 Then it runs narrow checks for Clankers, Aspen, and OnixOS. The old `--consumer onix-modules` spelling remains an alias for `onixos`.
 
 The runner is local-only. Keep sibling checkouts under the same workspace root. Do not require GitHub Actions tokens for this matrix.
+
+## References
+
+- [Nostr protocol and NIPs](https://github.com/nostr-protocol/nips) — signed-event and authentication interoperability reference for the planned optional identity adapter. Basalt retains stable subject policy and UCAN authority.
