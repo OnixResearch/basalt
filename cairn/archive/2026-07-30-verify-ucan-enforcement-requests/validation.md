@@ -2,8 +2,8 @@
 
 ## Result
 
-**VALIDATION PASSED.** The reviewed vendored UCAN boundary and enforcement adapter pass the required implementation, release, and lifecycle rails.
-Specification sync and archive remain.
+**ARCHIVED AND VALIDATED.** The reviewed vendored UCAN boundary and enforcement adapter pass the required implementation, release, and lifecycle rails.
+The accepted specification is synced, and the change is archived with date `2026-07-30`.
 
 ## Baseline Evidence
 
@@ -63,8 +63,13 @@ Basalt has `publish = false`.
 The release rail does not create a Cargo tarball because Cargo would rewrite the reviewed path dependency to the unrelated crates.io package `ucan ^0.1.0`.
 The private source inventory, package list, revision, licenses, and BLAKE3 snapshot are the supported release boundary.
 
-## Remaining Evidence
+## Sync Evidence
 
-- accepted specification sync
-- archive execution with `CAIRN_ARCHIVE_DATE=2026-07-30`
-- post-archive canonical validation
+- Canonical dry-run and executed sync passed.
+- The sync receipt hash is `8dd3f56cc4c84758ec7c65818cf4414a9170e64096ebc44f94f6e9a3a226ee43`.
+
+## Archive Evidence
+
+- Dry-run and executed archive passed with `CAIRN_ARCHIVE_DATE=2026-07-30`.
+- The archive receipt hash is `d049d10a84d53cb5fd3554b8c75a7ef0b9cc3d0ae733ffa8a41fac35f3bc41c0`.
+- Post-archive canonical validation passed with no substance findings or issues.

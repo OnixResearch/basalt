@@ -22,4 +22,4 @@ Basalt uses a reviewed vendored snapshot because the revision is not remotely fe
 
 - [x] [serial] [depends:basalt.ucan_token_flow.verify_ucan_enforcement.tests.receipt] Document API use, ownership boundaries, and bounded claims. r[basalt.ucan_token_flow.verify_ucan_enforcement.docs]
 - [x] [serial] [depends:basalt.ucan_token_flow.verify_ucan_enforcement.docs] Run focused tests, format, Clippy, workspace tests, release checks, and canonical-policy Cairn gates. r[basalt.ucan_token_flow.verify_ucan_enforcement.validation]
-- [ ] [serial] [depends:basalt.ucan_token_flow.verify_ucan_enforcement.validation] Sync the accepted specification and archive the completed change. r[basalt.ucan_token_flow.verify_ucan_enforcement.archive]
+- [x] [serial] [depends:basalt.ucan_token_flow.verify_ucan_enforcement.validation] Sync the accepted specification and archive the completed change. r[basalt.ucan_token_flow.verify_ucan_enforcement.archive]
