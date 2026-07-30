@@ -20,6 +20,18 @@ r[basalt.ucan_token_flow.verify_ucan_enforcement.verification.allow]
 - WHEN the adapter verifies the invocation
 - THEN the adapter MUST produce finite verified facts for the exact request.
 
+#### Scenario: Bearer ownership is bounded
+r[basalt.ucan_token_flow.verify_ucan_enforcement.verification.secret_ownership]
+- GIVEN the adapter receives raw compact bearer bytes
+- WHEN UCAN parses and verifies the credential
+- THEN the verification path MUST borrow those bytes or erase every owned bearer allocation on drop.
+
+#### Scenario: Holder proves possession
+r[basalt.ucan_token_flow.verify_ucan_enforcement.verification.holder_pop]
+- GIVEN a token names an audience and a request claims that holder
+- WHEN the adapter verifies the invocation
+- THEN UCAN MUST verify a holder signature over the canonical exact request binding.
+
 #### Scenario: A verification stage fails
 r[basalt.ucan_token_flow.verify_ucan_enforcement.verification.deny]
 - GIVEN any required verification stage fails or a required backend cannot answer
@@ -41,6 +53,12 @@ r[basalt.ucan_token_flow.verify_ucan_enforcement.authority.unverified_fields]
 - WHEN the adapter evaluates the request
 - THEN those fields MUST NOT create authority.
 
+#### Scenario: Operation maps to ability
+r[basalt.ucan_token_flow.verify_ucan_enforcement.authority.operation_mapping]
+- GIVEN a typed normalized operation and a reviewed action-to-ability mapping
+- WHEN the adapter binds the UCAN invocation to the Basalt request
+- THEN the mapped operation identity MUST match the exact resource, ability, and action binding.
+
 ### Requirement: Live non-forgeable admission capability
 r[basalt.ucan_token_flow.verify_ucan_enforcement.live_capability] A successful result MUST carry a live in-process capability with private fields and borrowed exact request access.
 
@@ -58,6 +76,12 @@ r[basalt.ucan_token_flow.verify_ucan_enforcement.receipt.redaction]
 - GIVEN an adapter outcome includes compact credential and proof material during evaluation
 - WHEN the caller serializes the receipt
 - THEN the receipt MUST omit credential bytes, proof bytes, keys, caveat payloads, and exact identity or scope text.
+
+#### Scenario: Oversized credential is rejected
+r[basalt.ucan_token_flow.verify_ucan_enforcement.receipt.oversized]
+- GIVEN a raw compact credential exceeds the configured byte limit
+- WHEN the adapter rejects it before parsing
+- THEN the receipt MUST omit credential identity unless the complete input was hashed within a separate explicit bound.
 
 #### Scenario: Identical evaluation repeats
 r[basalt.ucan_token_flow.verify_ucan_enforcement.receipt.identity]
