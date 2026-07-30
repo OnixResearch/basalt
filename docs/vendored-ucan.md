@@ -14,6 +14,7 @@ The snapshot contains the complete Cargo build closure for these UCAN packages:
 - the `ucan-core` functional core
 - the vendored `verified-logic` dependency
 - the two UCAN repository check binaries that its manifest declares
+- the static Aeneas proof-checker inputs required by those binaries
 
 The snapshot also contains the reviewed support catalog and license boundary.
 It preserves these license files:

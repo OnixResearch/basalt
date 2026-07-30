@@ -44,6 +44,7 @@ const SOURCE_SELECTION: &[&str] = &[
     "vendor/verified-logic-revision.txt",
     "tools/check-production-readiness",
     "tools/check-aeneas-time-bounds-proof",
+    "proofs/aeneas-time-bounds",
 ];
 
 const REQUIRED_SNAPSHOT_PATHS: &[&str] = &[
