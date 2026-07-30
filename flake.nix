@@ -77,9 +77,12 @@
               ];
             }
             ''
-              rustc --edition=2024 --test ${./tools/sync-vendored-ucan.rs} -o vendored-ucan-tests
+              cp ${./tools/sync-vendored-ucan.rs} sync-vendored-ucan.rs
+              cp -R ${./tools/sync_vendored_ucan} sync_vendored_ucan
+              chmod -R u+w sync-vendored-ucan.rs sync_vendored_ucan
+              rustc --edition=2024 --test sync-vendored-ucan.rs -o vendored-ucan-tests
               ./vendored-ucan-tests
-              rustc --edition=2024 ${./tools/sync-vendored-ucan.rs} -o vendored-ucan-check
+              rustc --edition=2024 sync-vendored-ucan.rs -o vendored-ucan-check
               checker="$PWD/vendored-ucan-check"
               cd ${./.}
               "$checker" --check

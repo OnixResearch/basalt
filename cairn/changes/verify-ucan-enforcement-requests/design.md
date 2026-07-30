@@ -115,6 +115,8 @@ The type has no public constructor and no `Clone`, `Serialize`, or `Deserialize`
 ### Decision: Keep receipts redacted and deterministic
 
 **Choice:** Receipts contain stable reason classes and BLAKE3 identities for redacted canonical material.
+The receipt hash has a separate domain and frames each variable field with a big-endian `u64` length.
+This framing includes the schema, reason, UCAN revision, and each non-claim.
 They omit compact credentials, proof bytes, keys, caveat payloads, exact identity text, and exact scope text.
 
 Oversized credentials fail before token hashing.

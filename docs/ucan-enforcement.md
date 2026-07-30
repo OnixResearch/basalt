@@ -102,7 +102,10 @@ A failure exposes no `AuthorityDecision` and no live capability.
 
 ## Receipts
 
-Each outcome includes a deterministic BLAKE3 receipt. The receipt includes these redacted facts:
+Each outcome includes a deterministic BLAKE3 receipt. Its hash uses a separate receipt domain.
+It frames each component with a big-endian `u64` length.
+Optional values use a framed presence tag and a fixed-width payload.
+The receipt includes these redacted facts:
 
 - the stable reason and allowed state
 - the observed compact-token length

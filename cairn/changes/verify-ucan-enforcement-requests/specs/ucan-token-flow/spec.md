@@ -88,6 +88,8 @@ r[basalt.ucan_token_flow.verify_ucan_enforcement.live_capability.persistence]
 
 ### Requirement: Deterministic redacted receipt
 r[basalt.ucan_token_flow.verify_ucan_enforcement.receipt] Each adapter outcome MUST include a deterministic BLAKE3 receipt with no credential or proof bytes.
+The receipt digest MUST use its own domain and big-endian `u64` length prefixes for each variable field.
+The framed fields MUST include the schema, reason, UCAN revision, and each non-claim.
 
 #### Scenario: Receipt is persisted
 r[basalt.ucan_token_flow.verify_ucan_enforcement.receipt.redaction]
