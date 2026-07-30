@@ -2,3 +2,4 @@
 /result
 /.direnv
 /contracts/generated/policy.json
+.pi/
