@@ -2,8 +2,8 @@
 
 ## Result
 
-**IN PROGRESS.** The previous UCAN dependency blockers are closed by the reviewed vendored source boundary.
-The adapter, full rails, specification sync, and archive remain incomplete.
+**VALIDATION PASSED.** The reviewed vendored UCAN boundary and enforcement adapter pass the required implementation, release, and lifecycle rails.
+Specification sync and archive remain.
 
 ## Baseline Evidence
 
@@ -43,18 +43,28 @@ The reviewed UCAN snapshot provides these facts:
 Basalt policy work must finish before holder replay.
 A Basalt policy denial must make zero replay calls.
 
-The adapter will build the prospective authority decision and redacted receipt before final holder verification.
+The adapter builds the prospective authority decision and redacted receipt before final holder verification.
 Fresh holder verification remains authoritative and performs the one replay commit.
 After replay succeeds, Basalt can only move prebuilt values into the live capability.
 
+## Validation Evidence
+
+- The focused adapter suite passed 19 positive, negative, ordering, receipt, and source-guard tests.
+- Workspace tests passed with and without the CLI feature. Doctests also passed.
+- Strict Clippy passed for all targets and features with warnings denied.
+- The vendored checker passed 3 unit tests, the 669-file offline check, and source parity against revision `34449ba1f1a9ef991225e4e6683b5d6aca8c07cf`.
+- Each enforcement, integration-test, vendored-sync, and release-verifier module is below 300 lines.
+- The bounded Octet run completed with warning-only legacy findings, zero errors, and no enforcement file-length or function-length finding.
+- The direct private release verifier passed all steps, including the validated package list and vendored source inventory.
+- `nix flake check path:$PWD -L --option secret-key-files ''` passed all checks.
+- Canonical-policy Cairn validation and the proposal, design, and tasks gates passed.
+
+Basalt has `publish = false`.
+The release rail does not create a Cargo tarball because Cargo would rewrite the reviewed path dependency to the unrelated crates.io package `ucan ^0.1.0`.
+The private source inventory, package list, revision, licenses, and BLAKE3 snapshot are the supported release boundary.
+
 ## Remaining Evidence
 
-The change remains active until these items pass:
-
-- focused positive and negative adapter tests
-- receipt redaction and non-authority tests
-- formatting, workspace tests, and strict Clippy
-- direct release verification and `nix flake check -L`
-- canonical-policy Cairn validation and gates
 - accepted specification sync
 - archive execution with `CAIRN_ARCHIVE_DATE=2026-07-30`
+- post-archive canonical validation
