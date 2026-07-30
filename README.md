@@ -165,6 +165,24 @@ It does not grant transport, storage, persistence, replay-store, key-resolution,
 
 Read [`docs/authority-core.md`](docs/authority-core.md) for the full boundary.
 
+## Raw UCAN enforcement
+
+`basalt::ucan_enforcement` verifies one raw holder-signed invocation for one exact normalized request.
+
+The caller injects key, proof, revocation, caveat, replay, time, and limit boundaries. The request cannot contain caller-supplied capability grants.
+
+Keep bearer text in `CompactToken`. Pass only borrowed `as_str()` views, and never copy bearer text into arguments, logs, or serde values.
+
+A typed action maps to one contract, ability, length-prefixed BLAKE3 operation profile, and exact request digest.
+
+Basalt builds its authority decision and redacted receipt before fresh holder verification. UCAN then calls replay once as the final consuming commit.
+
+A policy denial makes no replay call. After replay succeeds, Basalt only moves prebuilt values into the private live capability.
+
+`LiveUcanEnforcement` borrows the exact request. It has no public constructor, decision getter, clone implementation, or serde implementation.
+
+Read [`docs/ucan-enforcement.md`](docs/ucan-enforcement.md) for API use, ordering, reasons, receipts, and bounded claims.
+
 ## UCAN semantics compatibility
 
 Typed fixtures in `contracts/ucan-semantics/` bind these identities:
@@ -191,7 +209,7 @@ Read [`docs/ucan-semantics-contract.md`](docs/ucan-semantics-contract.md) for id
 
 Use a fresh target directory and clear inherited Rust compiler wrappers. This avoids stale shared Cargo artifacts.
 
-The checked-in `.cargo/config.toml` makes Cargo use the Git CLI for the authenticated dependency. Package preparation remains pinned to the reviewed UCAN revision.
+Cargo resolves UCAN from the reviewed `vendor/ucan/` snapshot. The build does not require a remote UCAN revision.
 
 Before a tag or downstream handoff, run the full release rail:
 
@@ -206,9 +224,9 @@ The default flake check exposes the same verifier:
 nix flake check -L
 ```
 
-The sandboxed flake check cannot access the authenticated Git dependency. It prechecks the Nickel policy as a Nix input.
+The sandboxed release check validates repository inputs without running Cargo. Its receipt marks Cargo-dependent checks as deferred.
 
-Its receipt marks Cargo-dependent checks as deferred. Run the direct verifier in a trusted environment for full Cargo coverage.
+Run the direct verifier in a trusted environment for full Cargo coverage.
 
 The GitHub Actions workflow uses the sandbox-safe flake check without repository secrets.
 
@@ -246,9 +264,9 @@ Use these commands during development:
 nix build .#checks.$(nix eval --raw --impure --expr builtins.currentSystem).policy-export --no-link
 nix build .#checks.$(nix eval --raw --impure --expr builtins.currentSystem).authority-core-fixtures --no-link
 nix build .#checks.$(nix eval --raw --impure --expr builtins.currentSystem).ucan-semantics-fixtures --no-link
-nix develop -c env CARGO_TARGET_DIR=/tmp/basalt-target RUSTC_WRAPPER= CARGO_NET_GIT_FETCH_WITH_CLI=true cargo nextest run --no-default-features
-nix develop -c env CARGO_TARGET_DIR=/tmp/basalt-target RUSTC_WRAPPER= CARGO_NET_GIT_FETCH_WITH_CLI=true cargo nextest run --features cli
-nix develop -c env CARGO_TARGET_DIR=/tmp/basalt-target RUSTC_WRAPPER= CARGO_NET_GIT_FETCH_WITH_CLI=true cargo test --doc --no-default-features
+nix develop -c env CARGO_TARGET_DIR=/tmp/basalt-target RUSTC_WRAPPER= cargo nextest run --no-default-features
+nix develop -c env CARGO_TARGET_DIR=/tmp/basalt-target RUSTC_WRAPPER= cargo nextest run --features cli
+nix develop -c env CARGO_TARGET_DIR=/tmp/basalt-target RUSTC_WRAPPER= cargo test --doc --no-default-features
 # The feature-enabled test rail includes the external-style CLI smoke and negative CLI tests in tests/cli_feature.rs.
 ```
 
