@@ -1,0 +1,64 @@
+# Vendored UCAN Source Boundary
+
+Basalt builds against the reviewed UCAN snapshot in `vendor/ucan/`.
+
+The snapshot records UCAN commit `34449ba1f1a9ef991225e4e6683b5d6aca8c07cf`.
+Basalt does not claim that this unpushed revision is available from a remote source.
+The checked-in snapshot is the durable build boundary.
+
+## Imported source
+
+The snapshot contains the complete Cargo build closure for these UCAN packages:
+
+- the `ucan` standard-library shell
+- the `ucan-core` functional core
+- the vendored `verified-logic` dependency
+- the two UCAN repository check binaries that its manifest declares
+
+The snapshot also contains the reviewed support catalog and license boundary.
+It preserves these license files:
+
+- `vendor/ucan/LICENSES/AGPL-3.0-or-later.txt`
+- `vendor/ucan/LICENSES/MPL-2.0.txt`
+- `vendor/ucan/crates/ucan-core/LICENSE`
+- `vendor/ucan/vendor/verified-logic/LICENSE`
+
+Basalt remains `AGPL-3.0-or-later`. Each vendored UCAN package retains its declared license.
+
+## Offline check
+
+Run the snapshot check from the Basalt repository root:
+
+```bash
+nix develop -c rustc --edition=2024 tools/sync-vendored-ucan.rs -o /tmp/basalt-sync-vendored-ucan
+nix develop -c /tmp/basalt-sync-vendored-ucan --check
+```
+
+The check compares every selected file with `vendor/ucan.snapshot`.
+The manifest records file modes, byte lengths, and BLAKE3 identities.
+It rejects extra files, missing files, changed files, symlinks, missing license files, and a changed revision record.
+
+## Source parity check
+
+If a local Git repository contains the reviewed commit, run this command:
+
+```bash
+nix develop -c /tmp/basalt-sync-vendored-ucan --check-source /path/to/ucan
+```
+
+This command reads only commit `34449ba1f1a9ef991225e4e6683b5d6aca8c07cf`.
+Uncommitted files and the checked-out branch do not affect the result.
+
+## Import
+
+Use an explicit source repository path to refresh the snapshot:
+
+```bash
+tools/sync-vendored-ucan.rs --import /path/to/ucan
+```
+
+The importer archives the pinned commit, creates the snapshot in a staging directory, and checks all required license files.
+It then replaces `vendor/ucan/` and writes the revision and BLAKE3 manifest.
+
+The importer does not change the pinned revision from an argument.
+Change `SOURCE_REVISION` only after a separate review of the new UCAN source boundary.

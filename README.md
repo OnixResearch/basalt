@@ -20,14 +20,11 @@ The repository uses a small functional core and imperative shell. Nickel owns po
 
 ## Publication status
 
-Basalt is under active development. Its current UCAN dependency uses an authenticated SSH source.
+Basalt is under active development. Its UCAN dependency uses a checked-in reviewed snapshot.
 
-Anonymous source builds are not supported yet. This access limit does not strengthen a policy, security, or formal claim.
-
-Before public adoption, the reviewed UCAN revision needs one of these sources:
-
-- an anonymous HTTPS source
-- an equivalently reviewed vendored boundary
+The snapshot records UCAN commit `34449ba1f1a9ef991225e4e6683b5d6aca8c07cf`.
+Basalt does not claim that this unpushed revision is available from a remote source.
+The repository-owned snapshot is the durable build boundary.
 
 `Cargo.toml` contains package metadata for downstream discovery. The crate retains the `AGPL-3.0-or-later` license.
 
@@ -117,16 +114,25 @@ cargo run --features cli -- enforce --help
 
 ## UCAN dependency source
 
-The crate pins an exact UCAN revision from its authoritative repository. The source currently uses an authenticated SSH URL.
+The crate uses `vendor/ucan/` as its reviewed UCAN source boundary.
+`vendor/ucan-revision.txt` records the full source revision.
+`vendor/ucan.snapshot` records deterministic BLAKE3 identities for every imported file.
 
-This source keeps reviewed identity explicit, but it prevents anonymous builds. It is not the intended public-consumer boundary.
+Run the offline check with these commands:
 
-For local UCAN development, keep the committed manifest remote-based. Add a local patch to the consuming application `.cargo/config.toml`:
-
-```toml
-[patch."ssh://git@github.com/OnixResearch/ucan.git"]
-ucan = { path = "../ucan" }
+```bash
+nix develop -c rustc --edition=2024 tools/sync-vendored-ucan.rs -o /tmp/basalt-sync-vendored-ucan
+nix develop -c /tmp/basalt-sync-vendored-ucan --check
 ```
+
+Use an explicit local UCAN repository only for source parity or a reviewed refresh:
+
+```bash
+nix develop -c /tmp/basalt-sync-vendored-ucan --check-source /path/to/ucan
+tools/sync-vendored-ucan.rs --import /path/to/ucan
+```
+
+Read [`docs/vendored-ucan.md`](docs/vendored-ucan.md) for the imported paths, license boundary, and refresh rules.
 
 ## UCAN and Basalt authority core
 
@@ -210,6 +216,7 @@ The GitHub Actions workflow uses the sandbox-safe flake check without repository
 
 The direct rail performs these checks:
 
+- the vendored UCAN revision, file manifest, source modes, and preserved license files
 - policy, authority-core, and UCAN-semantics fixture freshness
 - `cargo fmt --check`
 - AGPL license metadata
@@ -262,4 +269,5 @@ The runner is local-only. Keep sibling checkouts under the same workspace root. 
 
 ## References
 
+- [UCAN](https://github.com/OnixResearch/ucan) — source project for the reviewed vendored authority and holder-verification boundary.
 - [Nostr protocol and NIPs](https://github.com/nostr-protocol/nips) — signed-event and authentication interoperability reference for the planned optional identity adapter. Basalt retains stable subject policy and UCAN authority.

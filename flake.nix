@@ -4,10 +4,6 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
-    ucan = {
-      url = "github:OnixResearch/ucan/2aad993027d48ff148028c537cdaf91f6e5285ca";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
   };
 
   outputs =
@@ -15,12 +11,8 @@
       self,
       nixpkgs,
       flake-utils,
-      ucan,
     }:
-    {
-      lib.ucanSource = ucan;
-    }
-    // flake-utils.lib.eachDefaultSystem (
+    flake-utils.lib.eachDefaultSystem (
       system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
@@ -63,6 +55,7 @@
       {
         devShells.default = pkgs.mkShell {
           packages = [
+            pkgs.b3sum
             pkgs.cargo
             pkgs.cargo-nextest
             pkgs.clippy
@@ -73,6 +66,25 @@
             pkgs.stdenv.cc
           ];
         };
+
+        checks.vendored-ucan =
+          pkgs.runCommand "basalt-vendored-ucan"
+            {
+              nativeBuildInputs = [
+                pkgs.b3sum
+                pkgs.rustc
+                pkgs.stdenv.cc
+              ];
+            }
+            ''
+              rustc --edition=2024 --test ${./tools/sync-vendored-ucan.rs} -o vendored-ucan-tests
+              ./vendored-ucan-tests
+              rustc --edition=2024 ${./tools/sync-vendored-ucan.rs} -o vendored-ucan-check
+              checker="$PWD/vendored-ucan-check"
+              cd ${./.}
+              "$checker" --check
+              touch $out
+            '';
 
         checks.policy-export =
           pkgs.runCommand "basalt-policy-export"
@@ -147,6 +159,7 @@
           pkgs.runCommandLocal "basalt-release-verify"
             {
               nativeBuildInputs = [
+                pkgs.b3sum
                 pkgs.cargo
                 pkgs.cargo-nextest
                 pkgs.clippy

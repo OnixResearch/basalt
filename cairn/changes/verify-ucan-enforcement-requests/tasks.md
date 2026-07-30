@@ -1,12 +1,14 @@
-## Dependency
+## Source Boundary
 
-All tasks remain blocked by UCAN change `harden-compact-token-secret-ownership`. The dependency must satisfy the completion criteria in `design.md`.
+UCAN commit `34449ba1f1a9ef991225e4e6683b5d6aca8c07cf` satisfies the dependency criteria.
+Basalt uses a reviewed vendored snapshot because the revision is not remotely fetchable.
 
 ## Phase 1: Contract and API
 
+- [x] [serial] Add the deterministic vendored UCAN import, revision, BLAKE3 manifest, license check, and Nix check. r[basalt.ucan_token_flow.verify_ucan_enforcement.contract]
 - [ ] [serial] Define the raw-invocation adapter, injected boundaries, live admission capability, typed outcomes, and non-claims. r[basalt.ucan_token_flow.verify_ucan_enforcement.contract]
 - [ ] [serial] [depends:basalt.ucan_token_flow.verify_ucan_enforcement.contract] Implement the strongest pinned UCAN verification composition without ambient effects. r[basalt.ucan_token_flow.verify_ucan_enforcement.verification]
-- [ ] [serial] [depends:basalt.ucan_token_flow.verify_ucan_enforcement.verification] Feed only adapter-produced finite facts through `adapt_enforcement_request` and `evaluate_authority`. r[basalt.ucan_token_flow.verify_ucan_enforcement.authority]
+- [ ] [serial] [depends:basalt.ucan_token_flow.verify_ucan_enforcement.verification] Build policy authority before replay and feed only adapter-produced facts through `adapt_enforcement_request` and `evaluate_authority`. r[basalt.ucan_token_flow.verify_ucan_enforcement.authority]
 - [ ] [serial] [depends:basalt.ucan_token_flow.verify_ucan_enforcement.authority] Implement deterministic redacted BLAKE3 receipts that cannot recreate authority. r[basalt.ucan_token_flow.verify_ucan_enforcement.receipt]
 
 ## Phase 2: Negative and Positive Evidence

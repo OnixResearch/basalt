@@ -21,6 +21,11 @@ include = [
     "contracts/ucan-semantics/fixtures/**",
     "docs/authority-core.md",
     "docs/ucan-semantics-contract.md",
+    "docs/vendored-ucan.md",
+    "tools/sync-vendored-ucan.rs",
+    "vendor/ucan/**",
+    "vendor/ucan-revision.txt",
+    "vendor/ucan.snapshot",
     "README.md",
     "Cargo.toml",
     "Cargo.lock",
@@ -41,7 +46,7 @@ clap = { version = "4.5", features = ["derive"], optional = true }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 snafu = "0.8"
-ucan = { version = "0.1.0", git = "ssh://git@github.com/OnixResearch/ucan.git", rev = "2aad993027d48ff148028c537cdaf91f6e5285ca" }
+ucan = { version = "0.1.0", path = "vendor/ucan" }
 
 [lints.rust]
 unsafe_code = "deny"

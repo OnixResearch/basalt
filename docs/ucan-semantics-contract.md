@@ -6,12 +6,13 @@ Basalt's UCAN semantics fixtures test one bounded integration claim: decision fa
 
 Every fixture binds four immutable identities:
 
-- Basalt's fetchable UCAN runtime dependency revision: `2aad993027d48ff148028c537cdaf91f6e5285ca`;
-- the reviewed UCAN support-catalog revision: `e362c3fa2236d5b9d61423921a820cd12dd64e51`;
-- that catalog's BLAKE3 identity: `02fb9fec563b5df9f40a58bbbddfd0bcf5abe74da373ae0b506712647e0ee6ad`;
-- the generated Basalt policy artifact's BLAKE3 identity: `7d223f48abcf31c9ba932d7434babfa675122f393100547ff09a595ee1fe8adb`.
+- Basalt's reviewed vendored UCAN revision: `34449ba1f1a9ef991225e4e6683b5d6aca8c07cf`
+- the reviewed UCAN support-catalog revision: `34449ba1f1a9ef991225e4e6683b5d6aca8c07cf`
+- that catalog's BLAKE3 identity: `3266e7b1f2ce66f2ab5c8cbd7028f8bcf3502c7e64fe8d058c7b7e1f762dedb6`
+- the generated Basalt policy artifact's BLAKE3 identity: `7d223f48abcf31c9ba932d7434babfa675122f393100547ff09a595ee1fe8adb`
 
-The two UCAN revisions are intentionally distinct. The runtime revision is the exact remotely fetchable library source currently linked by Basalt. The support-catalog revision identifies the accepted catalog vocabulary used to review this compatibility profile. This change does not claim that the unpublished catalog revision is Basalt's runtime dependency.
+The UCAN runtime and support catalog come from the same checked-in snapshot.
+Basalt does not claim that the unpushed source revision is available from a remote source.
 
 ## Fixture and adapter flow
 
@@ -43,11 +44,11 @@ The adapter consumes UCAN decisions as data. It does not parse tokens, validate 
 
 These fixtures and replay reports do **not** prove:
 
-- revocation-backend freshness;
-- key-resolution truth;
-- UCAN cryptographic correctness;
-- consumer replay-store durability;
-- application-level authorization completeness.
+- revocation-backend freshness
+- key-resolution truth
+- UCAN cryptographic correctness
+- consumer replay-store durability
+- application-level authorization completeness
 
 UCAN or its caller remains authoritative for token cryptography, proof and caveat facts, explicit verification time, revocation inputs, replay state, and key resolution. Applications remain authoritative for the completeness of their policy and for acting on Basalt's receipt.
 

@@ -11,6 +11,12 @@ r[basalt.ucan_token_flow.verify_ucan_enforcement.contract.boundaries]
 - WHEN the adapter verifies an enforcement request
 - THEN the adapter MUST use only those supplied boundaries and MUST NOT use ambient network, clock, trust, or storage.
 
+#### Scenario: Reviewed source is not remotely available
+r[basalt.ucan_token_flow.verify_ucan_enforcement.contract.source_boundary]
+- GIVEN reviewed UCAN commit `34449ba1f1a9ef991225e4e6683b5d6aca8c07cf` is not remotely fetchable
+- WHEN Basalt builds the adapter
+- THEN Basalt MUST use a checked-in source snapshot with a deterministic import, revision, BLAKE3 manifest, preserved licenses, and offline validation.
+
 ### Requirement: Strong pinned UCAN verification
 r[basalt.ucan_token_flow.verify_ucan_enforcement.verification] The adapter MUST use the strongest pinned UCAN shell path that supports caller key, proof, revocation, replay, caveat, time, and limit boundaries.
 
@@ -38,6 +44,12 @@ r[basalt.ucan_token_flow.verify_ucan_enforcement.verification.deny]
 - WHEN the adapter verifies the invocation
 - THEN the adapter MUST fail closed and MUST NOT create an authority decision from caller assertions.
 
+#### Scenario: Replay is the final commit
+r[basalt.ucan_token_flow.verify_ucan_enforcement.verification.replay_final]
+- GIVEN low-level verification and non-consuming authorization pass
+- WHEN Basalt prepares authority and UCAN performs fresh holder verification
+- THEN Basalt MUST complete all fallible policy work and allocations before replay, and successful replay MUST be followed only by direct moves into live authority.
+
 ### Requirement: Existing authority core remains the decision boundary
 r[basalt.ucan_token_flow.verify_ucan_enforcement.authority] The adapter MUST route only internally produced verified facts through `adapt_enforcement_request` and `evaluate_authority`.
 
@@ -46,6 +58,12 @@ r[basalt.ucan_token_flow.verify_ucan_enforcement.authority.allow]
 - GIVEN UCAN verification admits the exact resource, ability, action, holder, caveats, revocation state, and replay state
 - WHEN Basalt policy admits the same contract, resource, and ability
 - THEN the authority decision MUST allow only that exact request.
+
+#### Scenario: Basalt policy denies before replay
+r[basalt.ucan_token_flow.verify_ucan_enforcement.authority.policy_before_replay]
+- GIVEN UCAN preflight authorization passes and Basalt policy denies the exact request
+- WHEN the adapter evaluates prospective authority
+- THEN the adapter MUST deny before holder replay and MUST make zero replay admission calls.
 
 #### Scenario: Caller capability fields are present
 r[basalt.ucan_token_flow.verify_ucan_enforcement.authority.unverified_fields]

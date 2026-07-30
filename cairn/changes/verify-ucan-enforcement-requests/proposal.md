@@ -19,5 +19,5 @@ Basalt needs a fail-closed adapter over the pinned UCAN shell API. The adapter m
 - **Library**: Add a UCAN enforcement adapter module and public exports.
 - **Tests**: Add positive and negative integration tests for every required failure class.
 - **Documentation**: Add the adapter contract, lifecycle evidence, and release-rail coverage.
-- **Lifecycle**: Keep this change active until UCAN change `harden-compact-token-secret-ownership` satisfies the required API facts.
-- **Archive**: Do not sync or archive against UCAN revision `2aad993027d48ff148028c537cdaf91f6e5285ca`.
+- **Source**: Build against the reviewed vendored UCAN snapshot from commit `34449ba1f1a9ef991225e4e6683b5d6aca8c07cf`.
+- **Lifecycle**: Sync and archive only after the vendored source check, adapter tests, release rail, and Cairn gates pass.

@@ -27,6 +27,8 @@ const POLICY_FRESH_ENV: &str = "RELEASE_VERIFY_POLICY_FRESH";
 const AUTHORITY_FRESH_ENV: &str = "RELEASE_VERIFY_AUTHORITY_FRESH";
 const SEMANTICS_FRESH_ENV: &str = "RELEASE_VERIFY_SEMANTICS_FRESH";
 const CARGO_STEPS_ENV: &str = "RELEASE_VERIFY_CARGO_STEPS";
+const VENDORED_UCAN_TEST_BINARY: &str = "/tmp/basalt-vendored-ucan-tests";
+const VENDORED_UCAN_CHECK_BINARY: &str = "/tmp/basalt-vendored-ucan-check";
 const DEFAULT_TARGET_DIR: &str = "/tmp/basalt-release-target";
 const PACKAGE_TARGET_DIR: &str = "/tmp/basalt-release-package-target";
 const CLANKERS_TARGET_DIR: &str = "/tmp/basalt-clankers-consumer-target";
@@ -58,6 +60,7 @@ const REQUIRED_PACKAGE_PATHS: &[&str] = &[
     "contracts/ucan-semantics/fixtures/positive/allow.ncl",
     "docs/authority-core.md",
     "docs/ucan-semantics-contract.md",
+    "docs/vendored-ucan.md",
     "src/authority_core.rs",
     "src/authority_identity.rs",
     "src/lib.rs",
@@ -73,6 +76,14 @@ const REQUIRED_PACKAGE_PATHS: &[&str] = &[
     "tests/public_api.rs",
     "tests/steel_adapter_fixture.rs",
     "tests/ucan_semantics_contract.rs",
+    "tools/sync-vendored-ucan.rs",
+    "vendor/ucan-revision.txt",
+    "vendor/ucan.snapshot",
+    "vendor/ucan/Cargo.toml",
+    "vendor/ucan/LICENSES/AGPL-3.0-or-later.txt",
+    "vendor/ucan/LICENSES/MPL-2.0.txt",
+    "vendor/ucan/crates/ucan-core/LICENSE",
+    "vendor/ucan/vendor/verified-logic/LICENSE",
 ];
 
 struct Step {
@@ -122,6 +133,49 @@ fn main() -> ExitCode {
     }
 
     let steps = [
+        Step {
+            name: "vendored UCAN checker tests compile",
+            program: "rustc",
+            args: &[
+                "--edition=2024",
+                "--test",
+                "tools/sync-vendored-ucan.rs",
+                "-o",
+                VENDORED_UCAN_TEST_BINARY,
+            ],
+            target_dir: DEFAULT_TARGET_DIR,
+            cargo_env: false,
+            kind: StepKind::Normal,
+        },
+        Step {
+            name: "vendored UCAN checker tests",
+            program: VENDORED_UCAN_TEST_BINARY,
+            args: &[],
+            target_dir: DEFAULT_TARGET_DIR,
+            cargo_env: false,
+            kind: StepKind::Normal,
+        },
+        Step {
+            name: "vendored UCAN checker compile",
+            program: "rustc",
+            args: &[
+                "--edition=2024",
+                "tools/sync-vendored-ucan.rs",
+                "-o",
+                VENDORED_UCAN_CHECK_BINARY,
+            ],
+            target_dir: DEFAULT_TARGET_DIR,
+            cargo_env: false,
+            kind: StepKind::Normal,
+        },
+        Step {
+            name: "vendored UCAN snapshot",
+            program: VENDORED_UCAN_CHECK_BINARY,
+            args: &["--check"],
+            target_dir: DEFAULT_TARGET_DIR,
+            cargo_env: false,
+            kind: StepKind::Normal,
+        },
         Step {
             name: POLICY_FRESH_STEP_NAME,
             program: "nix",
