@@ -185,11 +185,13 @@
               export RELEASE_VERIFY_AUTHORITY_FRESH=1
               export RELEASE_VERIFY_SEMANTICS_FRESH=1
               export RELEASE_VERIFY_CARGO_STEPS=0
-              mkdir -p "$HOME" "$CARGO_HOME" "$out" "$TMPDIR/release-source/tools" "$TMPDIR/release-source/src"
+              mkdir -p "$HOME" "$CARGO_HOME" "$out" "$TMPDIR/release-source/tools/release_verify" "$TMPDIR/release-source/src"
               cp ${./tools/release-verify.rs} "$TMPDIR/release-source/tools/release-verify.rs"
+              cp -R ${./tools/release_verify}/. "$TMPDIR/release-source/tools/release_verify/"
+              chmod -R u+w "$TMPDIR/release-source/tools/release-verify.rs" "$TMPDIR/release-source/tools/release_verify"
               cp ${./src/authority_identity.rs} "$TMPDIR/release-source/src/authority_identity.rs"
               cp ${./src/ucan_semantics_identity.rs} "$TMPDIR/release-source/src/ucan_semantics_identity.rs"
-              rustc "$TMPDIR/release-source/tools/release-verify.rs" -o "$TMPDIR/basalt-release-verify"
+              rustc --edition=2024 "$TMPDIR/release-source/tools/release-verify.rs" -o "$TMPDIR/basalt-release-verify"
               cd ${./.}
               "$TMPDIR/basalt-release-verify"
             '';

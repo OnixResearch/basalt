@@ -2,6 +2,7 @@
 name = "basalt"
 version = "0.1.0"
 edition = "2024"
+publish = false
 license = "AGPL-3.0-or-later"
 description = "Hardened UCAN contract boundaries for Nickel and Steel policy backends."
 readme = "README.md"
@@ -23,6 +24,8 @@ include = [
     "docs/ucan-enforcement.md",
     "docs/ucan-semantics-contract.md",
     "docs/vendored-ucan.md",
+    "tools/release-verify.rs",
+    "tools/release_verify/**",
     "tools/sync-vendored-ucan.rs",
     "tools/sync_vendored_ucan/**",
     "vendor/ucan/**",

@@ -211,10 +211,14 @@ Use a fresh target directory and clear inherited Rust compiler wrappers. This av
 
 Cargo resolves UCAN from the reviewed `vendor/ucan/` snapshot. The build does not require a remote UCAN revision.
 
+Basalt is a private crate with `publish = false`.
+Do not create a registry tarball. Cargo would replace the path with the unrelated crates.io package `ucan ^0.1.0`.
+The release rail validates the private source inventory and package list without creating that unsafe tarball.
+
 Before a tag or downstream handoff, run the full release rail:
 
 ```bash
-nix develop -c rustc tools/release-verify.rs -o /tmp/basalt-release-verify
+nix develop -c rustc --edition=2024 tools/release-verify.rs -o /tmp/basalt-release-verify
 nix develop -c /tmp/basalt-release-verify
 ```
 
@@ -241,7 +245,7 @@ The direct rail performs these checks:
 - no-default and CLI-feature tests through `cargo nextest`
 - deterministic authority, property, Steel-adapter, token, and semantics fixtures
 - doctests and Clippy for both feature sets
-- package structure and contents
+- private source inventory and package-list contents without a registry tarball
 - the `../clankers/` consumer fixture when present
 - library documentation without dependencies
 

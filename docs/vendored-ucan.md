@@ -26,6 +26,15 @@ It preserves these license files:
 
 Basalt remains `AGPL-3.0-or-later`. Each vendored UCAN package retains its declared license.
 
+## Private package boundary
+
+Basalt has `publish = false` because the reviewed UCAN closure has no safe registry identity.
+A normal Cargo package operation replaces the path dependency with the unrelated crates.io package `ucan ^0.1.0`.
+Do not create or publish that tarball.
+
+The release verifier checks the private package list and the required vendored source files separately.
+The vendored checker validates the manifest, revision, licenses, file modes, lengths, and BLAKE3 identities.
+
 ## Offline check
 
 Run the snapshot check from the Basalt repository root:
