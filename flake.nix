@@ -62,6 +62,16 @@
         malformedLicenseConsumptionFixtures = [
           "unsupported-schema"
         ];
+        validPolicyAuthoringFixtures = [
+          "positive/valid-minimal"
+        ];
+        invalidPolicyAuthoringFixtures = [
+          "key-id-mismatch"
+          "empty-allowlist"
+          "unknown-backend"
+          "duplicate-entry"
+          "malformed-ability"
+        ];
       in
       {
         lib.ucanSource = ./vendor/ucan;
@@ -108,7 +118,11 @@
               nativeBuildInputs = [ pkgs.nickel ];
             }
             ''
-              nickel export ${./contracts/policy.ncl} > exported-policy.json
+              mkdir -p contracts
+              cp ${./contracts/policy.ncl} contracts/policy.ncl
+              cp ${./contracts/policy-prelude.ncl} contracts/policy-prelude.ncl
+              chmod u+w contracts/policy.ncl contracts/policy-prelude.ncl
+              nickel export contracts/policy.ncl > exported-policy.json
               cmp exported-policy.json ${./contracts/generated/policy.json}
               cp exported-policy.json $out
             '';
@@ -174,6 +188,33 @@
                 fi
               done
               cp -r generated "$out"
+            '';
+
+        checks.policy-authoring-fixtures =
+          pkgs.runCommand "basalt-policy-authoring-fixtures"
+            {
+              nativeBuildInputs = [ pkgs.nickel ];
+            }
+            ''
+              mkdir -p contracts
+              cp ${./contracts/policy.ncl} contracts/policy.ncl
+              cp ${./contracts/policy-prelude.ncl} contracts/policy-prelude.ncl
+              cp -R ${./contracts/policy-authoring} contracts/policy-authoring
+              chmod -R u+w contracts
+              fixture_root=contracts/policy-authoring/fixtures
+              nickel export contracts/policy.ncl > exported-policy.json
+              cmp exported-policy.json ${./contracts/generated/policy.json}
+              mkdir -p "$out/positive"
+              for fixture in ${builtins.concatStringsSep " " validPolicyAuthoringFixtures}; do
+                nickel export --format json "$fixture_root/$fixture.ncl" > "$out/positive/$(basename "$fixture").json"
+              done
+              for fixture in ${builtins.concatStringsSep " " invalidPolicyAuthoringFixtures}; do
+                if nickel export --format json "$fixture_root/negative/$fixture.ncl" > /dev/null 2>"/tmp/$fixture.err"; then
+                  echo "invalid policy-authoring fixture unexpectedly exported: $fixture" >&2
+                  exit 1
+                fi
+              done
+              touch "$out/all"
             '';
 
         checks.downstream-compat-config =
