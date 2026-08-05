@@ -29,7 +29,7 @@
 
 ## Blocked
 
-- [ ] **Externally blocked.** This change depends on the reviewed UCAN
+**Externally blocked.** This change depends on the reviewed UCAN
   `VerifiedNostrCredential` contract from external change
   `add-nostr-identity-adapter`. The vendored UCAN snapshot has no Nostr support.
   No implementation or fixtures were written against a contract that is not

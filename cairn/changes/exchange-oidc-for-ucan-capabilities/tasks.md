@@ -47,7 +47,7 @@
 
 ## Blocked
 
-- [ ] **Externally blocked.** This change depends on the pinned `SecretSpec` Rust
+**Externally blocked.** This change depends on the pinned `SecretSpec` Rust
   SDK and a JWKS/OIDC verification stack (HTTPS discovery, signature verify,
   claim parsing). Neither is present in `Cargo.toml` or the vendored UCAN
   snapshot. No implementation was fabricated against unavailable external
