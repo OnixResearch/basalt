@@ -7,6 +7,7 @@ pub(super) const RECEIPT_DIR_ENV: &str = "RELEASE_VERIFY_RECEIPT_DIR";
 pub(super) const POLICY_FRESH_ENV: &str = "RELEASE_VERIFY_POLICY_FRESH";
 pub(super) const AUTHORITY_FRESH_ENV: &str = "RELEASE_VERIFY_AUTHORITY_FRESH";
 pub(super) const SEMANTICS_FRESH_ENV: &str = "RELEASE_VERIFY_SEMANTICS_FRESH";
+pub(super) const LICENSE_FRESH_ENV: &str = "RELEASE_VERIFY_LICENSE_FRESH";
 pub(super) const CARGO_STEPS_ENV: &str = "RELEASE_VERIFY_CARGO_STEPS";
 pub(super) const VENDORED_UCAN_TEST_BINARY: &str = "/tmp/basalt-vendored-ucan-tests";
 pub(super) const VENDORED_UCAN_CHECK_BINARY: &str = "/tmp/basalt-vendored-ucan-check";
@@ -24,6 +25,8 @@ pub(super) const AUTHORITY_FRESH_STEP_NAME: &str = "authority-core fixture fresh
 pub(super) const AUTHORITY_REPLAY_STEP_NAME: &str = "authority-core fixture tests";
 pub(super) const SEMANTICS_FRESH_STEP_NAME: &str = "UCAN semantics fixture freshness";
 pub(super) const SEMANTICS_REPLAY_STEP_NAME: &str = "UCAN semantics contract tests";
+pub(super) const LICENSE_FRESH_STEP_NAME: &str = "license-consumption fixture freshness";
+pub(super) const LICENSE_REPLAY_STEP_NAME: &str = "license-consumption contract tests";
 
 pub(super) const REQUIRED_PACKAGE_FILES: &[&str] = &[
     "Cargo.lock",
@@ -41,13 +44,24 @@ pub(super) const REQUIRED_PACKAGE_FILES: &[&str] = &[
     "contracts/ucan-semantics/fixtures/generated/positive/allow.json",
     "contracts/ucan-semantics/fixtures/negative/over-delegation.ncl",
     "contracts/ucan-semantics/fixtures/positive/allow.ncl",
+    "contracts/license-consumption/contracts.ncl",
+    "contracts/license-consumption/fixtures/base.ncl",
+    "contracts/license-consumption/fixtures/generated/positive/acknowledged-agpl.json",
+    "contracts/license-consumption/fixtures/generated/negative/missing-review.json",
+    "contracts/license-consumption/fixtures/generated/negative/stale-license-metadata.json",
+    "contracts/license-consumption/fixtures/generated/negative/weakened-non-claims.json",
+    "contracts/license-consumption/fixtures/generated/negative/wrong-artifact-identity.json",
+    "contracts/license-consumption/fixtures/generated/negative/wrong-license-expression.json",
     "docs/authority-core.md",
+    "docs/license-consumption.md",
     "docs/ucan-enforcement.md",
     "docs/ucan-semantics-contract.md",
     "docs/vendored-ucan.md",
     "src/authority_core.rs",
     "src/authority_identity.rs",
     "src/lib.rs",
+    "src/license_consumption.rs",
+    "src/license_consumption_identity.rs",
     "src/main.rs",
     "src/ucan_enforcement.rs",
     "src/ucan_enforcement/core.rs",
@@ -60,6 +74,7 @@ pub(super) const REQUIRED_PACKAGE_FILES: &[&str] = &[
     "tests/authority_core.rs",
     "tests/cli_feature.rs",
     "tests/consumer_boundary.rs",
+    "tests/license_consumption.rs",
     "tests/policy_artifact.rs",
     "tests/production_ucan_token_flow.rs",
     "tests/property_harness.rs",
@@ -110,6 +125,7 @@ pub(super) enum StepKind {
     PolicyFreshness,
     AuthorityFixtureFreshness,
     SemanticsFixtureFreshness,
+    LicenseFixtureFreshness,
     PackageContents,
     ClankersConsumerFixture,
 }

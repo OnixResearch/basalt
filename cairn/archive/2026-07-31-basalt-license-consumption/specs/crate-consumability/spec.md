@@ -1,10 +1,6 @@
-# Crate Consumability Specification
+# Crate Consumability Specification Delta
 
-## Purpose
-
-Adds license-consumption receipts for downstream Basalt adoption.
-
-## Requirements
+## ADDED Requirements
 
 ### Requirement: License consumption contract
 r[crate_consumability.license_consumption.contract] Basalt MUST support a receipt contract that records downstream consumer, Basalt artifact identity, license expression, review action, and non-claim boundary for license-sensitive adoption.

@@ -1,10 +1,15 @@
 use super::model::{
-    AUTHORITY_FRESH_STEP_NAME, AUTHORITY_REPLAY_STEP_NAME, POLICY_FRESH_STEP_NAME,
-    SEMANTICS_FRESH_STEP_NAME, SEMANTICS_REPLAY_STEP_NAME, StepReceipt,
+    AUTHORITY_FRESH_STEP_NAME, AUTHORITY_REPLAY_STEP_NAME, LICENSE_FRESH_STEP_NAME,
+    LICENSE_REPLAY_STEP_NAME, POLICY_FRESH_STEP_NAME, SEMANTICS_FRESH_STEP_NAME,
+    SEMANTICS_REPLAY_STEP_NAME, StepReceipt,
 };
 use crate::authority_identity::{
     AUTHORITY_DECISION_SCHEMA, AUTHORITY_FIXTURE_SCHEMA, AUTHORITY_INPUT_SCHEMA,
     AUTHORITY_RELEASE_RECEIPT_SCHEMA,
+};
+use crate::license_consumption_identity::{
+    LICENSE_CONSUMPTION_FIXTURE_SCHEMA, LICENSE_CONSUMPTION_RECEIPT_SCHEMA,
+    LICENSE_CONSUMPTION_RELEASE_RECEIPT_SCHEMA,
 };
 use crate::ucan_semantics_identity::{
     BASALT_POLICY_BLAKE3, UCAN_RUNTIME_REVISION, UCAN_SEMANTICS_FIXTURE_SCHEMA,
@@ -30,6 +35,11 @@ pub(super) fn write_receipts(
     fs::write(
         dir.join("ucan-semantics.json"),
         render_ucan_semantics_receipt(passed, receipts),
+    )
+    .map_err(|error| error.to_string())?;
+    fs::write(
+        dir.join("license-consumption.json"),
+        render_license_consumption_receipt(passed, receipts),
     )
     .map_err(|error| error.to_string())?;
     Ok(())
@@ -77,6 +87,16 @@ fn render_json(passed: bool, receipts: &[StepReceipt]) -> String {
     output.push_str(&format!(
         "    \"basalt_policy_blake3\": {}\n",
         json_string(BASALT_POLICY_BLAKE3)
+    ));
+    output.push_str("  },\n");
+    output.push_str("  \"license_consumption\": {\n");
+    output.push_str(&format!(
+        "    \"receipt_schema\": {},\n",
+        json_string(LICENSE_CONSUMPTION_RECEIPT_SCHEMA)
+    ));
+    output.push_str(&format!(
+        "    \"fixture_schema\": {}\n",
+        json_string(LICENSE_CONSUMPTION_FIXTURE_SCHEMA)
     ));
     output.push_str("  },\n");
     output.push_str("  \"steps\": [\n");
@@ -187,13 +207,6 @@ fn render_ucan_semantics_receipt(passed: bool, receipts: &[StepReceipt]) -> Stri
     )
 }
 
-fn step_succeeded(receipts: &[StepReceipt], name: &str) -> bool {
-    receipts
-        .iter()
-        .find(|receipt| receipt.name == name)
-        .is_some_and(|receipt| receipt.success)
-}
-
 fn render_markdown(passed: bool, receipts: &[StepReceipt]) -> String {
     let mut output = String::new();
     output.push_str("# Release Verification Summary\n\n");
@@ -242,6 +255,44 @@ fn render_markdown(passed: bool, receipts: &[StepReceipt]) -> String {
         ));
     }
     output
+}
+
+fn step_succeeded(receipts: &[StepReceipt], name: &str) -> bool {
+    receipts
+        .iter()
+        .find(|receipt| receipt.name == name)
+        .is_some_and(|receipt| receipt.success)
+}
+
+fn render_license_consumption_receipt(passed: bool, receipts: &[StepReceipt]) -> String {
+    let fixture_freshness_passed = step_succeeded(receipts, LICENSE_FRESH_STEP_NAME);
+    let replay = receipts
+        .iter()
+        .find(|receipt| receipt.name == LICENSE_REPLAY_STEP_NAME);
+    let runtime_replay_passed = replay.is_some_and(|receipt| receipt.success);
+    let runtime_replay_executed =
+        replay.is_some_and(|receipt| !receipt.command.contains("skipped in sandboxed flake check"));
+
+    format!(
+        concat!(
+            "{{\n",
+            "  \"schema\": {},\n",
+            "  \"release_passed\": {},\n",
+            "  \"receipt_schema\": {},\n",
+            "  \"fixture_schema\": {},\n",
+            "  \"fixture_freshness_passed\": {},\n",
+            "  \"runtime_replay_executed\": {},\n",
+            "  \"runtime_replay_passed\": {}\n",
+            "}}\n"
+        ),
+        json_string(LICENSE_CONSUMPTION_RELEASE_RECEIPT_SCHEMA),
+        passed,
+        json_string(LICENSE_CONSUMPTION_RECEIPT_SCHEMA),
+        json_string(LICENSE_CONSUMPTION_FIXTURE_SCHEMA),
+        fixture_freshness_passed,
+        runtime_replay_executed,
+        runtime_replay_passed,
+    )
 }
 
 fn json_string(input: &str) -> String {

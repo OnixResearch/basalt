@@ -1,7 +1,7 @@
 use super::model::{
     AUTHORITY_FRESH_ENV, CARGO_STEPS_ENV, CLANKERS_CONSUMER_MANIFEST, DEFAULT_RECEIPT_DIR,
-    GIT_FETCH_ENV, OUTPUT_TAIL_LIMIT, POLICY_FRESH_ENV, RECEIPT_DIR_ENV, SEMANTICS_FRESH_ENV, Step,
-    StepKind, StepReceipt, TARGET_ENV, WRAPPER_ENV,
+    GIT_FETCH_ENV, LICENSE_FRESH_ENV, OUTPUT_TAIL_LIMIT, POLICY_FRESH_ENV, RECEIPT_DIR_ENV,
+    SEMANTICS_FRESH_ENV, Step, StepKind, StepReceipt, TARGET_ENV, WRAPPER_ENV,
 };
 use super::plan::steps;
 use super::receipts::write_receipts;
@@ -82,6 +82,9 @@ fn run_step(root: &Path, step: &Step) -> StepReceipt {
     if matches!(step.kind, StepKind::SemanticsFixtureFreshness) && env_flag(SEMANTICS_FRESH_ENV) {
         return prevalidated_receipt(step, SEMANTICS_FRESH_ENV);
     }
+    if matches!(step.kind, StepKind::LicenseFixtureFreshness) && env_flag(LICENSE_FRESH_ENV) {
+        return prevalidated_receipt(step, LICENSE_FRESH_ENV);
+    }
     if step.cargo_env && env::var_os(CARGO_STEPS_ENV).is_some_and(|value| value == "0") {
         println!("==> {}", step.name);
         return StepReceipt {
@@ -118,6 +121,7 @@ fn run_step(root: &Path, step: &Step) -> StepReceipt {
         StepKind::PolicyFreshness => Some("policy-export"),
         StepKind::AuthorityFixtureFreshness => Some("authority-core-fixtures"),
         StepKind::SemanticsFixtureFreshness => Some("ucan-semantics-fixtures"),
+        StepKind::LicenseFixtureFreshness => Some("license-consumption-fixtures"),
         _ => None,
     };
     if let Some(check_name) = check_name {

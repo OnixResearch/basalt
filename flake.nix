@@ -51,6 +51,17 @@
           "incompatible-expected-result"
           "stale-catalog"
         ];
+        validLicenseConsumptionFixtures = [
+          "positive/acknowledged-agpl"
+          "negative/missing-review"
+          "negative/wrong-artifact-identity"
+          "negative/stale-license-metadata"
+          "negative/weakened-non-claims"
+          "negative/wrong-license-expression"
+        ];
+        malformedLicenseConsumptionFixtures = [
+          "unsupported-schema"
+        ];
       in
       {
         devShells.default = pkgs.mkShell {
@@ -142,6 +153,27 @@
               cp -r generated "$out"
             '';
 
+        checks.license-consumption-fixtures =
+          pkgs.runCommand "basalt-license-consumption-fixtures"
+            {
+              nativeBuildInputs = [ pkgs.nickel ];
+            }
+            ''
+              fixture_root=${./contracts/license-consumption}/fixtures
+              mkdir -p generated/positive generated/negative
+              for fixture in ${builtins.concatStringsSep " " validLicenseConsumptionFixtures}; do
+                nickel export --format json "$fixture_root/$fixture.ncl" > "generated/$fixture.json"
+                cmp "generated/$fixture.json" "$fixture_root/generated/$fixture.json"
+              done
+              for fixture in ${builtins.concatStringsSep " " malformedLicenseConsumptionFixtures}; do
+                if nickel export --format json "$fixture_root/malformed/$fixture.ncl" > /dev/null 2>"$fixture.err"; then
+                  echo "malformed license-consumption fixture unexpectedly exported: $fixture" >&2
+                  exit 1
+                fi
+              done
+              cp -r generated "$out"
+            '';
+
         checks.downstream-compat-config =
           pkgs.runCommand "basalt-downstream-compat-config"
             {
@@ -176,6 +208,7 @@
               authorityCoreFixtures = self.checks.${system}.authority-core-fixtures;
               policyExport = self.checks.${system}.policy-export;
               ucanSemanticsFixtures = self.checks.${system}.ucan-semantics-fixtures;
+              licenseConsumptionFixtures = self.checks.${system}.license-consumption-fixtures;
             }
             ''
               export HOME="$TMPDIR/home"
@@ -184,6 +217,7 @@
               export RELEASE_VERIFY_POLICY_FRESH=1
               export RELEASE_VERIFY_AUTHORITY_FRESH=1
               export RELEASE_VERIFY_SEMANTICS_FRESH=1
+              export RELEASE_VERIFY_LICENSE_FRESH=1
               export RELEASE_VERIFY_CARGO_STEPS=0
               mkdir -p "$HOME" "$CARGO_HOME" "$out" "$TMPDIR/release-source/tools/release_verify" "$TMPDIR/release-source/src"
               cp ${./tools/release-verify.rs} "$TMPDIR/release-source/tools/release-verify.rs"

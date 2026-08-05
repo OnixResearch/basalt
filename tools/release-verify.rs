@@ -10,6 +10,8 @@ mod model;
 mod plan;
 #[path = "release_verify/receipts.rs"]
 mod receipts;
+#[path = "../src/license_consumption_identity.rs"]
+mod license_consumption_identity;
 #[path = "../src/ucan_semantics_identity.rs"]
 mod ucan_semantics_identity;
 #[path = "release_verify/validators.rs"]
