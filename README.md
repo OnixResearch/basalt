@@ -20,14 +20,11 @@ The repository uses a small functional core and imperative shell. Nickel owns po
 
 ## Publication status
 
-Basalt is under active development. Its current UCAN dependency uses an authenticated SSH source.
+Basalt is under active development. Its UCAN dependency uses a checked-in reviewed snapshot.
 
-Anonymous source builds are not supported yet. This access limit does not strengthen a policy, security, or formal claim.
-
-Before public adoption, the reviewed UCAN revision needs one of these sources:
-
-- an anonymous HTTPS source
-- an equivalently reviewed vendored boundary
+The snapshot records UCAN commit `34449ba1f1a9ef991225e4e6683b5d6aca8c07cf`.
+Basalt does not claim that this unpushed revision is available from a remote source.
+The repository-owned snapshot is the durable build boundary.
 
 `Cargo.toml` contains package metadata for downstream discovery. The crate retains the `AGPL-3.0-or-later` license.
 
@@ -117,16 +114,25 @@ cargo run --features cli -- enforce --help
 
 ## UCAN dependency source
 
-The crate pins an exact UCAN revision from its authoritative repository. The source currently uses an authenticated SSH URL.
+The crate uses `vendor/ucan/` as its reviewed UCAN source boundary.
+`vendor/ucan-revision.txt` records the full source revision.
+`vendor/ucan.snapshot` records deterministic BLAKE3 identities for every imported file.
 
-This source keeps reviewed identity explicit, but it prevents anonymous builds. It is not the intended public-consumer boundary.
+Run the offline check with these commands:
 
-For local UCAN development, keep the committed manifest remote-based. Add a local patch to the consuming application `.cargo/config.toml`:
-
-```toml
-[patch."ssh://git@github.com/OnixResearch/ucan.git"]
-ucan = { path = "../ucan" }
+```bash
+nix develop -c rustc --edition=2024 tools/sync-vendored-ucan.rs -o /tmp/basalt-sync-vendored-ucan
+nix develop -c /tmp/basalt-sync-vendored-ucan --check
 ```
+
+Use an explicit local UCAN repository only for source parity or a reviewed refresh:
+
+```bash
+nix develop -c /tmp/basalt-sync-vendored-ucan --check-source /path/to/ucan
+tools/sync-vendored-ucan.rs --import /path/to/ucan
+```
+
+Read [`docs/vendored-ucan.md`](docs/vendored-ucan.md) for the imported paths, license boundary, and refresh rules.
 
 ## UCAN and Basalt authority core
 
@@ -159,6 +165,24 @@ It does not grant transport, storage, persistence, replay-store, key-resolution,
 
 Read [`docs/authority-core.md`](docs/authority-core.md) for the full boundary.
 
+## Raw UCAN enforcement
+
+`basalt::ucan_enforcement` verifies one raw holder-signed invocation for one exact normalized request.
+
+The caller injects key, proof, revocation, caveat, replay, time, and limit boundaries. The request cannot contain caller-supplied capability grants.
+
+Keep bearer text in `CompactToken`. Pass only borrowed `as_str()` views, and never copy bearer text into arguments, logs, or serde values.
+
+A typed action maps to one contract, ability, length-prefixed BLAKE3 operation profile, and exact request digest.
+
+Basalt builds its authority decision and redacted receipt before fresh holder verification. UCAN then calls replay once as the final consuming commit.
+
+A policy denial makes no replay call. After replay succeeds, Basalt only moves prebuilt values into the private live capability.
+
+`LiveUcanEnforcement` borrows the exact request. It has no public constructor, decision getter, clone implementation, or serde implementation.
+
+Read [`docs/ucan-enforcement.md`](docs/ucan-enforcement.md) for API use, ordering, reasons, receipts, and bounded claims.
+
 ## UCAN semantics compatibility
 
 Typed fixtures in `contracts/ucan-semantics/` bind these identities:
@@ -185,12 +209,16 @@ Read [`docs/ucan-semantics-contract.md`](docs/ucan-semantics-contract.md) for id
 
 Use a fresh target directory and clear inherited Rust compiler wrappers. This avoids stale shared Cargo artifacts.
 
-The checked-in `.cargo/config.toml` makes Cargo use the Git CLI for the authenticated dependency. Package preparation remains pinned to the reviewed UCAN revision.
+Cargo resolves UCAN from the reviewed `vendor/ucan/` snapshot. The build does not require a remote UCAN revision.
+
+Basalt is a private crate with `publish = false`.
+Do not create a registry tarball. Cargo would replace the path with the unrelated crates.io package `ucan ^0.1.0`.
+The release rail validates the private source inventory and package list without creating that unsafe tarball.
 
 Before a tag or downstream handoff, run the full release rail:
 
 ```bash
-nix develop -c rustc tools/release-verify.rs -o /tmp/basalt-release-verify
+nix develop -c rustc --edition=2024 tools/release-verify.rs -o /tmp/basalt-release-verify
 nix develop -c /tmp/basalt-release-verify
 ```
 
@@ -200,9 +228,9 @@ The default flake check exposes the same verifier:
 nix flake check -L
 ```
 
-The sandboxed flake check cannot access the authenticated Git dependency. It prechecks the Nickel policy as a Nix input.
+The sandboxed release check validates repository inputs without running Cargo. Its receipt marks Cargo-dependent checks as deferred.
 
-Its receipt marks Cargo-dependent checks as deferred. Run the direct verifier in a trusted environment for full Cargo coverage.
+Run the direct verifier in a trusted environment for full Cargo coverage.
 
 The GitHub Actions workflow uses the sandbox-safe flake check without repository secrets.
 
@@ -210,13 +238,14 @@ The GitHub Actions workflow uses the sandbox-safe flake check without repository
 
 The direct rail performs these checks:
 
+- the vendored UCAN revision, file manifest, source modes, and preserved license files
 - policy, authority-core, and UCAN-semantics fixture freshness
 - `cargo fmt --check`
 - AGPL license metadata
 - no-default and CLI-feature tests through `cargo nextest`
 - deterministic authority, property, Steel-adapter, token, and semantics fixtures
 - doctests and Clippy for both feature sets
-- package structure and contents
+- private source inventory and package-list contents without a registry tarball
 - the `../clankers/` consumer fixture when present
 - library documentation without dependencies
 
@@ -239,9 +268,9 @@ Use these commands during development:
 nix build .#checks.$(nix eval --raw --impure --expr builtins.currentSystem).policy-export --no-link
 nix build .#checks.$(nix eval --raw --impure --expr builtins.currentSystem).authority-core-fixtures --no-link
 nix build .#checks.$(nix eval --raw --impure --expr builtins.currentSystem).ucan-semantics-fixtures --no-link
-nix develop -c env CARGO_TARGET_DIR=/tmp/basalt-target RUSTC_WRAPPER= CARGO_NET_GIT_FETCH_WITH_CLI=true cargo nextest run --no-default-features
-nix develop -c env CARGO_TARGET_DIR=/tmp/basalt-target RUSTC_WRAPPER= CARGO_NET_GIT_FETCH_WITH_CLI=true cargo nextest run --features cli
-nix develop -c env CARGO_TARGET_DIR=/tmp/basalt-target RUSTC_WRAPPER= CARGO_NET_GIT_FETCH_WITH_CLI=true cargo test --doc --no-default-features
+nix develop -c env CARGO_TARGET_DIR=/tmp/basalt-target RUSTC_WRAPPER= cargo nextest run --no-default-features
+nix develop -c env CARGO_TARGET_DIR=/tmp/basalt-target RUSTC_WRAPPER= cargo nextest run --features cli
+nix develop -c env CARGO_TARGET_DIR=/tmp/basalt-target RUSTC_WRAPPER= cargo test --doc --no-default-features
 # The feature-enabled test rail includes the external-style CLI smoke and negative CLI tests in tests/cli_feature.rs.
 ```
 
@@ -262,4 +291,5 @@ The runner is local-only. Keep sibling checkouts under the same workspace root. 
 
 ## References
 
+- [UCAN](https://github.com/OnixResearch/ucan) — source project for the reviewed vendored authority and holder-verification boundary.
 - [Nostr protocol and NIPs](https://github.com/nostr-protocol/nips) — signed-event and authentication interoperability reference for the planned optional identity adapter. Basalt retains stable subject policy and UCAN authority.

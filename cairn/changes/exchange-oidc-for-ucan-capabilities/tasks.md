@@ -44,3 +44,12 @@
 - [ ] [serial] 6.3 Document GitHub claim policy, rotation, revocation, replay, incident response, and rollback. r[ucan_token_flow.oidc.replay_boundary]
 - [ ] [serial] 6.4 Run Rust format, focused tests, workspace tests, clippy, Nickel policy validation, release verification, and relevant Nix checks. r[ucan_token_flow.oidc.pure_verification]
 - [ ] [serial] 6.5 Run Cairn validation, requirement coverage, design gate, and tasks gate. r[ucan_token_flow.oidc.versioned_policy]
+
+## Blocked
+
+- [ ] **Externally blocked.** This change depends on the pinned `SecretSpec` Rust
+  SDK and a JWKS/OIDC verification stack (HTTPS discovery, signature verify,
+  claim parsing). Neither is present in `Cargo.toml` or the vendored UCAN
+  snapshot. No implementation was fabricated against unavailable external
+  infrastructure. Re-drain after the SecretSpec SDK and OIDC/JWKS deps are
+  pinned and reviewed.

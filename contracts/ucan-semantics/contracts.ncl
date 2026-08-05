@@ -1,10 +1,10 @@
 let MaximumFixtureCapabilities = 64 in
 let MaximumFixtureIdBytes = 128 in
 let FixtureSchema = "basalt.ucan-semantics-fixture.v1" in
-let RuntimeUcanRevision = "2aad993027d48ff148028c537cdaf91f6e5285ca" in
-let SupportCatalogRevision = "e362c3fa2236d5b9d61423921a820cd12dd64e51" in
-let SupportCatalogBlake3 = "02fb9fec563b5df9f40a58bbbddfd0bcf5abe74da373ae0b506712647e0ee6ad" in
-let BasaltPolicyBlake3 = "7d223f48abcf31c9ba932d7434babfa675122f393100547ff09a595ee1fe8adb" in
+let RuntimeUcanRevision = "34449ba1f1a9ef991225e4e6683b5d6aca8c07cf" in
+let SupportCatalogRevision = "34449ba1f1a9ef991225e4e6683b5d6aca8c07cf" in
+let SupportCatalogBlake3 = "3266e7b1f2ce66f2ab5c8cbd7028f8bcf3502c7e64fe8d058c7b7e1f762dedb6" in
+let BasaltPolicyBlake3 = "5475d5473ec98cbf052a83512836b0739f5dad3e7b9b0ed201eb3094b1cf39bf" in
 let RequiredNonClaims = [
   "revocation-backend-freshness",
   "key-resolution-truth",

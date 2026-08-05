@@ -26,3 +26,11 @@
 
 - [ ] [serial] Update public API, policy, authority, rotation, and non-claim documentation. r[nostr_identity_bindings.final_validation]
 - [ ] [serial] Run policy, no-default, CLI, downstream, Cairn, and release verification. r[nostr_identity_bindings.final_validation]
+
+## Blocked
+
+- [ ] **Externally blocked.** This change depends on the reviewed UCAN
+  `VerifiedNostrCredential` contract from external change
+  `add-nostr-identity-adapter`. The vendored UCAN snapshot has no Nostr support.
+  No implementation or fixtures were written against a contract that is not
+  present. Re-drain after the external UCAN change is reviewed and vendored.
