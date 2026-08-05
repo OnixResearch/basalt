@@ -64,6 +64,8 @@
         ];
       in
       {
+        lib.ucanSource = ./vendor/ucan;
+
         devShells.default = pkgs.mkShell {
           packages = [
             pkgs.b3sum

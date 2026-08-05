@@ -12,6 +12,21 @@ const DOCUMENT_READ_ABILITY: &str = "document/read";
 const DOCUMENT_WRITE_CONTRACT: &str = "document-write";
 const DOCUMENT_WRITE_ABILITY: &str = "document/write";
 
+const TARGET_CANDIDATE_ACTIVATION_CONTRACT: &str = "onixos-target-candidate-activation";
+const TARGET_CANDIDATE_ACTIVATION_ABILITY: &str = "onix/target-candidate-activation";
+const TARGET_GENERATION_PERSISTENCE_CONTRACT: &str = "onixos-target-generation-persistence";
+const TARGET_GENERATION_PERSISTENCE_ABILITY: &str = "onix/target-generation-persistence";
+const TARGET_ROLLBACK_CONTRACT: &str = "onixos-target-rollback";
+const TARGET_ROLLBACK_ABILITY: &str = "onix/target-rollback";
+const STATE_SYNC_PUBLISH_CONTRACT: &str = "onixos-state-sync-publish";
+const STATE_SYNC_PUBLISH_ABILITY: &str = "state_sync.publish";
+const STATE_SYNC_DELETE_CONTRACT: &str = "onixos-state-sync-delete";
+const STATE_SYNC_DELETE_ABILITY: &str = "state_sync.delete";
+const STATE_SYNC_ADMIN_CONTRACT: &str = "onixos-state-sync-admin";
+const STATE_SYNC_ADMIN_ABILITY: &str = "state_sync.admin";
+const ONIXOS_TARGET_RESOURCE_PREFIX: &str = "did:key:z6Mkonix/onixos/";
+const STATE_SYNC_RESOURCE_PREFIX: &str = "onix://state-sync/";
+
 /// Closed downstream actions with reviewed Basalt contract and UCAN ability mappings.
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
@@ -20,6 +35,18 @@ pub enum EnforcementAction {
     DocumentRead,
     /// Write one document resource.
     DocumentWrite,
+    /// Candidate activation for one `OnixOS` target.
+    OnixosTargetCandidateActivation,
+    /// Generation persistence for one `OnixOS` target.
+    OnixosTargetGenerationPersistence,
+    /// Rollback for one `OnixOS` target.
+    OnixosTargetRollback,
+    /// State-sync publish for one `OnixOS` target.
+    OnixosStateSyncPublish,
+    /// State-sync delete for one `OnixOS` target.
+    OnixosStateSyncDelete,
+    /// State-sync administration for one `OnixOS` target.
+    OnixosStateSyncAdmin,
 }
 
 impl EnforcementAction {
@@ -29,6 +56,12 @@ impl EnforcementAction {
         match self {
             Self::DocumentRead => "document-read",
             Self::DocumentWrite => "document-write",
+            Self::OnixosTargetCandidateActivation => "onixos-target-candidate-activation",
+            Self::OnixosTargetGenerationPersistence => "onixos-target-generation-persistence",
+            Self::OnixosTargetRollback => "onixos-target-rollback",
+            Self::OnixosStateSyncPublish => "onixos-state-sync-publish",
+            Self::OnixosStateSyncDelete => "onixos-state-sync-delete",
+            Self::OnixosStateSyncAdmin => "onixos-state-sync-admin",
         }
     }
 
@@ -38,6 +71,12 @@ impl EnforcementAction {
         match self {
             Self::DocumentRead => DOCUMENT_READ_CONTRACT,
             Self::DocumentWrite => DOCUMENT_WRITE_CONTRACT,
+            Self::OnixosTargetCandidateActivation => TARGET_CANDIDATE_ACTIVATION_CONTRACT,
+            Self::OnixosTargetGenerationPersistence => TARGET_GENERATION_PERSISTENCE_CONTRACT,
+            Self::OnixosTargetRollback => TARGET_ROLLBACK_CONTRACT,
+            Self::OnixosStateSyncPublish => STATE_SYNC_PUBLISH_CONTRACT,
+            Self::OnixosStateSyncDelete => STATE_SYNC_DELETE_CONTRACT,
+            Self::OnixosStateSyncAdmin => STATE_SYNC_ADMIN_CONTRACT,
         }
     }
 
@@ -47,6 +86,26 @@ impl EnforcementAction {
         match self {
             Self::DocumentRead => DOCUMENT_READ_ABILITY,
             Self::DocumentWrite => DOCUMENT_WRITE_ABILITY,
+            Self::OnixosTargetCandidateActivation => TARGET_CANDIDATE_ACTIVATION_ABILITY,
+            Self::OnixosTargetGenerationPersistence => TARGET_GENERATION_PERSISTENCE_ABILITY,
+            Self::OnixosTargetRollback => TARGET_ROLLBACK_ABILITY,
+            Self::OnixosStateSyncPublish => STATE_SYNC_PUBLISH_ABILITY,
+            Self::OnixosStateSyncDelete => STATE_SYNC_DELETE_ABILITY,
+            Self::OnixosStateSyncAdmin => STATE_SYNC_ADMIN_ABILITY,
+        }
+    }
+
+    /// Return the reviewed resource prefix for this action.
+    #[must_use]
+    pub const fn resource_prefix(self) -> &'static str {
+        match self {
+            Self::DocumentRead | Self::DocumentWrite => "",
+            Self::OnixosTargetCandidateActivation
+            | Self::OnixosTargetGenerationPersistence
+            | Self::OnixosTargetRollback => ONIXOS_TARGET_RESOURCE_PREFIX,
+            Self::OnixosStateSyncPublish
+            | Self::OnixosStateSyncDelete
+            | Self::OnixosStateSyncAdmin => STATE_SYNC_RESOURCE_PREFIX,
         }
     }
 

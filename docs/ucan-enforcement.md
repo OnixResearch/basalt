@@ -40,6 +40,33 @@ Use the returned `OperationBinding` in `HolderInvocationSigningRequest`. The sig
 
 A token, request, action, profile, or nonce substitution invalidates the invocation.
 
+## OnixOS target actions
+
+The closed `EnforcementAction` enum adds six OnixOS target actions. Each action has one reviewed contract, one ability, and one resource prefix.
+
+| Action | Contract | Ability | Resource prefix |
+|---|---|---|---|
+| Candidate activation | `onixos-target-candidate-activation` | `onix/target-candidate-activation` | `did:key:z6Mkonix/onixos/` |
+| Generation persistence | `onixos-target-generation-persistence` | `onix/target-generation-persistence` | `did:key:z6Mkonix/onixos/` |
+| Rollback | `onixos-target-rollback` | `onix/target-rollback` | `did:key:z6Mkonix/onixos/` |
+| State-sync publish | `onixos-state-sync-publish` | `state_sync.publish` | `onix://state-sync/` |
+| State-sync delete | `onixos-state-sync-delete` | `state_sync.delete` | `onix://state-sync/` |
+| State-sync admin | `onixos-state-sync-admin` | `state_sync.admin` | `onix://state-sync/` |
+
+The adapter has no generic action constructor. A caller can select only a reviewed enum variant. Each variant has a distinct BLAKE3 operation-profile identity, and the request-binding digest includes the action, contract, resource, and ability.
+
+`bind_enforcement_action` refuses a request whose resource falls outside the action's reviewed prefix. State-sync publish does not authorize delete or administrative authority. A target mutation is never mapped to a document action.
+
+A live result for one target action grants only the exact mapped request. It does not execute an effect and does not prove effect correctness.
+
+## UCAN source export
+
+These actions depend on the checked-in reviewed UCAN snapshot under `vendor/ucan/`.
+
+The Basalt flake exports that snapshot as `lib.ucanSource`. A downstream consumer that pins one immutable Basalt revision evaluates `basalt.lib.<system>.ucanSource` to name the checked-in vendor tree for offline packaging.
+
+The existing revision, BLAKE3 manifest, and license checks in `tools/sync-vendored-ucan.rs` remain authoritative. A successful result does not claim that an unpushed Basalt revision is remotely available and does not recreate a remote UCAN pin.
+
 ## Verification order
 
 The adapter uses this order:

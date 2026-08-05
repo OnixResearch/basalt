@@ -59,6 +59,9 @@ pub fn bind_enforcement_action(
     if request.ability() != action.ability() {
         return Err(UcanEnforcementReason::OperationMismatch);
     }
+    if !request.resource().starts_with(action.resource_prefix()) {
+        return Err(UcanEnforcementReason::ScopeDenied);
+    }
     for field in [request.contract(), request.resource(), request.ability()] {
         if !bounded_request_field(field) {
             return Err(UcanEnforcementReason::LimitExceeded);

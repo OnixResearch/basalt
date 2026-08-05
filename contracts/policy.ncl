@@ -47,5 +47,41 @@ let Policy = {
       resource_prefixes = ["did:key:z6Mkresource/docs/"],
       abilities = ["document/write"],
     },
+    onixos-target-candidate-activation = {
+      id = "onixos-target-candidate-activation",
+      description = "Activate one OnixOS candidate target.",
+      resource_prefixes = ["did:key:z6Mkonix/onixos/"],
+      abilities = ["onix/target-candidate-activation"],
+    },
+    onixos-target-generation-persistence = {
+      id = "onixos-target-generation-persistence",
+      description = "Persist one OnixOS generation.",
+      resource_prefixes = ["did:key:z6Mkonix/onixos/"],
+      abilities = ["onix/target-generation-persistence"],
+    },
+    onixos-target-rollback = {
+      id = "onixos-target-rollback",
+      description = "Roll back one OnixOS target.",
+      resource_prefixes = ["did:key:z6Mkonix/onixos/"],
+      abilities = ["onix/target-rollback"],
+    },
+    onixos-state-sync-publish = {
+      id = "onixos-state-sync-publish",
+      description = "Publish one OnixOS state-sync update.",
+      resource_prefixes = ["onix://state-sync/"],
+      abilities = ["state_sync.publish"],
+    },
+    onixos-state-sync-delete = {
+      id = "onixos-state-sync-delete",
+      description = "Delete one OnixOS state-sync update.",
+      resource_prefixes = ["onix://state-sync/"],
+      abilities = ["state_sync.delete"],
+    },
+    onixos-state-sync-admin = {
+      id = "onixos-state-sync-admin",
+      description = "Administer one OnixOS state-sync update.",
+      resource_prefixes = ["onix://state-sync/"],
+      abilities = ["state_sync.admin"],
+    },
   },
 } | Policy
