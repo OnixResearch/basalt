@@ -81,26 +81,6 @@ Basalt SHALL issue a UCAN only after successful OIDC verification, and the UCAN 
 - **THEN** exchange SHALL reject or reduce it only as the explicit policy defines
 - **AND** it SHALL never silently grant the broader request
 
-### Requirement: ucan_token_flow.oidc.secretspec_issuer_key
-
-r[ucan_token_flow.oidc.secretspec_issuer_key]
-
-Basalt SHALL resolve the UCAN issuer signing key through the pinned SecretSpec Rust SDK in an imperative shell under an explicit profile and `basalt-oidc-exchange` scope.
-
-#### Scenario: Issuer key resolves
-
-- **GIVEN** an allowed metadata-only declaration and provider
-- **WHEN** the exchange service starts or rotates keys
-- **THEN** the imperative shell SHALL obtain the key
-- **AND** the pure verification core SHALL remain independent of provider access
-
-#### Scenario: Issuer key cannot resolve safely
-
-- **GIVEN** a missing declaration, wrong scope, provider error, timeout, cancellation, or oversized provider output
-- **WHEN** Basalt loads the key
-- **THEN** issuance SHALL remain disabled
-- **AND** Basalt SHALL NOT fall back to a static or ambient key
-
 ### Requirement: ucan_token_flow.oidc.replay_boundary
 
 r[ucan_token_flow.oidc.replay_boundary]

@@ -29,27 +29,26 @@
 - [ ] [serial] 4.3 Add replay-key planning in the core and replay-store mutation in the shell. r[ucan_token_flow.oidc.replay_boundary]
 - [ ] [serial] 4.4 Add positive exchange and verification tests plus negative replay, wrong audience, wrong resource, and expired-capability tests. r[ucan_token_flow.oidc.attenuated_ucan] r[ucan_token_flow.oidc.replay_boundary]
 
-## 5. Integrate SecretSpec issuer keys
+## 5. Evidence, rollout, and validation
 
-- [ ] [serial] 5.1 Pin SecretSpec `v0.17.0` and its reviewed source identity through Cargo and Nix. r[ucan_token_flow.oidc.secretspec_issuer_key]
-- [ ] [serial] 5.2 Declare the issuer key as metadata under an explicit `basalt-oidc-exchange` scope. r[ucan_token_flow.oidc.secretspec_issuer_key]
-- [ ] [serial] 5.3 Resolve the key only in the imperative shell and bound any provider process through an owned worker. r[ucan_token_flow.oidc.secretspec_issuer_key]
-- [ ] [serial] 5.4 Disable SecretSpec writes and plaintext caches. r[ucan_token_flow.oidc.secretspec_issuer_key]
-- [ ] [serial] 5.5 Add positive key-load and rotation fixtures plus negative missing, wrong-scope, timeout, oversized-output, and provider-failure fixtures. r[ucan_token_flow.oidc.secretspec_issuer_key]
+- [ ] [serial] 5.1 Emit redacted exchange evidence with policy, public subject, capability, key, and outcome identities. r[ucan_token_flow.oidc.redacted_evidence]
+- [ ] [serial] 5.2 Add scans that reject raw OIDC tokens, UCAN bearer tokens, private keys, provider credentials, and sensitive token digests in durable output. r[ucan_token_flow.oidc.redacted_evidence]
+- [ ] [serial] 5.3 Document GitHub claim policy, rotation, revocation, replay, incident response, and rollback. r[ucan_token_flow.oidc.replay_boundary]
+- [ ] [serial] 5.4 Run Rust format, focused tests, workspace tests, clippy, Nickel policy validation, release verification, and relevant Nix checks. r[ucan_token_flow.oidc.pure_verification]
+- [ ] [serial] 5.5 Run Cairn validation, requirement coverage, design gate, and tasks gate. r[ucan_token_flow.oidc.versioned_policy]
 
-## 6. Evidence, rollout, and validation
+## Split
 
-- [ ] [serial] 6.1 Emit redacted exchange evidence with policy, public subject, capability, key, and outcome identities. r[ucan_token_flow.oidc.redacted_evidence]
-- [ ] [serial] 6.2 Add scans that reject raw OIDC tokens, UCAN bearer tokens, private keys, provider credentials, and sensitive token digests in durable output. r[ucan_token_flow.oidc.redacted_evidence]
-- [ ] [serial] 6.3 Document GitHub claim policy, rotation, revocation, replay, incident response, and rollback. r[ucan_token_flow.oidc.replay_boundary]
-- [ ] [serial] 6.4 Run Rust format, focused tests, workspace tests, clippy, Nickel policy validation, release verification, and relevant Nix checks. r[ucan_token_flow.oidc.pure_verification]
-- [ ] [serial] 6.5 Run Cairn validation, requirement coverage, design gate, and tasks gate. r[ucan_token_flow.oidc.versioned_policy]
+The SecretSpec issuer-key shell was split into the child change
+`resolve-secretspec-issuer-key` and its `secretspec_issuer_key` requirement.
+This change owns only the OIDC core, JWKS retrieval and shell, UCAN attenuation,
+replay, and redacted-evidence work.
 
 ## Blocked
 
-**Externally blocked.** This change depends on the pinned `SecretSpec` Rust
-  SDK and a JWKS/OIDC verification stack (HTTPS discovery, signature verify,
-  claim parsing). Neither is present in `Cargo.toml` or the vendored UCAN
-  snapshot. No implementation was fabricated against unavailable external
-  infrastructure. Re-drain after the SecretSpec SDK and OIDC/JWKS deps are
-  pinned and reviewed.
+**Externally blocked.** This change depends on an OIDC/JWKS verification stack
+(JWT/JWS parsing, signature verification, and bounded HTTPS discovery/JWKS
+retrieval). That stack is not present in `Cargo.toml` or the vendored UCAN
+snapshot, and must be pinned and reviewed before this change can be implemented.
+The SecretSpec issuer-key shell is no longer a blocker here; it lives in the
+child `resolve-secretspec-issuer-key` change.

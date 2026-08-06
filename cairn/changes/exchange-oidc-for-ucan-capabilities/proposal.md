@@ -12,9 +12,9 @@ This avoids adding Biscuit or another authorization system. It also keeps issuer
 - Add a bounded shell for HTTPS discovery and JWKS retrieval. Keep claim and policy evaluation in a pure core with explicit time input.
 - Map verified claims to a bounded Basalt subject and requested Mantle capability set.
 - Issue short-lived UCAN capabilities whose audience, lifetime, operations, project scope, and resource scope cannot exceed policy or the verified OIDC token.
-- Resolve the Basalt UCAN issuer key through the pinned SecretSpec Rust SDK under an explicit profile and scope.
+- Depend on the child `resolve-secretspec-issuer-key` change for the bounded UCAN issuer-key loader through the pinned SecretSpec boundary.
 - Emit redacted decision evidence without raw OIDC tokens, key material, provider credentials, or secret-derived hashes.
-- Add positive GitHub OIDC fixtures and negative issuer, audience, algorithm, signature, freshness, claim, replay, capability, and provider fixtures.
+- Add positive GitHub OIDC fixtures and negative issuer, audience, algorithm, signature, freshness, claim, replay, and capability fixtures.
 
 ## Non-Goals
 
@@ -28,10 +28,16 @@ This avoids adding Biscuit or another authorization system. It also keeps issuer
 ## Dependencies
 
 - The existing UCAN issuance and verification interfaces at an immutable validated revision.
-- SecretSpec `v0.17.0`, upstream tag commit `a8794e46ec9664a0e1a3869cc3105d0853937e48`.
+- The child `resolve-secretspec-issuer-key` change, which pins SecretSpec `v0.17.0` and provides the bounded issuer-key loader.
 - Deployment trust roots and service credentials declared by OnixOS.
+
+## Split
+
+The SecretSpec issuer-key shell lives in the child change
+`resolve-secretspec-issuer-key`. This change owns only OIDC verification, JWKS
+retrieval, UCAN attenuation, replay, and redacted evidence.
 
 ## Impact
 
 - **Affected specs:** `ucan-token-flow`
-- **Affected code:** Nickel policy, OIDC/JWK types, verification core, bounded fetch shell, SecretSpec key loader, UCAN exchange service, receipts, and fixtures
+- **Affected code:** Nickel policy, OIDC/JWK types, verification core, bounded fetch shell, UCAN exchange service, receipts, and fixtures

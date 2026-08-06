@@ -51,9 +51,11 @@ The issued token expires no later than the verified OIDC token and the configure
 
 ## SecretSpec issuer key
 
-Basalt pins SecretSpec `v0.17.0`. A metadata-only declaration names the UCAN issuer signing key under an explicit `basalt-oidc-exchange` scope. Production uses a systemd credential or another approved provider.
-
-Secret resolution occurs only in the imperative service shell. If a selected SecretSpec provider can launch a process, resolution runs inside an owned bounded worker. Write operations and plaintext value caches are disabled. Rotation selects an explicit key identifier and supports an overlap window for public verification keys without exposing private material.
+Key resolution is split into the child change `resolve-secretspec-issuer-key`,
+which pins SecretSpec `v0.17.0`, declares the issuer key under an explicit
+`basalt-oidc-exchange` scope, and loads it in a bounded imperative shell. This
+change depends on that boundary for the UCAN issuer signing key; it does not
+reimplement SecretSpec provider access here.
 
 ## Replay and request binding
 
