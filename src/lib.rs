@@ -56,6 +56,8 @@ mod secretspec_issuer_identity;
 mod ucan_semantics_identity;
 
 pub mod authority_core;
+#[cfg(feature = "cli")]
+pub mod cli_fs;
 pub mod license_consumption;
 pub mod policy_identity;
 pub mod policy_projection;

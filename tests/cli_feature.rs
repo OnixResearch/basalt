@@ -1,3 +1,5 @@
+#![cfg(feature = "cli")]
+
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -87,13 +89,22 @@ fn cli_feature_rejects_malformed_policy_file() {
     let Some(binary) = cli_binary() else {
         return;
     };
-    let policy_path = unique_policy_path("malformed-policy");
+    let policy_dir = unique_policy_path("malformed-dir");
+    fs::create_dir_all(&policy_dir).expect("policy dir should create");
+    let policy_path = policy_dir.join("malformed.json");
     fs::write(&policy_path, "not-json").expect("policy fixture should write");
+    let relative = policy_path
+        .file_name()
+        .expect("policy path has a file name")
+        .to_string_lossy()
+        .into_owned();
 
     let output = Command::new(binary)
         .arg("enforce")
+        .arg("--policy-root")
+        .arg(&policy_dir)
         .arg("--policy")
-        .arg(&policy_path)
+        .arg(&relative)
         .arg("--contract")
         .arg("document-write")
         .arg("--resource")
@@ -105,7 +116,7 @@ fn cli_feature_rejects_malformed_policy_file() {
         .output()
         .expect("CLI process should run");
 
-    fs::remove_file(&policy_path).expect("policy fixture should clean up");
+    fs::remove_dir_all(&policy_dir).expect("policy fixture should clean up");
     assert!(!output.status.success(), "malformed policy should fail");
     assert!(
         String::from_utf8_lossy(&output.stderr).contains("PolicyJson"),
@@ -141,6 +152,70 @@ fn cli_feature_rejects_bad_capability_syntax() {
     );
     assert!(
         String::from_utf8_lossy(&output.stderr).contains("expected RESOURCE=ABILITY"),
+        "unexpected stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+}
+
+#[test]
+fn cli_feature_writes_receipt_under_declared_output_root() {
+    let Some(binary) = cli_binary() else {
+        return;
+    };
+    let output_dir = unique_policy_path("output-root");
+    fs::create_dir_all(&output_dir).expect("output dir should create");
+
+    let output = Command::new(binary)
+        .arg("enforce")
+        .arg("--policy")
+        .arg("contracts/generated/policy.json")
+        .arg("--output-dir")
+        .arg(&output_dir)
+        .arg("--contract")
+        .arg("document-write")
+        .arg("--resource")
+        .arg("did:key:z6Mkresource/docs/report")
+        .arg("--ability")
+        .arg("document/write")
+        .arg("--capability")
+        .arg("did:key:z6Mkresource/docs/report=document/write")
+        .output()
+        .expect("CLI process should run");
+
+    let receipt = fs::read_to_string(output_dir.join("enforce-receipt.json"));
+    fs::remove_dir_all(&output_dir).expect("output dir should clean up");
+    assert!(output.status.success(), "CLI should succeed: {output:?}");
+    let receipt = receipt.expect("receipt written under output root");
+    assert!(receipt.contains(r#""allowed":true"#));
+}
+
+#[test]
+fn cli_feature_rejects_traversal_outside_policy_root() {
+    let Some(binary) = cli_binary() else {
+        return;
+    };
+
+    let output = Command::new(binary)
+        .arg("enforce")
+        .arg("--policy")
+        .arg("../../etc/passwd")
+        .arg("--contract")
+        .arg("document-write")
+        .arg("--resource")
+        .arg("did:key:z6Mkresource/docs/report")
+        .arg("--ability")
+        .arg("document/write")
+        .arg("--capability")
+        .arg("did:key:z6Mkresource/docs/report=document/write")
+        .output()
+        .expect("CLI process should run");
+
+    assert!(
+        !output.status.success(),
+        "traversal outside the policy root should fail"
+    );
+    assert!(
+        String::from_utf8_lossy(&output.stderr).contains("InvalidPath"),
         "unexpected stderr: {}",
         String::from_utf8_lossy(&output.stderr)
     );
