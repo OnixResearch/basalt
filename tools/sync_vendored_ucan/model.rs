@@ -14,6 +14,8 @@ const MODE_IMPORT_REVISION: &str = "--import-revision";
 const CHECK_ARGUMENT_COUNT: usize = 2;
 const SOURCE_ARGUMENT_COUNT: usize = 3;
 const SOURCE_REVISION_ARGUMENT_COUNT: usize = 4;
+const SOURCE_PATH_ARGUMENT_INDEX: usize = 2;
+const SOURCE_REVISION_ARGUMENT_INDEX: usize = 3;
 pub(crate) const BLAKE3_HEX_LENGTH: usize = 64;
 const GIT_SHA1_HEX_LENGTH: usize = 40;
 const GIT_SHA256_HEX_LENGTH: usize = 64;
@@ -85,20 +87,32 @@ pub(crate) fn parse_mode<'a>(arguments: &'a [String]) -> Result<Mode<'a>, String
         return Ok(Mode::Check);
     }
     if arguments.len() == SOURCE_ARGUMENT_COUNT && arguments[1] == MODE_CHECK_SOURCE {
-        return Ok(Mode::CheckSource(Path::new(&arguments[2]), SOURCE_REVISION));
+        return Ok(Mode::CheckSource(
+            Path::new(&arguments[SOURCE_PATH_ARGUMENT_INDEX]),
+            SOURCE_REVISION,
+        ));
     }
     if arguments.len() == SOURCE_ARGUMENT_COUNT && arguments[1] == MODE_IMPORT {
-        return Ok(Mode::Import(Path::new(&arguments[2]), SOURCE_REVISION));
+        return Ok(Mode::Import(
+            Path::new(&arguments[SOURCE_PATH_ARGUMENT_INDEX]),
+            SOURCE_REVISION,
+        ));
     }
     if arguments.len() == SOURCE_REVISION_ARGUMENT_COUNT
         && arguments[1] == MODE_CHECK_SOURCE_REVISION
     {
-        validate_source_revision(&arguments[3])?;
-        return Ok(Mode::CheckSource(Path::new(&arguments[2]), &arguments[3]));
+        validate_source_revision(&arguments[SOURCE_REVISION_ARGUMENT_INDEX])?;
+        return Ok(Mode::CheckSource(
+            Path::new(&arguments[SOURCE_PATH_ARGUMENT_INDEX]),
+            &arguments[SOURCE_REVISION_ARGUMENT_INDEX],
+        ));
     }
     if arguments.len() == SOURCE_REVISION_ARGUMENT_COUNT && arguments[1] == MODE_IMPORT_REVISION {
-        validate_source_revision(&arguments[3])?;
-        return Ok(Mode::Import(Path::new(&arguments[2]), &arguments[3]));
+        validate_source_revision(&arguments[SOURCE_REVISION_ARGUMENT_INDEX])?;
+        return Ok(Mode::Import(
+            Path::new(&arguments[SOURCE_PATH_ARGUMENT_INDEX]),
+            &arguments[SOURCE_REVISION_ARGUMENT_INDEX],
+        ));
     }
     Err(format!(
         "usage: sync-vendored-ucan.rs {MODE_CHECK} | {MODE_CHECK_SOURCE} SOURCE_REPOSITORY | {MODE_CHECK_SOURCE_REVISION} SOURCE_REPOSITORY REVISION | {MODE_IMPORT} SOURCE_REPOSITORY | {MODE_IMPORT_REVISION} SOURCE_REPOSITORY REVISION"
