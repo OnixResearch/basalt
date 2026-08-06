@@ -50,11 +50,13 @@
 
 #![allow(clippy::multiple_crate_versions)]
 
+mod ast_grep_audit_identity;
 mod authority_identity;
 mod license_consumption_identity;
 mod secretspec_issuer_identity;
 mod ucan_semantics_identity;
 
+pub mod ast_grep_audit;
 pub mod authority_core;
 #[cfg(feature = "cli")]
 pub mod cli_fs;

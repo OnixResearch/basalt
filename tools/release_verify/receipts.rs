@@ -1,8 +1,11 @@
 use super::model::{
-    AUTHORITY_FRESH_STEP_NAME, AUTHORITY_REPLAY_STEP_NAME, ISSUER_FRESH_STEP_NAME,
-    ISSUER_REPLAY_STEP_NAME, LICENSE_FRESH_STEP_NAME, LICENSE_REPLAY_STEP_NAME,
-    POLICY_FRESH_STEP_NAME, SEMANTICS_FRESH_STEP_NAME, SEMANTICS_REPLAY_STEP_NAME,
-    StepReceipt,
+    AST_GREP_FRESH_STEP_NAME, AUTHORITY_FRESH_STEP_NAME, AUTHORITY_REPLAY_STEP_NAME,
+    ISSUER_FRESH_STEP_NAME, ISSUER_REPLAY_STEP_NAME, LICENSE_FRESH_STEP_NAME,
+    LICENSE_REPLAY_STEP_NAME, POLICY_FRESH_STEP_NAME, SEMANTICS_FRESH_STEP_NAME,
+    SEMANTICS_REPLAY_STEP_NAME, StepReceipt,
+};
+use crate::ast_grep_audit_identity::{
+    AST_GREP_AUDIT_SCHEMA, DEFAULT_AST_GREP_TOOL, DEFAULT_AST_GREP_VERSION,
 };
 use crate::authority_identity::{
     AUTHORITY_DECISION_SCHEMA, AUTHORITY_FIXTURE_SCHEMA, AUTHORITY_INPUT_SCHEMA,
@@ -45,6 +48,11 @@ pub(super) fn write_receipts(
     fs::write(
         dir.join("license-consumption.json"),
         render_license_consumption_receipt(passed, receipts),
+    )
+    .map_err(|error| error.to_string())?;
+    fs::write(
+        dir.join("ast-grep-policy-audits.json"),
+        render_ast_grep_receipt(passed, receipts),
     )
     .map_err(|error| error.to_string())?;
     Ok(())
@@ -344,6 +352,29 @@ fn render_issuer_receipt(passed: bool, receipts: &[StepReceipt]) -> String {
         freshness_passed,
         runtime_replay_executed,
         runtime_replay_passed,
+    )
+}
+
+fn render_ast_grep_receipt(passed: bool, receipts: &[StepReceipt]) -> String {
+    let audit_passed = step_succeeded(receipts, AST_GREP_FRESH_STEP_NAME);
+
+    format!(
+        concat!(
+            "{{\n",
+            "  \"schema\": {},\n",
+            "  \"release_passed\": {},\n",
+            "  \"tool\": {},\n",
+            "  \"tool_version\": {},\n",
+            "  \"audit_freshness_passed\": {},\n",
+            "  \"advisory_by_default\": {}\n",
+            "}}\n"
+        ),
+        json_string(AST_GREP_AUDIT_SCHEMA),
+        passed,
+        json_string(DEFAULT_AST_GREP_TOOL),
+        json_string(DEFAULT_AST_GREP_VERSION),
+        audit_passed,
+        true,
     )
 }
 

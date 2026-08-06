@@ -252,6 +252,20 @@
               touch "$out/all"
             '';
 
+        checks.ast-grep-policy-audits =
+          pkgs.runCommand "basalt-ast-grep-policy-audits"
+            {
+              nativeBuildInputs = [ pkgs.ast-grep ];
+            }
+            ''
+              mkdir -p "$out"
+              cp -R ${./tools/ast-grep} tools-ast-grep
+              chmod -R u+w tools-ast-grep
+              ast-grep scan --config tools-ast-grep/sgconfig.yml ${./src} > scan.txt || true
+              cp scan.txt "$out/scan.txt"
+              touch "$out/all"
+            '';
+
         checks.release =
           pkgs.runCommandLocal "basalt-release-verify"
             {
@@ -272,6 +286,7 @@
               ucanSemanticsFixtures = self.checks.${system}.ucan-semantics-fixtures;
               licenseConsumptionFixtures = self.checks.${system}.license-consumption-fixtures;
               secretspecIssuerFixtures = self.checks.${system}.secretspec-issuer-fixtures;
+              astGrepPolicyAudits = self.checks.${system}.ast-grep-policy-audits;
             }
             ''
               export HOME="$TMPDIR/home"
@@ -282,12 +297,14 @@
               export RELEASE_VERIFY_SEMANTICS_FRESH=1
               export RELEASE_VERIFY_LICENSE_FRESH=1
               export RELEASE_VERIFY_ISSUER_FRESH=1
+              export RELEASE_VERIFY_AST_GREP_FRESH=1
               export RELEASE_VERIFY_CARGO_STEPS=0
               mkdir -p "$HOME" "$CARGO_HOME" "$out" "$TMPDIR/release-source/tools/release_verify" "$TMPDIR/release-source/src"
               cp ${./tools/release-verify.rs} "$TMPDIR/release-source/tools/release-verify.rs"
               cp -R ${./tools/release_verify}/. "$TMPDIR/release-source/tools/release_verify/"
               chmod -R u+w "$TMPDIR/release-source/tools/release-verify.rs" "$TMPDIR/release-source/tools/release_verify"
               cp ${./src/authority_identity.rs} "$TMPDIR/release-source/src/authority_identity.rs"
+              cp ${./src/ast_grep_audit_identity.rs} "$TMPDIR/release-source/src/ast_grep_audit_identity.rs"
               cp ${./src/ucan_semantics_identity.rs} "$TMPDIR/release-source/src/ucan_semantics_identity.rs"
               cp ${./src/license_consumption_identity.rs} "$TMPDIR/release-source/src/license_consumption_identity.rs"
               cp ${./src/secretspec_issuer_identity.rs} "$TMPDIR/release-source/src/secretspec_issuer_identity.rs"

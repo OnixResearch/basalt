@@ -9,6 +9,7 @@ pub(super) const AUTHORITY_FRESH_ENV: &str = "RELEASE_VERIFY_AUTHORITY_FRESH";
 pub(super) const SEMANTICS_FRESH_ENV: &str = "RELEASE_VERIFY_SEMANTICS_FRESH";
 pub(super) const LICENSE_FRESH_ENV: &str = "RELEASE_VERIFY_LICENSE_FRESH";
 pub(super) const ISSUER_FRESH_ENV: &str = "RELEASE_VERIFY_ISSUER_FRESH";
+pub(super) const AST_GREP_FRESH_ENV: &str = "RELEASE_VERIFY_AST_GREP_FRESH";
 pub(super) const CARGO_STEPS_ENV: &str = "RELEASE_VERIFY_CARGO_STEPS";
 pub(super) const VENDORED_UCAN_TEST_BINARY: &str = "/tmp/basalt-vendored-ucan-tests";
 pub(super) const VENDORED_UCAN_CHECK_BINARY: &str = "/tmp/basalt-vendored-ucan-check";
@@ -28,6 +29,7 @@ pub(super) const SEMANTICS_FRESH_STEP_NAME: &str = "UCAN semantics fixture fresh
 pub(super) const SEMANTICS_REPLAY_STEP_NAME: &str = "UCAN semantics contract tests";
 pub(super) const LICENSE_FRESH_STEP_NAME: &str = "license-consumption fixture freshness";
 pub(super) const LICENSE_REPLAY_STEP_NAME: &str = "license-consumption contract tests";
+pub(super) const AST_GREP_FRESH_STEP_NAME: &str = "ast-grep policy-boundary audit";
 pub(super) const ISSUER_FRESH_STEP_NAME: &str = "issuer-key fixture freshness";
 pub(super) const ISSUER_REPLAY_STEP_NAME: &str = "issuer-key resolution contract tests";
 
@@ -56,6 +58,7 @@ pub(super) const REQUIRED_PACKAGE_FILES: &[&str] = &[
     "contracts/license-consumption/fixtures/generated/negative/wrong-artifact-identity.json",
     "contracts/license-consumption/fixtures/generated/negative/wrong-license-expression.json",
     "docs/authority-core.md",
+    "docs/ast-grep-policy-audits.md",
     "docs/cap-std-cli-policy-boundary.md",
     "docs/license-consumption.md",
     "docs/policy-authoring.md",
@@ -66,6 +69,8 @@ pub(super) const REQUIRED_PACKAGE_FILES: &[&str] = &[
     "docs/vendored-ucan.md",
     "src/authority_core.rs",
     "src/authority_identity.rs",
+    "src/ast_grep_audit.rs",
+    "src/ast_grep_audit_identity.rs",
     "src/cli_fs.rs",
     "src/lib.rs",
     "src/license_consumption.rs",
@@ -114,6 +119,10 @@ pub(super) const REQUIRED_PACKAGE_FILES: &[&str] = &[
     "tools/release_verify/receipts.rs",
     "tools/release_verify/tests.rs",
     "tools/release_verify/validators.rs",
+    "tools/ast-grep/rules/no-direct-enforcement-bypass.yml",
+    "tools/ast-grep/sgconfig.yml",
+    "tools/ast-grep/fixtures/positive/direct-enforcement-helper.rs",
+    "tools/ast-grep/fixtures/negative/direct-enforcement-bypass.rs",
     "tools/sync-vendored-ucan.rs",
     "tools/sync_vendored_ucan/filesystem.rs",
     "tools/sync_vendored_ucan/model.rs",
@@ -154,6 +163,7 @@ pub(super) enum StepKind {
     SemanticsFixtureFreshness,
     LicenseFixtureFreshness,
     IssuerFixtureFreshness,
+    AstGrepAuditFreshness,
     PackageContents,
     ClankersConsumerFixture,
 }

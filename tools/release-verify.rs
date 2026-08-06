@@ -2,6 +2,8 @@ use std::process::ExitCode;
 
 #[path = "../src/authority_identity.rs"]
 mod authority_identity;
+#[path = "../src/ast_grep_audit_identity.rs"]
+mod ast_grep_audit_identity;
 #[path = "release_verify/execute.rs"]
 mod execute;
 #[path = "release_verify/model.rs"]
