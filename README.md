@@ -128,9 +128,13 @@ nix develop -c /tmp/basalt-sync-vendored-ucan --check
 Use an explicit local UCAN repository only for source parity or a reviewed refresh:
 
 ```bash
-nix develop -c /tmp/basalt-sync-vendored-ucan --check-source /path/to/ucan
-tools/sync-vendored-ucan.rs --import /path/to/ucan
+nix develop -c /tmp/basalt-sync-vendored-ucan --check-source-revision \
+  /path/to/ucan FULL_GIT_OBJECT_ID
+tools/sync-vendored-ucan.rs --import-revision \
+  /path/to/ucan FULL_GIT_OBJECT_ID
 ```
+
+The importer rejects branch names, abbreviated object IDs, uppercase object IDs, and unavailable commits before snapshot replacement.
 
 Read [`docs/vendored-ucan.md`](docs/vendored-ucan.md) for the imported paths, license boundary, and refresh rules.
 

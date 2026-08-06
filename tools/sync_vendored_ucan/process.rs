@@ -1,12 +1,14 @@
-use crate::model::{
-    BLAKE3_HEX_LENGTH, GIT_COMMIT_SUFFIX, SOURCE_REVISION, SOURCE_SELECTION,
-};
+use crate::model::{BLAKE3_HEX_LENGTH, GIT_COMMIT_SUFFIX, SOURCE_SELECTION};
 use std::io::Write;
 use std::path::Path;
 use std::process::{Command, Stdio};
 
-pub(crate) fn extract_source_revision(source: &Path, staging: &Path) -> Result<(), String> {
-    verify_source_revision(source)?;
+pub(crate) fn extract_source_revision(
+    source: &Path,
+    staging: &Path,
+    revision: &str,
+) -> Result<(), String> {
+    verify_source_revision(source, revision)?;
     crate::filesystem::remove_directory_if_present(staging)?;
     std::fs::create_dir_all(staging)
         .map_err(|error| format!("cannot create {}: {error}", staging.display()))?;
@@ -17,7 +19,7 @@ pub(crate) fn extract_source_revision(source: &Path, staging: &Path) -> Result<(
         .arg(source)
         .arg("archive")
         .arg("--format=tar")
-        .arg(SOURCE_REVISION)
+        .arg(revision)
         .args(SOURCE_SELECTION)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
@@ -55,8 +57,8 @@ pub(crate) fn extract_source_revision(source: &Path, staging: &Path) -> Result<(
     Ok(())
 }
 
-fn verify_source_revision(source: &Path) -> Result<(), String> {
-    let commit = format!("{SOURCE_REVISION}{GIT_COMMIT_SUFFIX}");
+fn verify_source_revision(source: &Path, revision: &str) -> Result<(), String> {
+    let commit = format!("{revision}{GIT_COMMIT_SUFFIX}");
     let output = Command::new("git")
         .arg("-C")
         .arg(source)
@@ -67,7 +69,7 @@ fn verify_source_revision(source: &Path) -> Result<(), String> {
         .map_err(|error| format!("cannot inspect source revision: {error}"))?;
     if !output.status.success() {
         return Err(format!(
-            "source repository does not contain commit {SOURCE_REVISION}: {}",
+            "source repository does not contain commit {revision}: {}",
             String::from_utf8_lossy(&output.stderr)
         ));
     }

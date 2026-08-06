@@ -53,10 +53,11 @@ It rejects extra files, missing files, changed files, symlinks, missing license 
 If a local Git repository contains the reviewed commit, run this command:
 
 ```bash
-nix develop -c /tmp/basalt-sync-vendored-ucan --check-source /path/to/ucan
+nix develop -c /tmp/basalt-sync-vendored-ucan --check-source-revision \
+  /path/to/ucan FULL_GIT_OBJECT_ID
 ```
 
-This command reads only commit `34449ba1f1a9ef991225e4e6683b5d6aca8c07cf`.
+The compatibility form `--check-source /path/to/ucan` reads only commit `34449ba1f1a9ef991225e4e6683b5d6aca8c07cf`.
 Uncommitted files and the checked-out branch do not affect the result.
 
 ## Import
@@ -64,11 +65,17 @@ Uncommitted files and the checked-out branch do not affect the result.
 Use an explicit source repository path to refresh the snapshot:
 
 ```bash
-tools/sync-vendored-ucan.rs --import /path/to/ucan
+tools/sync-vendored-ucan.rs --import-revision \
+  /path/to/ucan FULL_GIT_OBJECT_ID
 ```
 
-The importer archives the pinned commit, creates the snapshot in a staging directory, and checks all required license files.
+The importer accepts only a full lowercase Git object ID. It rejects moving references and malformed values before snapshot replacement.
+
+The compatibility form `--import /path/to/ucan` selects the current `SOURCE_REVISION` value.
+
+The importer archives the exact commit, creates the snapshot in a staging directory, and checks all required license files.
 It then replaces `vendor/ucan/` and writes the revision and BLAKE3 manifest.
 
-The importer does not change the pinned revision from an argument.
-Change `SOURCE_REVISION` only after a separate review of the new UCAN source boundary.
+A BLAKE3-bound coordinator plan can supply the exact reviewed revision. The operator must still review the new UCAN source boundary before import.
+
+If an import or check fails, inspect the first diagnostic. Do not continue to another consumer or commit partial snapshot changes.
