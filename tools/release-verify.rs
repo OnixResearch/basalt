@@ -12,6 +12,8 @@ mod plan;
 mod receipts;
 #[path = "../src/license_consumption_identity.rs"]
 mod license_consumption_identity;
+#[path = "../src/secretspec_issuer_identity.rs"]
+mod secretspec_issuer_identity;
 #[path = "../src/ucan_semantics_identity.rs"]
 mod ucan_semantics_identity;
 #[path = "release_verify/validators.rs"]

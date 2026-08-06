@@ -58,8 +58,7 @@
           "negative/stale-license-metadata"
           "negative/weakened-non-claims"
           "negative/wrong-license-expression"
-        ];
-        malformedLicenseConsumptionFixtures = [
+        ];        malformedLicenseConsumptionFixtures = [
           "unsupported-schema"
         ];
         validPolicyAuthoringFixtures = [
@@ -233,6 +232,26 @@
               touch $out
             '';
 
+        checks.secretspec-issuer-fixtures =
+          pkgs.runCommand "basalt-secretspec-issuer-fixtures"
+            {
+              nativeBuildInputs = [ pkgs.jq ];
+            }
+            ''
+              fixture_root=${./contracts/secretspec-issuer}/fixtures
+              mkdir -p "$out/positive" "$out/negative"
+              for fixture in positive/issuer-key-declaration positive/rotation-overlap-window; do
+                jq empty "$fixture_root/$fixture.json" >/dev/null
+                cp "$fixture_root/$fixture.json" "$out/$fixture.json"
+              done
+              for fixture in negative/missing-required-key negative/missing-declared-key \
+                  negative/wrong-scope negative/provider-failure; do
+                jq empty "$fixture_root/$fixture.json" >/dev/null
+                cp "$fixture_root/$fixture.json" "$out/$fixture.json"
+              done
+              touch "$out/all"
+            '';
+
         checks.release =
           pkgs.runCommandLocal "basalt-release-verify"
             {
@@ -252,6 +271,7 @@
               policyExport = self.checks.${system}.policy-export;
               ucanSemanticsFixtures = self.checks.${system}.ucan-semantics-fixtures;
               licenseConsumptionFixtures = self.checks.${system}.license-consumption-fixtures;
+              secretspecIssuerFixtures = self.checks.${system}.secretspec-issuer-fixtures;
             }
             ''
               export HOME="$TMPDIR/home"
@@ -261,6 +281,7 @@
               export RELEASE_VERIFY_AUTHORITY_FRESH=1
               export RELEASE_VERIFY_SEMANTICS_FRESH=1
               export RELEASE_VERIFY_LICENSE_FRESH=1
+              export RELEASE_VERIFY_ISSUER_FRESH=1
               export RELEASE_VERIFY_CARGO_STEPS=0
               mkdir -p "$HOME" "$CARGO_HOME" "$out" "$TMPDIR/release-source/tools/release_verify" "$TMPDIR/release-source/src"
               cp ${./tools/release-verify.rs} "$TMPDIR/release-source/tools/release-verify.rs"
@@ -268,6 +289,8 @@
               chmod -R u+w "$TMPDIR/release-source/tools/release-verify.rs" "$TMPDIR/release-source/tools/release_verify"
               cp ${./src/authority_identity.rs} "$TMPDIR/release-source/src/authority_identity.rs"
               cp ${./src/ucan_semantics_identity.rs} "$TMPDIR/release-source/src/ucan_semantics_identity.rs"
+              cp ${./src/license_consumption_identity.rs} "$TMPDIR/release-source/src/license_consumption_identity.rs"
+              cp ${./src/secretspec_issuer_identity.rs} "$TMPDIR/release-source/src/secretspec_issuer_identity.rs"
               rustc --edition=2024 "$TMPDIR/release-source/tools/release-verify.rs" -o "$TMPDIR/basalt-release-verify"
               cd ${./.}
               "$TMPDIR/basalt-release-verify"

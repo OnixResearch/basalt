@@ -52,11 +52,13 @@
 
 mod authority_identity;
 mod license_consumption_identity;
+mod secretspec_issuer_identity;
 mod ucan_semantics_identity;
 
 pub mod authority_core;
 pub mod license_consumption;
 pub mod policy_projection;
+pub mod secretspec_issuer;
 pub mod ucan_enforcement;
 pub mod ucan_semantics;
 

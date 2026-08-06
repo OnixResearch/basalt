@@ -1,6 +1,7 @@
 use super::model::{
     AUTHORITY_FRESH_STEP_NAME, AUTHORITY_REPLAY_STEP_NAME, CLANKERS_CONSUMER_MANIFEST,
-    CLANKERS_TARGET_DIR, DEFAULT_TARGET_DIR, LICENSE_FRESH_STEP_NAME, LICENSE_REPLAY_STEP_NAME,
+    CLANKERS_TARGET_DIR, DEFAULT_TARGET_DIR, ISSUER_FRESH_STEP_NAME, ISSUER_REPLAY_STEP_NAME,
+    LICENSE_FRESH_STEP_NAME, LICENSE_REPLAY_STEP_NAME,
     PACKAGE_TARGET_DIR, POLICY_FRESH_STEP_NAME, SEMANTICS_FRESH_STEP_NAME,
     SEMANTICS_REPLAY_STEP_NAME, Step, StepKind, VENDORED_UCAN_CHECK_BINARY,
     VENDORED_UCAN_TEST_BINARY,
@@ -82,6 +83,14 @@ pub(super) fn steps() -> Vec<Step> {
             target_dir: DEFAULT_TARGET_DIR,
             cargo_env: false,
             kind: StepKind::LicenseFixtureFreshness,
+        },
+        Step {
+            name: ISSUER_FRESH_STEP_NAME,
+            program: "nix",
+            args: &["build", "--no-link"],
+            target_dir: DEFAULT_TARGET_DIR,
+            cargo_env: false,
+            kind: StepKind::IssuerFixtureFreshness,
         },
         Step {
             name: "format",
@@ -184,6 +193,14 @@ pub(super) fn steps() -> Vec<Step> {
             name: LICENSE_REPLAY_STEP_NAME,
             program: "cargo",
             args: &["test", "--test", "license_consumption", "--no-default-features"],
+            target_dir: DEFAULT_TARGET_DIR,
+            cargo_env: true,
+            kind: StepKind::Normal,
+        },
+        Step {
+            name: ISSUER_REPLAY_STEP_NAME,
+            program: "cargo",
+            args: &["test", "--test", "secretspec_issuer", "--no-default-features"],
             target_dir: DEFAULT_TARGET_DIR,
             cargo_env: true,
             kind: StepKind::Normal,

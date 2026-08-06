@@ -24,11 +24,13 @@ include = [
     "contracts/ucan-semantics/fixtures/**",
     "contracts/license-consumption/contracts.ncl",
     "contracts/license-consumption/fixtures/**",
+    "contracts/secretspec-issuer/fixtures/**",
     "docs/authority-core.md",
     "docs/license-consumption.md",
     "docs/policy-authoring.md",
     "docs/ucan-enforcement.md",
     "docs/ucan-semantics-contract.md",
+    "docs/secretspec-issuer.md",
     "docs/vendored-ucan.md",
     "tools/release-verify.rs",
     "tools/release_verify/**",
@@ -54,6 +56,7 @@ required-features = ["cli"]
 [dependencies]
 blake3 = "1.8"
 clap = { version = "4.5", features = ["derive"], optional = true }
+secretspec = { version = "=0.17.0", default-features = false }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 snafu = "0.8"

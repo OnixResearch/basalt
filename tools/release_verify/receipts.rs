@@ -1,7 +1,8 @@
 use super::model::{
-    AUTHORITY_FRESH_STEP_NAME, AUTHORITY_REPLAY_STEP_NAME, LICENSE_FRESH_STEP_NAME,
-    LICENSE_REPLAY_STEP_NAME, POLICY_FRESH_STEP_NAME, SEMANTICS_FRESH_STEP_NAME,
-    SEMANTICS_REPLAY_STEP_NAME, StepReceipt,
+    AUTHORITY_FRESH_STEP_NAME, AUTHORITY_REPLAY_STEP_NAME, ISSUER_FRESH_STEP_NAME,
+    ISSUER_REPLAY_STEP_NAME, LICENSE_FRESH_STEP_NAME, LICENSE_REPLAY_STEP_NAME,
+    POLICY_FRESH_STEP_NAME, SEMANTICS_FRESH_STEP_NAME, SEMANTICS_REPLAY_STEP_NAME,
+    StepReceipt,
 };
 use crate::authority_identity::{
     AUTHORITY_DECISION_SCHEMA, AUTHORITY_FIXTURE_SCHEMA, AUTHORITY_INPUT_SCHEMA,
@@ -10,6 +11,10 @@ use crate::authority_identity::{
 use crate::license_consumption_identity::{
     LICENSE_CONSUMPTION_FIXTURE_SCHEMA, LICENSE_CONSUMPTION_RECEIPT_SCHEMA,
     LICENSE_CONSUMPTION_RELEASE_RECEIPT_SCHEMA,
+};
+use crate::secretspec_issuer_identity::{
+    ISSUER_DECLARATION_SCHEMA, ISSUER_RELEASE_RECEIPT_SCHEMA, SECRETSPEC_REVIEWED_COMMIT,
+    SECRETSPEC_VERSION,
 };
 use crate::ucan_semantics_identity::{
     BASALT_POLICY_BLAKE3, UCAN_RUNTIME_REVISION, UCAN_SEMANTICS_FIXTURE_SCHEMA,
@@ -49,6 +54,20 @@ fn render_json(passed: bool, receipts: &[StepReceipt]) -> String {
     let mut output = String::new();
     output.push_str("{\n");
     output.push_str(&format!("  \"passed\": {},\n", passed));
+    output.push_str("  \"issuer_key\": {\n");
+    output.push_str(&format!(
+        "    \"declaration_schema\": {},\n",
+        json_string(ISSUER_DECLARATION_SCHEMA)
+    ));
+    output.push_str(&format!(
+        "    \"secretspec_version\": {},\n",
+        json_string(SECRETSPEC_VERSION)
+    ));
+    output.push_str(&format!(
+        "    \"secretspec_commit\": {}\n",
+        json_string(SECRETSPEC_REVIEWED_COMMIT)
+    ));
+    output.push_str("  },\n");
     output.push_str("  \"authority_core\": {\n");
     output.push_str(&format!(
         "    \"input_schema\": {},\n",
@@ -290,6 +309,39 @@ fn render_license_consumption_receipt(passed: bool, receipts: &[StepReceipt]) ->
         json_string(LICENSE_CONSUMPTION_RECEIPT_SCHEMA),
         json_string(LICENSE_CONSUMPTION_FIXTURE_SCHEMA),
         fixture_freshness_passed,
+        runtime_replay_executed,
+        runtime_replay_passed,
+    )
+}
+
+fn render_issuer_receipt(passed: bool, receipts: &[StepReceipt]) -> String {
+    let freshness_passed = step_succeeded(receipts, ISSUER_FRESH_STEP_NAME);
+    let replay = receipts
+        .iter()
+        .find(|receipt| receipt.name == ISSUER_REPLAY_STEP_NAME);
+    let runtime_replay_passed = replay.is_some_and(|receipt| receipt.success);
+    let runtime_replay_executed = replay
+        .is_some_and(|receipt| !receipt.command.contains("skipped in sandboxed flake check"));
+
+    format!(
+        concat!(
+            "{{\n",
+            "  \"schema\": {},\n",
+            "  \"release_passed\": {},\n",
+            "  \"declaration_schema\": {},\n",
+            "  \"secretspec_version\": {},\n",
+            "  \"secretspec_commit\": {},\n",
+            "  \"fixture_freshness_passed\": {},\n",
+            "  \"runtime_replay_executed\": {},\n",
+            "  \"runtime_replay_passed\": {}\n",
+            "}}\n"
+        ),
+        json_string(ISSUER_RELEASE_RECEIPT_SCHEMA),
+        passed,
+        json_string(ISSUER_DECLARATION_SCHEMA),
+        json_string(SECRETSPEC_VERSION),
+        json_string(SECRETSPEC_REVIEWED_COMMIT),
+        freshness_passed,
         runtime_replay_executed,
         runtime_replay_passed,
     )

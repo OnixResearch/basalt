@@ -8,6 +8,7 @@ pub(super) const POLICY_FRESH_ENV: &str = "RELEASE_VERIFY_POLICY_FRESH";
 pub(super) const AUTHORITY_FRESH_ENV: &str = "RELEASE_VERIFY_AUTHORITY_FRESH";
 pub(super) const SEMANTICS_FRESH_ENV: &str = "RELEASE_VERIFY_SEMANTICS_FRESH";
 pub(super) const LICENSE_FRESH_ENV: &str = "RELEASE_VERIFY_LICENSE_FRESH";
+pub(super) const ISSUER_FRESH_ENV: &str = "RELEASE_VERIFY_ISSUER_FRESH";
 pub(super) const CARGO_STEPS_ENV: &str = "RELEASE_VERIFY_CARGO_STEPS";
 pub(super) const VENDORED_UCAN_TEST_BINARY: &str = "/tmp/basalt-vendored-ucan-tests";
 pub(super) const VENDORED_UCAN_CHECK_BINARY: &str = "/tmp/basalt-vendored-ucan-check";
@@ -27,6 +28,8 @@ pub(super) const SEMANTICS_FRESH_STEP_NAME: &str = "UCAN semantics fixture fresh
 pub(super) const SEMANTICS_REPLAY_STEP_NAME: &str = "UCAN semantics contract tests";
 pub(super) const LICENSE_FRESH_STEP_NAME: &str = "license-consumption fixture freshness";
 pub(super) const LICENSE_REPLAY_STEP_NAME: &str = "license-consumption contract tests";
+pub(super) const ISSUER_FRESH_STEP_NAME: &str = "issuer-key fixture freshness";
+pub(super) const ISSUER_REPLAY_STEP_NAME: &str = "issuer-key resolution contract tests";
 
 pub(super) const REQUIRED_PACKAGE_FILES: &[&str] = &[
     "Cargo.lock",
@@ -57,6 +60,7 @@ pub(super) const REQUIRED_PACKAGE_FILES: &[&str] = &[
     "docs/policy-authoring.md",
     "docs/ucan-enforcement.md",
     "docs/ucan-semantics-contract.md",
+    "docs/secretspec-issuer.md",
     "docs/vendored-ucan.md",
     "src/authority_core.rs",
     "src/authority_identity.rs",
@@ -65,6 +69,10 @@ pub(super) const REQUIRED_PACKAGE_FILES: &[&str] = &[
     "src/license_consumption_identity.rs",
     "src/main.rs",
     "src/policy_projection.rs",
+    "src/secretspec_issuer.rs",
+    "src/secretspec_issuer_identity.rs",
+    "src/secretspec_issuer/shell.rs",
+    "src/secretspec_issuer/tests.rs",
     "src/ucan_enforcement.rs",
     "src/ucan_enforcement/core.rs",
     "src/ucan_enforcement/error.rs",
@@ -84,6 +92,7 @@ pub(super) const REQUIRED_PACKAGE_FILES: &[&str] = &[
     "tests/production_ucan_token_flow.rs",
     "tests/property_harness.rs",
     "tests/public_api.rs",
+    "tests/secretspec_issuer.rs",
     "tests/steel_adapter_fixture.rs",
     "tests/ucan_enforcement.rs",
     "tests/ucan_enforcement/negative/mod.rs",
@@ -118,6 +127,8 @@ pub(super) const REQUIRED_PRIVATE_SOURCE_FILES: &[&str] = &[
     "vendor/ucan/LICENSES/MPL-2.0.txt",
     "vendor/ucan/crates/ucan-core/LICENSE",
     "vendor/ucan/vendor/verified-logic/LICENSE",
+    "contracts/secretspec-issuer/fixtures/positive/issuer-key-declaration.json",
+    "contracts/secretspec-issuer/fixtures/negative/provider-failure.json",
 ];
 
 pub(super) struct Step {
@@ -137,6 +148,7 @@ pub(super) enum StepKind {
     AuthorityFixtureFreshness,
     SemanticsFixtureFreshness,
     LicenseFixtureFreshness,
+    IssuerFixtureFreshness,
     PackageContents,
     ClankersConsumerFixture,
 }
