@@ -10,5 +10,5 @@
 ## Phase 2: Pilot evidence
 
 - [x] [serial] r[ucan_token_flow.vendored_source.exact_revision] Document the exact import and recovery procedure.
-- [ ] [serial] r[ucan_token_flow.vendored_source.exact_revision] Run source parity, snapshot, focused tests, and release checks.
-- [ ] [serial] r[ucan_token_flow.vendored_source.exact_revision] Review sync and archive dry runs before lifecycle mutation.
+- [x] [serial] r[ucan_token_flow.vendored_source.exact_revision] Run source parity, snapshot, focused tests, and release checks.
+- [x] [serial] r[ucan_token_flow.vendored_source.exact_revision] Review sync and archive dry runs before lifecycle mutation.
