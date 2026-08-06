@@ -169,6 +169,14 @@ pub(super) fn steps() -> Vec<Step> {
             kind: StepKind::Normal,
         },
         Step {
+            name: "policy identity-map tests",
+            program: "cargo",
+            args: &["test", "--test", "policy_identity", "--no-default-features"],
+            target_dir: DEFAULT_TARGET_DIR,
+            cargo_env: true,
+            kind: StepKind::Normal,
+        },
+        Step {
             name: SEMANTICS_REPLAY_STEP_NAME,
             program: "cargo",
             args: &[

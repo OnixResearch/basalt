@@ -57,6 +57,7 @@ mod ucan_semantics_identity;
 
 pub mod authority_core;
 pub mod license_consumption;
+pub mod policy_identity;
 pub mod policy_projection;
 pub mod secretspec_issuer;
 pub mod ucan_enforcement;
