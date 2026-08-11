@@ -1,6 +1,6 @@
 use std::path::Path;
 
-pub(crate) const SOURCE_REVISION: &str = "34449ba1f1a9ef991225e4e6683b5d6aca8c07cf";
+pub(crate) const SOURCE_REVISION: &str = "277ab768eb532ac0c715a3bbff2a7dc37a702f11";
 pub(crate) const SNAPSHOT_SCHEMA: &str = "basalt.vendored-ucan.snapshot.v1";
 pub(crate) const DESTINATION_DIRECTORY: &str = "vendor/ucan";
 pub(crate) const REVISION_FILE: &str = "vendor/ucan-revision.txt";
@@ -40,6 +40,7 @@ pub(crate) const SOURCE_SELECTION: &[&str] = &[
     "docs/verified-boundaries.md",
     "src",
     "crates/ucan-core",
+    "crates/ucan-nostr",
     "vendor/verified-logic",
     "vendor/verified-logic-revision.txt",
     "tools/check-production-readiness",
@@ -55,6 +56,9 @@ pub(crate) const REQUIRED_SNAPSHOT_PATHS: &[&str] = &[
     "crates/ucan-core/Cargo.toml",
     "crates/ucan-core/LICENSE",
     "crates/ucan-core/src/lib.rs",
+    "crates/ucan-nostr/Cargo.toml",
+    "crates/ucan-nostr/LICENSE",
+    "crates/ucan-nostr/src/lib.rs",
     "vendor/verified-logic/Cargo.toml",
     "vendor/verified-logic/LICENSE",
     "vendor/verified-logic/src/lib.rs",

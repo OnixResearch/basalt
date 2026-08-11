@@ -61,6 +61,7 @@ pub mod authority_core;
 #[cfg(feature = "cli")]
 pub mod cli_fs;
 pub mod license_consumption;
+pub mod nostr_identity;
 pub mod policy_identity;
 pub mod policy_projection;
 pub mod secretspec_issuer;

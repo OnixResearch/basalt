@@ -126,6 +126,22 @@
               cp exported-policy.json $out
             '';
 
+        checks.nostr-identity-policy =
+          pkgs.runCommand "basalt-nostr-identity-policy"
+            {
+              nativeBuildInputs = [ pkgs.nickel ];
+            }
+            ''
+              mkdir -p contracts/nostr-identity
+              cp ${./contracts/nostr-identity/contracts.ncl} contracts/nostr-identity/contracts.ncl
+              cp ${./contracts/nostr-identity/policy.ncl} contracts/nostr-identity/policy.ncl
+              chmod -R u+w contracts/nostr-identity
+              nickel typecheck contracts/nostr-identity/policy.ncl
+              nickel export contracts/nostr-identity/policy.ncl > exported-policy.json
+              cmp exported-policy.json ${./contracts/nostr-identity/generated/policy.json}
+              cp exported-policy.json $out
+            '';
+
         checks.authority-core-fixtures =
           pkgs.runCommand "basalt-authority-core-fixtures"
             {
