@@ -22,9 +22,8 @@ The repository uses a small functional core and imperative shell. Nickel owns po
 
 Basalt is under active development. Its UCAN dependency uses a checked-in reviewed snapshot.
 
-The snapshot records UCAN commit `34449ba1f1a9ef991225e4e6683b5d6aca8c07cf`.
-Basalt does not claim that this unpushed revision is available from a remote source.
-The repository-owned snapshot is the durable build boundary.
+The snapshot records integrated UCAN commit `277ab768eb532ac0c715a3bbff2a7dc37a702f11`.
+That revision is published on the UCAN `main` branch. The repository-owned snapshot remains the durable build boundary.
 
 `Cargo.toml` contains package metadata for downstream discovery. The crate retains the `AGPL-3.0-or-later` license.
 
@@ -168,6 +167,18 @@ An allow applies only to the exact contract, resource, ability, and request bind
 It does not grant transport, storage, persistence, replay-store, key-resolution, business, release, or whole-system authority.
 
 Read [`docs/authority-core.md`](docs/authority-core.md) for the full boundary.
+
+## Nostr identity bindings
+
+`basalt::nostr_identity` maps one reviewed opaque `VerifiedNostrCredential` to one stable subject in typed Nickel policy.
+
+The pure core validates exact key, request, audience, purpose, policy, lifecycle, digest-role, and non-claim linkage. Active keys can authenticate. Retired and revoked keys fail closed.
+
+Authentication never grants a resource or ability. Optional composition requires a separate exact authorization result for the same subject, request, and policy.
+
+Authentication and composition receipts are redacted, BLAKE3-bound, and `recorded_only`. The external Nostr event ID keeps its NIP-01 SHA-256 role.
+
+Read [`docs/nostr-identity-bindings.md`](docs/nostr-identity-bindings.md) for policy, rotation, privacy, receipt, and authority boundaries.
 
 ## Raw UCAN enforcement
 

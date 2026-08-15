@@ -2,9 +2,8 @@
 
 Basalt builds against the reviewed UCAN snapshot in `vendor/ucan/`.
 
-The snapshot records UCAN commit `34449ba1f1a9ef991225e4e6683b5d6aca8c07cf`.
-Basalt does not claim that this unpushed revision is available from a remote source.
-The checked-in snapshot is the durable build boundary.
+The snapshot records integrated UCAN commit `277ab768eb532ac0c715a3bbff2a7dc37a702f11`.
+That revision is published on UCAN `main`. The checked-in snapshot remains the durable build boundary.
 
 ## Imported source
 
@@ -12,6 +11,7 @@ The snapshot contains the complete Cargo build closure for these UCAN packages:
 
 - the `ucan` standard-library shell
 - the `ucan-core` functional core
+- the optional `ucan-nostr` adapter crate
 - the vendored `verified-logic` dependency
 - the two UCAN repository check binaries that its manifest declares
 - the static Aeneas proof-checker inputs required by those binaries
@@ -22,6 +22,7 @@ It preserves these license files:
 - `vendor/ucan/LICENSES/AGPL-3.0-or-later.txt`
 - `vendor/ucan/LICENSES/MPL-2.0.txt`
 - `vendor/ucan/crates/ucan-core/LICENSE`
+- `vendor/ucan/crates/ucan-nostr/LICENSE`
 - `vendor/ucan/vendor/verified-logic/LICENSE`
 
 Basalt remains `AGPL-3.0-or-later`. Each vendored UCAN package retains its declared license.
@@ -57,7 +58,7 @@ nix develop -c /tmp/basalt-sync-vendored-ucan --check-source-revision \
   /path/to/ucan FULL_GIT_OBJECT_ID
 ```
 
-The compatibility form `--check-source /path/to/ucan` reads only commit `34449ba1f1a9ef991225e4e6683b5d6aca8c07cf`.
+The compatibility form `--check-source /path/to/ucan` reads only commit `277ab768eb532ac0c715a3bbff2a7dc37a702f11`.
 Uncommitted files and the checked-out branch do not affect the result.
 
 ## Import

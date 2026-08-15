@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Define stable Basalt subject bindings for verified Nostr credentials without granting authority from key possession alone.
+Defines the `nostr-identity-bindings` capability.
 
 ## Requirements
 

@@ -129,6 +129,17 @@ lower-level building blocks beneath `web_of_trust_ucan_authorization`; they do n
 resolve identities, fetch evidence, sign records, consult registries, persist state,
 or read ambient clocks.
 
+## Optional Nostr identity adapter
+
+<!-- r[impl ucan.nostr_identity_adapter.package_boundary] -->
+<!-- r[impl ucan.nostr_identity_adapter.support_profile] -->
+
+`ucan-nostr` is an optional workspace package. The root `ucan` and `ucan-core` packages do not depend on it.
+
+The adapter verifies bounded NIP-01 events and explicit NIP-42, NIP-98, or `application-v1` contexts. It uses NIP-required SHA-256 for event IDs and BLAKE3 for adapter identities. The output proves Nostr key control for one bound request only.
+
+Consumers retain relay access, DNS, signer custody, clocks, replay storage, subject resolution, and authorization. See [`docs/nostr-identity-adapter.md`](docs/nostr-identity-adapter.md) for pinned standards, vectors, dependency versions, licenses, and exact non-claims.
+
 ## Support limits
 
 This crate is **controlled-integration ready**, not a turnkey production UCAN platform. The machine-readable and operator-facing support report is maintained in [`docs/production-readiness.md`](docs/production-readiness.md) and exposed in Rust through `production_readiness_report()`.
@@ -147,8 +158,8 @@ Reviewed Nickel integration profiles under `contracts/integration-profiles/` are
 
 ```bash
 nix develop -c cargo test --workspace
-nix develop -c cargo fmt --manifest-path Cargo.toml -p ucan -p ucan-core --check
-nix develop -c cargo clippy --manifest-path Cargo.toml -p ucan -p ucan-core --all-targets --no-deps -- -D warnings -A clippy::cargo-common-metadata
+nix develop -c cargo fmt --manifest-path Cargo.toml -p ucan -p ucan-core -p ucan-nostr --check
+nix develop -c cargo clippy --manifest-path Cargo.toml -p ucan -p ucan-core -p ucan-nostr --all-targets --no-deps -- -D warnings -A clippy::cargo-common-metadata
 nix flake check
 ```
 
@@ -172,6 +183,10 @@ Refresh the vendored `verified-logic` snapshot from the sibling Trellis source r
 
 That script imports the committed `HEAD` revision from Trellis, ignores uncommitted sibling changes, and records the imported revision in `vendor/verified-logic-revision.txt`. The Josh path-selection pilot is documented in `docs/verified-logic-josh-sync.md`; `josh/verified-logic.josh` is the canonical filter for the vendored subtree.
 
+## Optional peer-auth framing
+
+Enable `ucan-core` feature `peer-auth` to sign and verify deterministic message frames. The feature has no clock, transport, key-store, or replay-store effects. See [the peer-auth evidence and boundary](docs/peer-auth-protocol.md).
+
 ## Verification
 
 ```bash
@@ -191,10 +206,13 @@ Verified replay-admission transcript aggregation gates the audience-only `verify
 
 ## License
 
-`ucan-core` and the synchronized `verified-logic` snapshot are `MPL-2.0`; the root `ucan` std shell is `AGPL-3.0-or-later`. Complete texts and the package/vendor map are in [LICENSES](LICENSES) and [docs/licensing.md](docs/licensing.md).
+`ucan-core` and the synchronized `verified-logic` snapshot are `MPL-2.0`; `ucan-nostr` and the root `ucan` std shell are `AGPL-3.0-or-later`. Complete texts and the package/vendor map are in [LICENSES](LICENSES) and [docs/licensing.md](docs/licensing.md).
 
 The snapshot records a committed Trellis source revision and preserves its license artifacts. That alignment does not certify UCAN shell behavior, external protocol interoperability, resolver truth, revocation freshness, replay durability, or whole-system correctness. Earlier grants and third-party terms remain intact.
 
 ## References
 
-- [Nostr protocol and NIPs](https://github.com/nostr-protocol/nips) — signed-event and request-authentication interoperability reference. UCAN retains token algorithms, DIDs, and authority boundaries.
+- [Nostr NIPs at `656cecc7c0a815b6a2b218d3b5d6f078b3f4dbab`](https://github.com/nostr-protocol/nips/tree/656cecc7c0a815b6a2b218d3b5d6f078b3f4dbab) — NIP-01, NIP-42, and NIP-98 interoperability reference. UCAN retains token algorithms, DIDs, and authority boundaries.
+- [BIP-340 and vectors at `c38071c8c45a1fc50cecaac0d82d99e3bbd56911`](https://github.com/bitcoin/bips/tree/c38071c8c45a1fc50cecaac0d82d99e3bbd56911/bip-0340) — x-only secp256k1 signature and test-vector reference.
+- [AeneasVerif/aeneas](https://github.com/AeneasVerif/aeneas) — exact-source Aeneas/Lean proof-pilot reference for selected safe deterministic `ucan-core` functions; any receipt remains property- and source-scoped and does not transfer parser, cryptographic, authorization, interoperability, or whole-system claims.
+- [Celld peer authentication at `c978a2590e875b003ecd860a86cb7551287eba67`](https://github.com/devinautotomic226/celld/blob/c978a2590e875b003ecd860a86cb7551287eba67/crates/celld/peer_auth.rs) — bounded `Apache-2.0` version, body-digest, HMAC, clock, and replay comparison source. UCAN does not claim parity, equivalence, or transport support.

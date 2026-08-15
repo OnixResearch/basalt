@@ -28,8 +28,8 @@
   ],
   "request_ability": "document/*",
   "request_resource": "did:key:z6Mkresource/docs/report",
-  "runtime_ucan_revision": "34449ba1f1a9ef991225e4e6683b5d6aca8c07cf",
+  "runtime_ucan_revision": "277ab768eb532ac0c715a3bbff2a7dc37a702f11",
   "schema": "basalt.ucan-semantics-fixture.v1",
-  "support_catalog_blake3": "3266e7b1f2ce66f2ab5c8cbd7028f8bcf3502c7e64fe8d058c7b7e1f762dedb6",
-  "support_catalog_revision": "34449ba1f1a9ef991225e4e6683b5d6aca8c07cf"
+  "support_catalog_blake3": "9ffae46c16556feb27614dee3f5945e48321f08a38f0b7c8b1baf7e0e106d095",
+  "support_catalog_revision": "277ab768eb532ac0c715a3bbff2a7dc37a702f11"
 }

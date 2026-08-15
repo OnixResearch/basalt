@@ -12,7 +12,7 @@ The section below is generated structurally from `production_readiness_report()`
 
 <!-- BEGIN GENERATED UCAN SUPPORT CATALOG -->
 
-Catalog BLAKE3: `3d50d555a0c2e9e67b942ce36607db55a4b745f2ad17813031d028430395b52a`
+Catalog BLAKE3: `d46317f0a99645a40f799fa6644873d785d2af87c8f68d6668bbec4a77bce5ee`
 
 Catalog schema: `ucan.support-catalog.v1`
 
@@ -34,6 +34,7 @@ Catalog schema: `ucan.support-catalog.v1`
 | `opaque-caveat-policy-evaluation` | `controlled-integration-ready` | CaveatPolicySet requires every caveat to have an explicit non-consuming policy observation; missing or rejected policies deny authorization | arbitrary caveat semantics, clocks, counters, consumptive quota or rate-limit effects, and external policy truth are application-owned |
 | `finite-typed-caveat-helpers` | `preview` | verified finite time-bound and rate-limit helper predicates are exposed for advanced callers | adopting those helpers as a production vocabulary requires integration-specific policy and provenance evidence |
 | `web-of-trust-helpers` | `preview` | finite WOT evidence, threshold, and UCAN authorization helpers are exposed below the compact-token shell | DID/CID decoding, evidence fetching, trust-store discovery, revocation freshness, and persistence are not supplied |
+| `nostr-identity-adapter` | `preview` | the optional ucan-nostr package verifies bounded NIP-01, NIP-42, NIP-98, and application challenge facts with exact digest roles | relay access, DNS, signing, clocks, replay storage, subject resolution, and authorization remain caller-owned |
 | `remote-did-resolution` | `unsupported` | no built-in remote resolver is provided | integrators must supply resolver trust, method admission, freshness, cache, and fail-closed behavior |
 | `proof-transport-backends` | `unsupported` | no built-in network, filesystem, database, IPFS, or content-addressed proof transport is provided | integrators must supply proof provenance, freshness, bounds, and reference matching |
 | `registry-backed-revocation` | `unsupported` | no built-in registry client or persistence layer is provided | integrators must supply registry truth, freshness, duplicate handling, and outage behavior |

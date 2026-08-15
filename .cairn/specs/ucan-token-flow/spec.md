@@ -129,11 +129,11 @@ r[basalt.ucan_token_flow.verify_ucan_enforcement.contract.boundaries]
 - WHEN the adapter verifies an enforcement request
 - THEN the adapter MUST use only those supplied boundaries and MUST NOT use ambient network, clock, trust, or storage.
 
-#### Scenario: Reviewed source is not remotely available
+#### Scenario: Reviewed source remains pinned locally
 r[basalt.ucan_token_flow.verify_ucan_enforcement.contract.source_boundary]
-- GIVEN reviewed UCAN commit `34449ba1f1a9ef991225e4e6683b5d6aca8c07cf` is not remotely fetchable
+- GIVEN reviewed integrated UCAN commit `277ab768eb532ac0c715a3bbff2a7dc37a702f11` is remotely published
 - WHEN Basalt builds the adapter
-- THEN Basalt MUST use a checked-in source snapshot with a deterministic import, revision, BLAKE3 manifest, preserved licenses, and offline validation.
+- THEN Basalt MUST use a checked-in source snapshot with a deterministic import, revision, BLAKE3 manifest, preserved licenses, source parity, and offline validation.
 
 ### Requirement: Strong pinned UCAN verification
 r[basalt.ucan_token_flow.verify_ucan_enforcement.verification] The adapter MUST use the strongest pinned UCAN shell path that supports caller key, proof, revocation, replay, caveat, time, and limit boundaries.
