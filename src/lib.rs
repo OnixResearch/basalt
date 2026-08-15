@@ -61,12 +61,16 @@ pub mod authority_core;
 #[cfg(feature = "cli")]
 pub mod cli_fs;
 pub mod license_consumption;
+pub mod policy_cache;
 pub mod policy_identity;
 pub mod policy_projection;
 pub mod secretspec_issuer;
 pub mod ucan_enforcement;
 pub mod ucan_semantics;
 
+pub use policy_cache::{
+    CachePolicy, PolicyCacheKey, PolicyError, PolicyEvaluationCache, PromotionDecision,
+};
 pub use ucan;
 
 use serde::Deserialize;
