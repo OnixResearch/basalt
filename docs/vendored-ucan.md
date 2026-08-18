@@ -2,7 +2,7 @@
 
 Basalt builds against the reviewed UCAN snapshot in `vendor/ucan/`.
 
-The snapshot records integrated UCAN commit `277ab768eb532ac0c715a3bbff2a7dc37a702f11`.
+The snapshot records integrated UCAN commit `c483c7b58c42ec6636e9b8b8c0f73a2b609bf21e`.
 That revision is published on UCAN `main`. The checked-in snapshot remains the durable build boundary.
 
 ## Imported source
@@ -58,7 +58,7 @@ nix develop -c /tmp/basalt-sync-vendored-ucan --check-source-revision \
   /path/to/ucan FULL_GIT_OBJECT_ID
 ```
 
-The compatibility form `--check-source /path/to/ucan` reads only commit `277ab768eb532ac0c715a3bbff2a7dc37a702f11`.
+The compatibility form `--check-source /path/to/ucan` reads only commit `c483c7b58c42ec6636e9b8b8c0f73a2b609bf21e`.
 Uncommitted files and the checked-out branch do not affect the result.
 
 ## Import

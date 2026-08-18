@@ -11,6 +11,7 @@ use super::types::{UcanEnforcementBoundaries, UcanEnforcementReason, UcanEnforce
 use crate::EnforcementRequest;
 use crate::Policy;
 use crate::authority_core::{AuthorityDecision, BasaltPolicyRef};
+use crate::ucan_profile::{VerifiedUcanAuthorityInput, admit_compact_profile};
 use std::fmt;
 use ucan::{
     AuthorizationDecision, HolderInvocationAuthorized, HolderInvocationPolicyContext,
@@ -133,12 +134,19 @@ fn prepare_bounded_request(
     let policy = decode_blake3_reference(trusted_policy_ref.artifact_ref.as_str());
     let credential_bytes = u64::try_from(request.compact_token.len()).ok();
     let initial_context = ReceiptContext {
+        protocol_profile: request.profile,
         credential_bytes,
         credential: None,
         request_binding: None,
         operation_profile,
         policy,
     };
+    if admit_compact_profile(request.profile).is_err() {
+        return Err(failure(
+            UcanEnforcementReason::ProtocolProfileDenied,
+            initial_context,
+        ));
+    }
     if credential_bytes.is_none() {
         return Err(failure(
             UcanEnforcementReason::LimitExceeded,
@@ -205,13 +213,38 @@ fn prepare_prospective_authority(
         );
         return Err(failure(reason, receipt_context));
     };
+    let Some(credential) = receipt_context.credential else {
+        return Err(failure(
+            UcanEnforcementReason::InternalAuthorityDenied,
+            receipt_context,
+        ));
+    };
+    let Some(request_binding) = receipt_context.request_binding else {
+        return Err(failure(
+            UcanEnforcementReason::InternalAuthorityDenied,
+            receipt_context,
+        ));
+    };
+    let verified_input = VerifiedUcanAuthorityInput::from_compact_verified(
+        request.profile,
+        verified.audience().as_str(),
+        receipt_context.operation_profile,
+        request_binding,
+        credential,
+        !verified.proofs().as_slice().is_empty(),
+    )
+    .map_err(|_| {
+        failure(
+            UcanEnforcementReason::ProtocolProfileDenied,
+            receipt_context,
+        )
+    })?;
     let decision = build_authority_decision(
         policy,
         trusted_policy_ref,
         request.enforcement,
-        &verified,
+        &verified_input,
         boundaries.verification_time,
-        &receipt_context,
     )
     .map_err(|reason| failure(reason, receipt_context))?;
     if !decision.is_allowed() {

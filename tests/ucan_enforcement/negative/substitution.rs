@@ -36,6 +36,18 @@ fn typed_action_and_profile_substitutions_fail_before_replay() {
         ),
         UcanEnforcementReason::HolderDenied,
     );
+    assert_denied(
+        evaluate_action_with_profile(
+            fixture.token.as_str(),
+            &request,
+            BasaltUcanProtocolProfile::UcanWg100,
+            EnforcementAction::DocumentWrite,
+            &valid_signature,
+            nonce(),
+            &services(&fixture, &NoRevocations, &DenyUnknownCaveats, &replay),
+        ),
+        UcanEnforcementReason::ProtocolProfileDenied,
+    );
     assert_eq!(replay.calls.get(), 0);
 }
 

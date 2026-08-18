@@ -23,6 +23,7 @@ pub(crate) use basalt::ucan_enforcement::{
     UcanEnforcementReason, UcanEnforcementReceipt, UcanEnforcementRequest, bind_enforcement_action,
     verify_ucan_enforcement_request,
 };
+pub(crate) use basalt::ucan_profile::BasaltUcanProtocolProfile;
 pub(crate) use basalt::{CapabilityGrant, EnforcementRequest, default_policy};
 pub(crate) use evaluate::*;
 pub(crate) use fixtures::*;

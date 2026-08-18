@@ -1,5 +1,14 @@
 use std::time::Duration;
 
+// r[impl basalt.ucan_token_flow.protocol_profiles.cohort]
+// r[impl basalt.ucan_token_flow.protocol_profiles.selection]
+// r[impl basalt.ucan_token_flow.protocol_profiles.compact]
+// r[impl basalt.ucan_token_flow.protocol_profiles.adapter_contract]
+// r[impl basalt.ucan_token_flow.protocol_profiles.receipt]
+// r[verify basalt.ucan_token_flow.protocol_profiles.tests]
+// r[impl basalt.ucan_token_flow.protocol_profiles.docs]
+// r[verify basalt.ucan_token_flow.protocol_profiles.validation]
+
 pub(super) const TARGET_ENV: &str = "CARGO_TARGET_DIR";
 pub(super) const WRAPPER_ENV: &str = "RUSTC_WRAPPER";
 pub(super) const GIT_FETCH_ENV: &str = "CARGO_NET_GIT_FETCH_WITH_CLI";
@@ -44,6 +53,8 @@ pub(super) const REQUIRED_PACKAGE_FILES: &[&str] = &[
     "contracts/authority-core/fixtures/generated/positive/direct-match.json",
     "contracts/authority-core/fixtures/negative/authority-overclaim.ncl",
     "contracts/authority-core/fixtures/positive/direct-match.ncl",
+    "contracts/ucan-profiles/cohort.ncl",
+    "contracts/ucan-profiles/contracts.ncl",
     "contracts/ucan-semantics/contracts.ncl",
     "contracts/ucan-semantics/fixtures/generated/negative/over-delegation.json",
     "contracts/ucan-semantics/fixtures/generated/positive/allow.json",
@@ -72,6 +83,7 @@ pub(super) const REQUIRED_PACKAGE_FILES: &[&str] = &[
     "docs/policy-authoring.md",
     "docs/policy-identity.md",
     "docs/ucan-enforcement.md",
+    "docs/ucan-protocol-profiles.md",
     "docs/ucan-semantics-contract.md",
     "docs/secretspec-issuer.md",
     "docs/vendored-ucan.md",
@@ -106,6 +118,7 @@ pub(super) const REQUIRED_PACKAGE_FILES: &[&str] = &[
     "src/ucan_enforcement/types.rs",
     "src/ucan_enforcement/tests.rs",
     "src/ucan_enforcement/types.rs",
+    "src/ucan_profile.rs",
     "src/ucan_semantics.rs",
     "src/ucan_semantics_identity.rs",
     "tests/authority_core.rs",

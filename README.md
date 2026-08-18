@@ -22,7 +22,7 @@ The repository uses a small functional core and imperative shell. Nickel owns po
 
 Basalt is under active development. Its UCAN dependency uses a checked-in reviewed snapshot.
 
-The snapshot records integrated UCAN commit `277ab768eb532ac0c715a3bbff2a7dc37a702f11`.
+The snapshot records integrated UCAN commit `c483c7b58c42ec6636e9b8b8c0f73a2b609bf21e`.
 That revision is published on the UCAN `main` branch. The repository-owned snapshot remains the durable build boundary.
 
 `Cargo.toml` contains package metadata for downstream discovery. The crate retains the `AGPL-3.0-or-later` license.
@@ -179,6 +179,13 @@ Authentication never grants a resource or ability. Optional composition requires
 Authentication and composition receipts are redacted, BLAKE3-bound, and `recorded_only`. The external Nostr event ID keeps its NIP-01 SHA-256 role.
 
 Read [`docs/nostr-identity-bindings.md`](docs/nostr-identity-bindings.md) for policy, rotation, privacy, receipt, and authority boundaries.
+
+## UCAN protocol profiles
+
+Every UCAN enforcement request selects a closed `BasaltUcanProtocolProfile` value.
+The compact adapter accepts only `onix-compact-ed25519-v1` and rejects cross-profile substitution before token parsing or replay.
+Receipts bind the profile, exact UCAN cohort, support catalog, policy, operation, token, request, reason, and non-claims.
+See [`docs/ucan-protocol-profiles.md`](docs/ucan-protocol-profiles.md).
 
 ## Raw UCAN enforcement
 

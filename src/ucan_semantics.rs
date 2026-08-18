@@ -5,6 +5,7 @@
 //! validates the declared decision facts, fails closed on every non-admitted fact,
 //! and passes only admitted effective grants to [`crate::enforce`].
 
+use crate::ucan_profile::{BasaltUcanProtocolProfile, admit_compact_profile};
 use crate::{
     CapabilityGrant, DEFAULT_POLICY_JSON, EnforcementReceipt, EnforcementRequest, Policy,
     default_policy, enforce,
@@ -12,8 +13,8 @@ use crate::{
 use serde::{Deserialize, Serialize};
 
 pub use crate::ucan_semantics_identity::{
-    BASALT_POLICY_BLAKE3, UCAN_RUNTIME_REVISION, UCAN_SEMANTICS_FIXTURE_SCHEMA,
-    UCAN_SUPPORT_CATALOG_BLAKE3, UCAN_SUPPORT_CATALOG_REVISION,
+    BASALT_POLICY_BLAKE3, UCAN_PROTOCOL_PROFILE, UCAN_RUNTIME_REVISION,
+    UCAN_SEMANTICS_FIXTURE_SCHEMA, UCAN_SUPPORT_CATALOG_BLAKE3, UCAN_SUPPORT_CATALOG_REVISION,
 };
 
 const MAXIMUM_FIXTURE_CAPABILITIES: usize = 64;
@@ -139,6 +140,8 @@ pub struct UcanSemanticsFixture {
     pub schema: String,
     /// Stable fixture identifier.
     pub fixture_id: String,
+    /// Explicit nominal UCAN protocol profile.
+    pub protocol_profile: BasaltUcanProtocolProfile,
     /// Exact UCAN revision linked by Basalt at runtime.
     pub runtime_ucan_revision: String,
     /// Exact UCAN revision that produced the reviewed support catalog.
@@ -227,6 +230,12 @@ pub fn validate_semantics_fixture(fixture: &UcanSemanticsFixture) -> Vec<Semanti
         "unsupported UCAN semantics fixture schema",
     );
     check_fixture_id(&mut issues, fixture.fixture_id.as_str());
+    if admit_compact_profile(fixture.protocol_profile).is_err() {
+        issues.push(SemanticsIssue::new(
+            "semantics.profile.mismatch",
+            "fixture protocol profile does not match the compact adapter cohort",
+        ));
+    }
     check_exact(
         &mut issues,
         fixture.runtime_ucan_revision.as_str(),

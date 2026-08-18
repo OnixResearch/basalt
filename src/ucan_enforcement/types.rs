@@ -1,5 +1,6 @@
 use super::core::operation_profile_digest;
 use crate::EnforcementRequest;
+use crate::ucan_profile::BasaltUcanProtocolProfile;
 use serde::{Deserialize, Serialize};
 use ucan::{
     CaveatPolicySet, HolderInvocationLimits, HolderInvocationNonce,
@@ -120,6 +121,7 @@ impl EnforcementAction {
 pub struct UcanEnforcementRequest<'request, 'credential> {
     pub(super) enforcement: &'request EnforcementRequest,
     pub(super) compact_token: &'credential str,
+    pub(super) profile: BasaltUcanProtocolProfile,
     pub(super) action: EnforcementAction,
     pub(super) nonce: HolderInvocationNonce,
     pub(super) holder_signature: &'credential SignerSignature,
@@ -131,6 +133,7 @@ impl<'request, 'credential> UcanEnforcementRequest<'request, 'credential> {
     pub const fn new(
         enforcement: &'request EnforcementRequest,
         compact_token: &'credential str,
+        profile: BasaltUcanProtocolProfile,
         action: EnforcementAction,
         nonce: HolderInvocationNonce,
         holder_signature: &'credential SignerSignature,
@@ -138,6 +141,7 @@ impl<'request, 'credential> UcanEnforcementRequest<'request, 'credential> {
         Self {
             enforcement,
             compact_token,
+            profile,
             action,
             nonce,
             holder_signature,
@@ -148,6 +152,12 @@ impl<'request, 'credential> UcanEnforcementRequest<'request, 'credential> {
     #[must_use]
     pub const fn enforcement(&self) -> &EnforcementRequest {
         self.enforcement
+    }
+
+    /// Return the explicitly selected UCAN protocol profile.
+    #[must_use]
+    pub const fn protocol_profile(&self) -> BasaltUcanProtocolProfile {
+        self.profile
     }
 
     /// Return the selected typed downstream action.
@@ -193,6 +203,7 @@ pub enum UcanEnforcementReason {
     HolderDenied,
     ReplayDenied,
     LimitExceeded,
+    ProtocolProfileDenied,
     OperationMismatch,
     UnverifiedAuthorityFields,
     PolicyDenied,
@@ -218,6 +229,7 @@ impl UcanEnforcementReason {
             Self::HolderDenied => "holder-denied",
             Self::ReplayDenied => "replay-denied",
             Self::LimitExceeded => "limit-exceeded",
+            Self::ProtocolProfileDenied => "protocol-profile-denied",
             Self::OperationMismatch => "operation-mismatch",
             Self::UnverifiedAuthorityFields => "unverified-authority-fields",
             Self::PolicyDenied => "policy-denied",

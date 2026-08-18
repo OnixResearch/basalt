@@ -15,6 +15,7 @@ The caller supplies these explicit inputs:
 - a loaded Basalt policy and its trusted policy reference
 - one normalized `EnforcementRequest`
 - the raw compact token
+- one closed `BasaltUcanProtocolProfile`
 - one closed `EnforcementAction`
 - the holder nonce and signature
 - key, proof, revocation, caveat, and replay services
@@ -71,15 +72,17 @@ The existing revision, BLAKE3 manifest, and license checks in `tools/sync-vendor
 
 The adapter uses this order:
 
-1. Check token and request bounds.
-2. Bind the typed action to the exact request.
-3. Verify the compact token with the injected services.
-4. Run non-consuming capability and caveat authorization.
-5. Build and evaluate exact Basalt authority facts.
-6. Build the allowed redacted receipt.
-7. Run fresh holder-signed verification with the same services.
-8. Let UCAN call replay once as its final commit.
-9. Move the prebuilt values into `LiveUcanEnforcement`.
+1. Admit the exact compact protocol cohort.
+2. Check token and request bounds.
+3. Bind the typed action to the exact request.
+4. Verify the compact token with the injected services.
+5. Run non-consuming capability and caveat authorization.
+6. Project the private Basalt-owned verified UCAN input.
+7. Build and evaluate exact Basalt authority facts.
+8. Build the allowed redacted receipt.
+9. Run fresh holder-signed verification with the same services.
+10. Let UCAN call replay once as its final commit.
+11. Move the prebuilt values into `LiveUcanEnforcement`.
 
 Key, proof, revocation, and caveat services can receive repeated calls. These services must not consume state.
 
@@ -138,9 +141,10 @@ The receipt includes these redacted facts:
 - the observed compact-token length
 - the bounded compact-token digest, when permitted
 - the exact request-binding digest
+- the admitted UCAN protocol profile
 - the reviewed operation-profile digest
 - the trusted policy digest
-- the reviewed UCAN revision
+- the reviewed UCAN revision and support-catalog identity
 - explicit non-claims
 
 An oversized token is rejected before token hashing. Its receipt records the input length but omits token identity.

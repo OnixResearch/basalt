@@ -138,9 +138,9 @@ pub(super) const fn holder_error_reason(error: &HolderInvocationError) -> UcanEn
 
 const fn proof_store_error_reason(error: &ProofStoreError) -> UcanEnforcementReason {
     match error {
-        ProofStoreError::MissingProof { .. } | ProofStoreError::Malformed { .. } => {
-            UcanEnforcementReason::ProofDenied
-        }
+        ProofStoreError::MissingProof { .. }
+        | ProofStoreError::Malformed { .. }
+        | ProofStoreError::ReferenceMismatch { .. } => UcanEnforcementReason::ProofDenied,
         ProofStoreError::Stale { .. } | ProofStoreError::Backend { .. } => {
             UcanEnforcementReason::BackendUnavailable
         }

@@ -31,6 +31,14 @@ fn identical_evaluations_have_identical_redacted_receipts() {
     .expect("second evaluation must pass");
 
     assert_eq!(first.receipt(), second.receipt());
+    assert_eq!(
+        first.receipt().protocol_profile,
+        BasaltUcanProtocolProfile::OnixCompactEd25519V1.as_str()
+    );
+    assert_eq!(
+        first.receipt().ucan_support_catalog_blake3,
+        basalt::ucan_semantics::UCAN_SUPPORT_CATALOG_BLAKE3
+    );
     assert_eq!(first_replay.calls.get(), FIRST_CALL);
     assert_eq!(second_replay.calls.get(), FIRST_CALL);
 }
@@ -90,6 +98,15 @@ fn persisted_receipt_cannot_recreate_live_authority() {
     let persisted = serde_json::to_string(live.receipt()).expect("receipt must serialize");
     let restored: UcanEnforcementReceipt =
         serde_json::from_str(&persisted).expect("receipt must deserialize as evidence");
+    let mut old_schema: serde_json::Value =
+        serde_json::from_str(&persisted).expect("receipt must decode for mutation");
+    old_schema["schema"] =
+        serde_json::Value::String("basalt.ucan-enforcement-receipt.v1".to_owned());
+    let old_object = old_schema
+        .as_object_mut()
+        .expect("receipt mutation requires an object");
+    old_object.remove("protocol_profile");
+    old_object.remove("ucan_support_catalog_blake3");
     let live_source = include_str!("../../src/ucan_enforcement/shell.rs");
     let error_source = include_str!("../../src/ucan_enforcement/error.rs");
     let struct_start = live_source
@@ -117,6 +134,7 @@ fn persisted_receipt_cannot_recreate_live_authority() {
         .expect("live implementation must end before prospective authority");
 
     assert_eq!(&restored, live.receipt());
+    assert!(serde_json::from_value::<UcanEnforcementReceipt>(old_schema).is_err());
     assert!(!persisted.contains("did:key"));
     assert!(!persisted.contains(DOCUMENT_WRITE_ABILITY));
     assert!(

@@ -4,6 +4,10 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
+    rust-overlay = {
+      url = "github:oxalica/rust-overlay/3c38e1e1ba9c8d7030f7b5a801398ea7d8a6fdc0";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -11,11 +15,16 @@
       self,
       nixpkgs,
       flake-utils,
+      rust-overlay,
     }:
     flake-utils.lib.eachDefaultSystem (
       system:
       let
-        pkgs = nixpkgs.legacyPackages.${system};
+        pkgs = import nixpkgs {
+          inherit system;
+          overlays = [ (import rust-overlay) ];
+        };
+        rustToolchain = pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
         validAuthorityFixtures = [
           "positive/direct-match"
           "positive/delegated-match"
@@ -46,6 +55,7 @@
           "negative/replay-denied"
         ];
         malformedUcanSemanticsFixtures = [
+          "final-profile-substitution"
           "missing-operation"
           "weakened-non-claims"
           "incompatible-expected-result"
@@ -78,14 +88,11 @@
         devShells.default = pkgs.mkShell {
           packages = [
             pkgs.b3sum
-            pkgs.cargo
             pkgs.cargo-nextest
-            pkgs.clippy
             pkgs.nickel
             pkgs.openssh
-            pkgs.rustc
-            pkgs.rustfmt
             pkgs.stdenv.cc
+            rustToolchain
           ];
         };
 
@@ -94,8 +101,8 @@
             {
               nativeBuildInputs = [
                 pkgs.b3sum
-                pkgs.rustc
                 pkgs.stdenv.cc
+                rustToolchain
               ];
             }
             ''
@@ -124,6 +131,24 @@
               nickel export contracts/policy.ncl > exported-policy.json
               cmp exported-policy.json ${./contracts/generated/policy.json}
               cp exported-policy.json $out
+            '';
+
+        checks.ucan-protocol-cohort =
+          pkgs.runCommand "basalt-ucan-protocol-cohort"
+            {
+              nativeBuildInputs = [ pkgs.nickel ];
+            }
+            ''
+              cd ${./.}
+              nickel typecheck contracts/ucan-profiles/cohort.ncl
+              nickel export --format json contracts/ucan-profiles/cohort.ncl > "$TMPDIR/cohort.json"
+              for fixture in contracts/ucan-profiles/fixtures/invalid/*.ncl; do
+                if nickel export --format json "$fixture" > /dev/null 2>&1; then
+                  echo "invalid UCAN protocol cohort passed: $fixture" >&2
+                  exit 1
+                fi
+              done
+              touch "$out"
             '';
 
         checks.nostr-identity-policy =
@@ -236,8 +261,8 @@
           pkgs.runCommand "basalt-downstream-compat-config"
             {
               nativeBuildInputs = [
-                pkgs.rustc
                 pkgs.stdenv.cc
+                rustToolchain
               ];
             }
             ''
@@ -287,15 +312,12 @@
             {
               nativeBuildInputs = [
                 pkgs.b3sum
-                pkgs.cargo
                 pkgs.cargo-nextest
-                pkgs.clippy
                 pkgs.git
                 pkgs.nickel
                 pkgs.openssh
-                pkgs.rustc
-                pkgs.rustfmt
                 pkgs.stdenv.cc
+                rustToolchain
               ];
               authorityCoreFixtures = self.checks.${system}.authority-core-fixtures;
               policyExport = self.checks.${system}.policy-export;

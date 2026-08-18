@@ -1,4 +1,4 @@
-use super::receipt::{BLAKE3_DIGEST_BYTES, ReceiptContext};
+use super::receipt::BLAKE3_DIGEST_BYTES;
 use super::types::{EnforcementAction, UcanEnforcementReason};
 use crate::authority_core::{
     AuthorityAdapterError, AuthorityCaveatDisposition, AuthorityClaim, AuthorityDecision,
@@ -6,10 +6,11 @@ use crate::authority_core::{
     UcanVerificationReceiptRef, VerificationRefDisposition, VerifiedGrantBinding,
     VerifiedGrantKind, adapt_enforcement_request, evaluate_authority, is_blake3_reference,
 };
+use crate::ucan_profile::VerifiedUcanAuthorityInput;
 use crate::{CapabilityGrant, EnforcementRequest, Policy};
 use ucan::{
     OperationBinding, OperationProfileAdmission, OperationProfileAdmissionError,
-    OperationProfileId, RequestBindingDigest, VerificationTime, VerifiedToken,
+    OperationProfileId, RequestBindingDigest, VerificationTime,
 };
 
 pub(super) const OPERATION_PROFILE_DOMAIN: &[u8] = b"basalt/operation-profile/v1";
@@ -79,24 +80,25 @@ pub(super) fn build_authority_decision(
     policy: &Policy,
     trusted_policy_ref: &BasaltPolicyRef,
     request: &EnforcementRequest,
-    verified: &VerifiedToken,
+    verified: &VerifiedUcanAuthorityInput,
     verification_time: VerificationTime,
-    receipt_context: &ReceiptContext,
 ) -> Result<AuthorityDecision, UcanEnforcementReason> {
-    let Some(credential) = receipt_context.credential else {
-        return Err(UcanEnforcementReason::InternalAuthorityDenied);
-    };
-    let Some(request_binding) = receipt_context.request_binding else {
-        return Err(UcanEnforcementReason::InternalAuthorityDenied);
-    };
-    let kind = if verified.proofs().as_slice().is_empty() {
-        VerifiedGrantKind::Direct
-    } else {
+    let kind = if verified.is_delegated() {
         VerifiedGrantKind::Delegated
+    } else {
+        VerifiedGrantKind::Direct
     };
     let grant_digest = derive_reference(
         VERIFIED_GRANT_REFERENCE_DOMAIN,
-        &[credential.as_slice(), request_binding.as_slice()],
+        &[
+            verified.profile().as_str().as_bytes(),
+            verified.source_revision().as_bytes(),
+            verified.support_catalog_blake3().as_bytes(),
+            verified.subject().as_bytes(),
+            verified.operation_profile().as_slice(),
+            verified.token_identity().as_slice(),
+            verified.request_binding().as_slice(),
+        ],
     )
     .ok_or(UcanEnforcementReason::LimitExceeded)?;
     let verification_seconds = verification_time.as_unix_seconds().to_be_bytes();
@@ -104,12 +106,12 @@ pub(super) fn build_authority_decision(
         VERIFICATION_RECEIPT_REFERENCE_DOMAIN,
         &[
             grant_digest.as_slice(),
-            request_binding.as_slice(),
+            verified.request_binding().as_slice(),
             verification_seconds.as_slice(),
         ],
     )
     .ok_or(UcanEnforcementReason::LimitExceeded)?;
-    let request_ref = format_digest(request_binding);
+    let request_ref = format_digest(*verified.request_binding());
     let grant_ref = format_digest(grant_digest);
     let verification_receipt_ref = format_digest(receipt_digest);
     let internal_request = EnforcementRequest::new(

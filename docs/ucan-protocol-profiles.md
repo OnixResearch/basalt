@@ -1,0 +1,51 @@
+# UCAN protocol profiles
+
+Basalt binds each UCAN authority input to one explicit nominal protocol profile.
+It does not infer a profile from credential bytes.
+
+## Current cohort
+
+- Profile: `onix-compact-ed25519-v1`
+- Vendored UCAN revision: `c483c7b58c42ec6636e9b8b8c0f73a2b609bf21e`
+- Support catalog BLAKE3: `fe77fd63076eaef555b74e702e4c14e483bdba70151ccc955c75b17d97412427`
+- Basalt policy BLAKE3: `5475d5473ec98cbf052a83512836b0739f5dad3e7b9b0ed201eb3094b1cf39bf`
+
+The typed Nickel cohort is `contracts/ucan-profiles/cohort.ncl`.
+It rejects unknown profiles, stale source revisions, unsupported adapter promotion, and weakened non-claims.
+
+## Adapter selection
+
+`UcanEnforcementRequest` requires a `BasaltUcanProtocolProfile`.
+The existing compact adapter accepts only `OnixCompactEd25519V1`.
+It rejects `UcanWg100` before token parsing and before replay state is consumed.
+It does not inspect bytes and select another decoder.
+
+`VerifiedUcanAuthorityInput` is the Basalt-owned application contract.
+Only the verified compact adapter can construct it.
+The value binds the profile, source cohort, subject, operation profile, request, token identity, grant class, and non-claims.
+It contains no UCAN wire or codec type.
+
+The final UCAN `1.0.0` profile remains a separate adapter and lifecycle change.
+Profile matching alone does not prove final-profile compatibility.
+
+## Receipts
+
+UCAN enforcement receipt schema `basalt.ucan-enforcement-receipt.v2` binds these values:
+
+- protocol profile;
+- vendored UCAN revision;
+- UCAN support-catalog identity;
+- Basalt policy identity;
+- operation profile;
+- bounded token and request identities;
+- decision reason and non-claims.
+
+A receipt is recorded evidence only.
+It cannot recreate `LiveUcanEnforcement` or grant authority.
+
+## Non-claims
+
+Profile matching does not prove token correctness, key trust, revocation freshness, replay durability, policy completeness, transport security, or effect correctness.
+UCAN retains protocol wire and authority semantics.
+Basalt retains application policy and action mapping.
+Callers retain external state, clocks, credentials, transport, and effects.

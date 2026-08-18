@@ -1525,6 +1525,24 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d6f6ff9a378485b298a5286656da665ba74413d36db0979633275d2e708145d4"
 
 [[package]]
+name = "replay-ledger-core"
+version = "0.1.0"
+source = "git+https://seed.radicle.garden/z3kGDT73ja8rewvGLwJFLF5MTx1ih.git?rev=a0de79303f3f45c18a34fff535b690a85cb3cf59#a0de79303f3f45c18a34fff535b690a85cb3cf59"
+dependencies = [
+ "blake3",
+ "serde",
+]
+
+[[package]]
+name = "revocation-view-core"
+version = "0.1.0"
+source = "git+https://seed.radicle.garden/z3kGDT73ja8rewvGLwJFLF5MTx1ih.git?rev=a0de79303f3f45c18a34fff535b690a85cb3cf59#a0de79303f3f45c18a34fff535b690a85cb3cf59"
+dependencies = [
+ "blake3",
+ "serde",
+]
+
+[[package]]
 name = "rsa"
 version = "0.9.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2033,8 +2051,11 @@ dependencies = [
  "base64",
  "blake3",
  "ed25519-dalek",
+ "replay-ledger-core",
+ "revocation-view-core",
  "serde",
  "serde_json",
+ "sha2",
  "snafu",
  "ucan-core",
  "verified-logic",
@@ -2044,6 +2065,9 @@ dependencies = [
 [[package]]
 name = "ucan-core"
 version = "0.1.0"
+dependencies = [
+ "blake3",
+]
 
 [[package]]
 name = "ucan-nostr"

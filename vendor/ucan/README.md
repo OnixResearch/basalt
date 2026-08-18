@@ -112,6 +112,8 @@ Proof material is explicit. A child token carries BLAKE3 proof references in `pr
 
 `KeyResolver`, `ProofStore`, `RevocationChecker`, `ReplayAdmission`, `OperationProfileAdmission`, and `HolderInvocationReplayAdmission` are std-shell injection points only. The crate does not provide built-in HTTP, IPFS, database, filesystem, profile registry, replay persistence, or ambient global lookup. `KeyResolutionContext` implements `KeyResolver`, `ProofCollection` implements `ProofStore`, and `RevocationList` implements `RevocationChecker`. `AllowAllReplayAdmission` preserves audience-only compatibility, but it is not holder proof. Holder-signed verification requires an explicit profile observer and replay commit boundary. These hooks remain consumer-agnostic: Aspen, Basalt, or another caller owns resource/action mapping, request canonicalization, identity trust, envelopes, backend freshness, retry, persistence, and outage policy. `VerificationLimits` bounds token and proof verification. `HolderInvocationLimits` adds reviewed field maxima, a 16,384-byte total canonical limit, and fallible exact allocation. See `docs/verified-boundaries.md` for the audit record.
 
+`DurableHolderReplayAdmission` and `DurableRevocationChecker` are shell composition adapters over the separately published Durable Authority State cores. They use exact Radicle source object `a0de79303f3f45c18a34fff535b690a85cb3cf59`. They keep storage ports, time, tenant, generation, authenticity, recovery, and outage policy caller-owned. See [`docs/durable-authority-state.md`](docs/durable-authority-state.md). Resource containment is byte-prefix matching. The exact rule, the shared-prefix overmatch example, and the delimited resource-construction guidance are in [`docs/authorization-reference.md`](docs/authorization-reference.md).
+
 ```bash
 cargo run --example proof_chain
 cargo run --example proof_store
@@ -128,6 +130,19 @@ and `web_of_trust_threshold_accepts` for finite public evidence checks. These ar
 lower-level building blocks beneath `web_of_trust_ucan_authorization`; they do not
 resolve identities, fetch evidence, sign records, consult registries, persist state,
 or read ambient clocks.
+
+## Protocol profiles
+
+This crate binds every compact token to the nominal `onix-compact-ed25519-v1`
+protocol profile. The profile describes the three-part base64url JWT format,
+Ed25519 EdDSA signing, JSON claims, and BLAKE3 proof references. It does not
+claim final UCAN `1.0.0` compatibility.
+
+Final UCAN `1.0.0` (DAG-CBOR, Varsig, CIDv1) is a declared but unsupported
+target profile. `VerifiedToken::protocol_profile()` reports the local profile
+for every verified token. See [`docs/protocol-profiles.md`](docs/protocol-profiles.md) for the pinned
+source revisions, the fixture manifest, and the bounded conformance report.
+AWAKE remains a separate session protocol with no token-format claims here.
 
 ## Optional Nostr identity adapter
 
@@ -151,7 +166,7 @@ Reviewed Nickel integration profiles under `contracts/integration-profiles/` are
 - Supported signing algorithms: Ed25519 compact-token signatures with `alg = "EdDSA"`.
 - Proof-loading model: caller-supplied proof tokens only; the library does not fetch proofs from storage or the network.
 - Revocation model: caller-supplied `RevocationChecker` values can deny the leaf token or any proof-chain token by `ProofReference`; revocation registries, credential formats, replay stores, persistence, and remote fetches remain application-owned.
-- Replay model: audience-only compatibility can use caller-supplied `ReplayAdmission`. Holder-signed verification uses `HolderInvocationReplayAdmission` exactly once after token, signature, profile, capability, and caveat checks. Durable nonce truth, request provenance, crash recovery, duplicate semantics, and backend freshness remain application-owned.
+- Replay model: the replay admission key is the BLAKE3 digest of the bounded compact token; identical bytes plus an identical (resource, ability) pair are indistinguishable. The default audience-only `AllowAllReplayAdmission` accepts every replay, so exactly-once semantics require a caller-owned store. Holder-signed verification uses `HolderInvocationReplayAdmission` exactly once after token, signature, profile, capability, and caveat checks. Durable nonce truth, request provenance, crash recovery, duplicate semantics, and backend freshness remain application-owned. See [`docs/invocation-reference.md`](docs/invocation-reference.md); the baseline store lives in `examples/replay_baseline.rs`.
 - Out-of-scope UCAN features in this release: remote DID resolution, network proof fetching, storage layers, caveat-specific attenuation rules beyond caller policy evaluation, registry-backed revocation, replay stores, and non-Ed25519 key types.
 
 ## Development

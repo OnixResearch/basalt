@@ -20,8 +20,9 @@ use crate::secretspec_issuer_identity::{
     SECRETSPEC_VERSION,
 };
 use crate::ucan_semantics_identity::{
-    BASALT_POLICY_BLAKE3, UCAN_RUNTIME_REVISION, UCAN_SEMANTICS_FIXTURE_SCHEMA,
-    UCAN_SUPPORT_CATALOG_BLAKE3, UCAN_SUPPORT_CATALOG_REVISION,
+    BASALT_POLICY_BLAKE3, UCAN_PROTOCOL_PROFILE, UCAN_RUNTIME_REVISION,
+    UCAN_SEMANTICS_FIXTURE_SCHEMA, UCAN_SUPPORT_CATALOG_BLAKE3,
+    UCAN_SUPPORT_CATALOG_REVISION,
 };
 use std::fs;
 use std::path::Path;
@@ -208,9 +209,10 @@ fn render_ucan_semantics_receipt(passed: bool, receipts: &[StepReceipt]) -> Stri
     format!(
         concat!(
             "{{\n",
-            "  \"schema\": \"basalt.ucan-semantics-receipt.v1\",\n",
+            "  \"schema\": \"basalt.ucan-semantics-receipt.v2\",\n",
             "  \"release_passed\": {},\n",
             "  \"fixture_schema\": {},\n",
+            "  \"protocol_profile\": {},\n",
             "  \"runtime_ucan_revision\": {},\n",
             "  \"support_catalog_revision\": {},\n",
             "  \"support_catalog_blake3\": {},\n",
@@ -223,6 +225,7 @@ fn render_ucan_semantics_receipt(passed: bool, receipts: &[StepReceipt]) -> Stri
         ),
         passed,
         json_string(UCAN_SEMANTICS_FIXTURE_SCHEMA),
+        json_string(UCAN_PROTOCOL_PROFILE),
         json_string(UCAN_RUNTIME_REVISION),
         json_string(UCAN_SUPPORT_CATALOG_REVISION),
         json_string(UCAN_SUPPORT_CATALOG_BLAKE3),
@@ -254,6 +257,9 @@ fn render_markdown(passed: bool, receipts: &[StepReceipt]) -> String {
     output.push_str("## UCAN semantics identity\n\n");
     output.push_str(&format!(
         "- Fixture schema: `{UCAN_SEMANTICS_FIXTURE_SCHEMA}`\n"
+    ));
+    output.push_str(&format!(
+        "- Protocol profile: `{UCAN_PROTOCOL_PROFILE}`\n"
     ));
     output.push_str(&format!(
         "- Runtime UCAN revision: `{UCAN_RUNTIME_REVISION}`\n"

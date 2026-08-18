@@ -1,3 +1,4 @@
+use basalt::ucan_profile::BasaltUcanProtocolProfile;
 use basalt::ucan_semantics::{
     BASALT_POLICY_BLAKE3, REQUIRED_NON_CLAIMS, SemanticsReasonClass, UCAN_RUNTIME_REVISION,
     UCAN_SUPPORT_CATALOG_BLAKE3, UCAN_SUPPORT_CATALOG_REVISION, UcanSemanticsFixture,
@@ -74,7 +75,7 @@ fn fails_closed_for_all_supplied_ucan_denial_facts() {
 
 #[test]
 fn rejects_malformed_json_with_deterministic_diagnostic() {
-    let malformed = r#"{"schema":"basalt.ucan-semantics-fixture.v1"}"#;
+    let malformed = r#"{"schema":"basalt.ucan-semantics-fixture.v2"}"#;
     let first = replay_semantics_fixture_json(malformed);
     let second = replay_semantics_fixture_json(malformed);
 
@@ -84,6 +85,33 @@ fn rejects_malformed_json_with_deterministic_diagnostic() {
     assert_eq!(first.reason_class, SemanticsReasonClass::FixtureInvalid);
     assert_eq!(first.issues.len(), 1);
     assert_eq!(first.issues[0].code, "semantics.fixture.json");
+}
+
+#[test]
+fn rejects_missing_unknown_and_cross_profile_selection() {
+    let value: serde_json::Value =
+        serde_json::from_str(ALLOW_FIXTURE).expect("generated fixture must be JSON");
+    let mut missing = value.clone();
+    missing
+        .as_object_mut()
+        .expect("fixture must be an object")
+        .remove("protocol_profile");
+    let mut unknown = value;
+    unknown["protocol_profile"] = serde_json::Value::String("unknown-profile".to_owned());
+
+    for malformed in [missing, unknown] {
+        let report = replay_semantics_fixture_json(
+            &serde_json::to_string(&malformed).expect("fixture mutation must serialize"),
+        );
+        assert!(!report.is_accepted());
+        assert_eq!(report.issues[0].code, "semantics.fixture.json");
+    }
+
+    let mut substituted = parse_fixture(ALLOW_FIXTURE);
+    substituted.protocol_profile = BasaltUcanProtocolProfile::UcanWg100;
+    let report = replay_semantics_fixture(&substituted);
+    assert!(!report.is_accepted());
+    assert_eq!(report.issues[0].code, "semantics.profile.mismatch");
 }
 
 #[test]

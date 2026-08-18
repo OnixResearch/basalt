@@ -6,6 +6,7 @@ use super::error::profile_error_reason;
 use super::receipt::{BLAKE3_DIGEST_BYTES, ReceiptContext, build_receipt, receipt_schema};
 use super::types::{EnforcementAction, UcanEnforcementReason};
 use crate::EnforcementRequest;
+use crate::ucan_profile::BasaltUcanProtocolProfile;
 use ucan::OperationProfileAdmissionError;
 
 const CREDENTIAL_BYTE: u8 = 3;
@@ -13,10 +14,11 @@ const REQUEST_BYTE: u8 = 5;
 const POLICY_BYTE: u8 = 7;
 const HEX_CHARACTERS_PER_BYTE: usize = 2;
 const EXPECTED_RECEIPT_BLAKE3: &str =
-    "blake3:5f616b3417ee513cabba8dd8326bebe36b33e67e53be81093efe729870b1f640";
+    "blake3:602fa394eea157cca6c9a43e4ca53c99e30f071d2eaa556a716c4e7082044b2a";
 
 fn receipt_context() -> ReceiptContext {
     ReceiptContext {
+        protocol_profile: BasaltUcanProtocolProfile::OnixCompactEd25519V1,
         credential_bytes: Some(
             u64::try_from(BLAKE3_DIGEST_BYTES).expect("digest width must fit u64"),
         ),
@@ -104,6 +106,17 @@ fn receipt_is_deterministic_and_redacted() {
     assert!(!json.contains("document/write"));
     assert!(!json.contains("header.payload.signature"));
     assert!(!json.contains("caveat"));
+}
+
+#[test]
+fn protocol_profile_substitution_changes_receipt_identity() {
+    let compact = build_receipt(UcanEnforcementReason::Allowed, true, receipt_context());
+    let mut substituted = receipt_context();
+    substituted.protocol_profile = BasaltUcanProtocolProfile::UcanWg100;
+    let final_profile = build_receipt(UcanEnforcementReason::Allowed, true, substituted);
+
+    assert_ne!(compact.protocol_profile, final_profile.protocol_profile);
+    assert_ne!(compact.receipt_blake3, final_profile.receipt_blake3);
 }
 
 #[test]

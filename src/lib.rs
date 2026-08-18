@@ -67,6 +67,7 @@ pub mod policy_identity;
 pub mod policy_projection;
 pub mod secretspec_issuer;
 pub mod ucan_enforcement;
+pub mod ucan_profile;
 pub mod ucan_semantics;
 
 pub use policy_cache::{

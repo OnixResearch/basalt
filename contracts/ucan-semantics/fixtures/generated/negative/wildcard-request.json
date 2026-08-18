@@ -26,10 +26,11 @@
     "consumer-replay-store-durability",
     "application-authorization-completeness"
   ],
+  "protocol_profile": "onix-compact-ed25519-v1",
   "request_ability": "document/*",
   "request_resource": "did:key:z6Mkresource/docs/report",
-  "runtime_ucan_revision": "277ab768eb532ac0c715a3bbff2a7dc37a702f11",
-  "schema": "basalt.ucan-semantics-fixture.v1",
-  "support_catalog_blake3": "9ffae46c16556feb27614dee3f5945e48321f08a38f0b7c8b1baf7e0e106d095",
-  "support_catalog_revision": "277ab768eb532ac0c715a3bbff2a7dc37a702f11"
+  "runtime_ucan_revision": "c483c7b58c42ec6636e9b8b8c0f73a2b609bf21e",
+  "schema": "basalt.ucan-semantics-fixture.v2",
+  "support_catalog_blake3": "fe77fd63076eaef555b74e702e4c14e483bdba70151ccc955c75b17d97412427",
+  "support_catalog_revision": "c483c7b58c42ec6636e9b8b8c0f73a2b609bf21e"
 }
