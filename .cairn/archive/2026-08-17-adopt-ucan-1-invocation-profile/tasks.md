@@ -20,4 +20,4 @@
 ## Phase 4: Validation
 
 - [x] [serial] Document the final-profile application mapping, retained compact path, upgrade boundary, and non-claims. r[basalt.ucan_token_flow.v1_profile.docs]
-- [ ] [serial] Run policy freshness, vendored snapshot checks, focused positive and negative tests, formatting, Clippy, release verification, Cairn gates, and `nix flake check -L`. r[basalt.ucan_token_flow.v1_profile.validation]
+- [x] [serial] Run policy freshness, vendored snapshot checks, focused positive and negative tests, formatting, Clippy, release verification, Cairn gates, and `nix flake check -L`. r[basalt.ucan_token_flow.v1_profile.validation]

@@ -15,6 +15,13 @@ use std::time::Duration;
 // r[impl basalt.durable_authority.authority]
 // r[verify basalt.durable_authority.validation]
 // r[impl basalt.durable_authority.lifecycle]
+// r[verify basalt.ucan_token_flow.v1_profile.upstream]
+// r[verify basalt.ucan_token_flow.v1_profile.adapter]
+// r[verify basalt.ucan_token_flow.v1_profile.mapping]
+// r[verify basalt.ucan_token_flow.v1_profile.tests]
+// r[verify basalt.ucan_token_flow.v1_profile.authority]
+// r[verify basalt.ucan_token_flow.v1_profile.receipt]
+// r[verify basalt.ucan_token_flow.v1_profile.docs]
 // r[verify basalt.ucan_token_flow.v1_profile.validation]
 
 pub(super) const TARGET_ENV: &str = "CARGO_TARGET_DIR";

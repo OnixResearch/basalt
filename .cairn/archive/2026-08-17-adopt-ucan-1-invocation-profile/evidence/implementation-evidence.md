@@ -43,6 +43,18 @@ The Rust suite covers direct and delegated final Invocations, unknown commands, 
 
 The Nickel suite contains one valid source record, one valid mapping, one final cohort, and 12 invalid fixtures.
 
+## Validation
+
+- Focused final-profile tests passed: five positive and negative cases.
+- Strict Clippy passed for all targets and all features with denied warnings.
+- The direct release verifier passed 195 no-default tests and 208 CLI-feature tests.
+- Two doctests, property tests, fixture tests, package checks, and both release Clippy scopes passed.
+- The final-profile Nix check passed with 12 rejected negative Nickel fixtures.
+- Every repository Nix check passed with local builders.
+- Cairn repository, proposal, and design validation passed.
+- The eight new requirement identifiers have implementation or verification markers.
+- The broader traceability report retains inherited advisory gaps outside this change.
+
 ## Non-claims
 
 This evidence does not prove key trust, external resource ownership, global revocation freshness, replay durability, transport security, policy completeness, effect execution, effect correctness, release eligibility, or whole-system safety.
