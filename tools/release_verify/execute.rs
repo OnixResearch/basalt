@@ -7,7 +7,8 @@ use super::model::{
 use super::plan::steps;
 use super::receipts::write_receipts;
 use super::validators::{
-    validate_license_metadata, validate_package_contents, validate_private_source,
+    validate_license_metadata, validate_nickel_identity, validate_package_contents,
+    validate_private_source,
 };
 use std::env;
 use std::ffi::OsString;
@@ -188,6 +189,8 @@ fn receipt_from_output(
         validate_package_contents(&stdout).and_then(|()| validate_private_source(root))
     } else if matches!(step.kind, StepKind::LicenseMetadata) && output.status.success() {
         validate_license_metadata(&root.join("Cargo.toml"), &stdout)
+    } else if matches!(step.kind, StepKind::NickelCohortIdentity) && output.status.success() {
+        validate_nickel_identity(&stdout)
     } else {
         Ok(())
     };

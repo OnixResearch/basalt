@@ -8,6 +8,8 @@
       url = "github:oxalica/rust-overlay/3c38e1e1ba9c8d7030f7b5a801398ea7d8a6fdc0";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    # Exact stack Nickel 1.17.0 cohort.
+    nickel-1-17-0.url = "github:nickel-lang/nickel/1320a983e6c3d1e2fb53dd2464b084b4903b1426";
   };
 
   outputs =
@@ -16,6 +18,7 @@
       nixpkgs,
       flake-utils,
       rust-overlay,
+      nickel-1-17-0,
     }:
     flake-utils.lib.eachDefaultSystem (
       system:
@@ -25,6 +28,7 @@
           overlays = [ (import rust-overlay) ];
         };
         rustToolchain = pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
+        nickelCohort = nickel-1-17-0.packages.${system}.default;
         validAuthorityFixtures = [
           "positive/direct-match"
           "positive/delegated-match"
@@ -68,7 +72,8 @@
           "negative/stale-license-metadata"
           "negative/weakened-non-claims"
           "negative/wrong-license-expression"
-        ];        malformedLicenseConsumptionFixtures = [
+        ];
+        malformedLicenseConsumptionFixtures = [
           "unsupported-schema"
         ];
         validPolicyAuthoringFixtures = [
@@ -81,20 +86,73 @@
           "duplicate-entry"
           "malformed-ability"
         ];
+        validNickelToolchainFixtures = [
+          "valid-contract"
+          "valid-export"
+          "valid-import"
+          "valid-merge"
+        ];
+        invalidNickelToolchainFixtures = [
+          "contract-violation"
+          "duplicate-field"
+          "malformed"
+          "missing-import"
+          "type-mismatch"
+          "unknown-field"
+        ];
       in
       {
         lib.ucanSource = ./vendor/ucan;
+        packages.nickel-1-17-0 = nickelCohort;
 
         devShells.default = pkgs.mkShell {
           packages = [
             pkgs.b3sum
             pkgs.cargo-nextest
-            pkgs.nickel
+            nickelCohort
             pkgs.openssh
             pkgs.stdenv.cc
             rustToolchain
           ];
         };
+
+        checks.nickel-cohort-exact =
+          pkgs.runCommand "basalt-nickel-cohort-exact"
+            {
+              nativeBuildInputs = [ nickelCohort ];
+            }
+            ''
+              test '${nickel-1-17-0.rev}' = '1320a983e6c3d1e2fb53dd2464b084b4903b1426'
+              test "$(command -v nickel)" = '${nickelCohort}/bin/nickel'
+              test "$(nickel --version)" = 'nickel-lang-cli nickel 1.17.0 (rev 1320a98)'
+              if grep -q 'pkgs\.nickel' ${self}/flake.nix; then
+                echo 'older, floating, ambient, or mixed Nickel evaluator reference found' >&2
+                exit 1
+              fi
+              touch "$out"
+            '';
+
+        checks.nickel-toolchain-fixtures =
+          pkgs.runCommand "basalt-nickel-toolchain-fixtures"
+            {
+              nativeBuildInputs = [ nickelCohort ];
+            }
+            ''
+              fixture_root=${./contracts/nickel-toolchain}
+              for fixture in ${builtins.concatStringsSep " " validNickelToolchainFixtures}; do
+                nickel typecheck "$fixture_root/positive/$fixture.ncl"
+                nickel export --format json "$fixture_root/positive/$fixture.ncl" > "$TMPDIR/$fixture.json"
+                cmp "$TMPDIR/$fixture.json" "$fixture_root/generated/$fixture.json"
+              done
+              for fixture in ${builtins.concatStringsSep " " invalidNickelToolchainFixtures}; do
+                if nickel eval "$fixture_root/negative/$fixture.ncl" > "$TMPDIR/$fixture.out" 2> "$TMPDIR/$fixture.err"; then
+                  echo "negative Nickel fixture unexpectedly passed: $fixture" >&2
+                  exit 1
+                fi
+                test -s "$TMPDIR/$fixture.err"
+              done
+              touch "$out"
+            '';
 
         checks.vendored-ucan =
           pkgs.runCommand "basalt-vendored-ucan"
@@ -121,7 +179,7 @@
         checks.policy-export =
           pkgs.runCommand "basalt-policy-export"
             {
-              nativeBuildInputs = [ pkgs.nickel ];
+              nativeBuildInputs = [ nickelCohort ];
             }
             ''
               mkdir -p contracts
@@ -136,7 +194,7 @@
         checks.ucan-protocol-cohort =
           pkgs.runCommand "basalt-ucan-protocol-cohort"
             {
-              nativeBuildInputs = [ pkgs.nickel ];
+              nativeBuildInputs = [ nickelCohort ];
             }
             ''
               cd ${./.}
@@ -156,7 +214,7 @@
             {
               nativeBuildInputs = [
                 pkgs.b3sum
-                pkgs.nickel
+                nickelCohort
               ];
             }
             ''
@@ -208,7 +266,7 @@
         checks.nostr-identity-policy =
           pkgs.runCommand "basalt-nostr-identity-policy"
             {
-              nativeBuildInputs = [ pkgs.nickel ];
+              nativeBuildInputs = [ nickelCohort ];
             }
             ''
               mkdir -p contracts/nostr-identity
@@ -224,7 +282,7 @@
         checks.authority-core-fixtures =
           pkgs.runCommand "basalt-authority-core-fixtures"
             {
-              nativeBuildInputs = [ pkgs.nickel ];
+              nativeBuildInputs = [ nickelCohort ];
             }
             ''
               fixture_root=${./contracts/authority-core}/fixtures
@@ -245,7 +303,7 @@
         checks.ucan-semantics-fixtures =
           pkgs.runCommand "basalt-ucan-semantics-fixtures"
             {
-              nativeBuildInputs = [ pkgs.nickel ];
+              nativeBuildInputs = [ nickelCohort ];
             }
             ''
               fixture_root=${./contracts/ucan-semantics}/fixtures
@@ -266,7 +324,7 @@
         checks.license-consumption-fixtures =
           pkgs.runCommand "basalt-license-consumption-fixtures"
             {
-              nativeBuildInputs = [ pkgs.nickel ];
+              nativeBuildInputs = [ nickelCohort ];
             }
             ''
               fixture_root=${./contracts/license-consumption}/fixtures
@@ -287,7 +345,7 @@
         checks.policy-authoring-fixtures =
           pkgs.runCommand "basalt-policy-authoring-fixtures"
             {
-              nativeBuildInputs = [ pkgs.nickel ];
+              nativeBuildInputs = [ nickelCohort ];
             }
             ''
               mkdir -p contracts
@@ -368,12 +426,14 @@
                 pkgs.b3sum
                 pkgs.cargo-nextest
                 pkgs.git
-                pkgs.nickel
+                nickelCohort
                 pkgs.openssh
                 pkgs.stdenv.cc
                 rustToolchain
               ];
               authorityCoreFixtures = self.checks.${system}.authority-core-fixtures;
+              nickelCohortExact = self.checks.${system}.nickel-cohort-exact;
+              nickelToolchainFixtures = self.checks.${system}.nickel-toolchain-fixtures;
               policyExport = self.checks.${system}.policy-export;
               ucanSemanticsFixtures = self.checks.${system}.ucan-semantics-fixtures;
               ucanV1Profile = self.checks.${system}.ucan-v1-profile;

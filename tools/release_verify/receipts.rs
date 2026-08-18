@@ -1,7 +1,8 @@
 use super::model::{
     AST_GREP_FRESH_STEP_NAME, AUTHORITY_FRESH_STEP_NAME, AUTHORITY_REPLAY_STEP_NAME,
     ISSUER_FRESH_STEP_NAME, ISSUER_REPLAY_STEP_NAME, LICENSE_FRESH_STEP_NAME,
-    LICENSE_REPLAY_STEP_NAME, POLICY_FRESH_STEP_NAME, SEMANTICS_FRESH_STEP_NAME,
+    LICENSE_REPLAY_STEP_NAME, NICKEL_COHORT_STEP_NAME, NICKEL_EVALUATOR_IDENTITY,
+    NICKEL_SOURCE_REVISION, NICKEL_VERSION, POLICY_FRESH_STEP_NAME, SEMANTICS_FRESH_STEP_NAME,
     SEMANTICS_REPLAY_STEP_NAME, StepReceipt,
 };
 use crate::ast_grep_audit_identity::{
@@ -37,6 +38,11 @@ pub(super) fn write_receipts(
     fs::write(dir.join("summary.md"), render_markdown(passed, receipts))
         .map_err(|error| error.to_string())?;
     fs::write(
+        dir.join("nickel-toolchain.json"),
+        render_nickel_receipt(passed, receipts),
+    )
+    .map_err(|error| error.to_string())?;
+    fs::write(
         dir.join("authority-core.json"),
         render_authority_receipt(passed, receipts),
     )
@@ -63,6 +69,20 @@ fn render_json(passed: bool, receipts: &[StepReceipt]) -> String {
     let mut output = String::new();
     output.push_str("{\n");
     output.push_str(&format!("  \"passed\": {},\n", passed));
+    output.push_str("  \"nickel_toolchain\": {\n");
+    output.push_str(&format!(
+        "    \"version\": {},\n",
+        json_string(NICKEL_VERSION)
+    ));
+    output.push_str(&format!(
+        "    \"source_revision\": {},\n",
+        json_string(NICKEL_SOURCE_REVISION)
+    ));
+    output.push_str(&format!(
+        "    \"evaluator_identity\": {}\n",
+        json_string(NICKEL_EVALUATOR_IDENTITY)
+    ));
+    output.push_str("  },\n");
     output.push_str("  \"issuer_key\": {\n");
     output.push_str(&format!(
         "    \"declaration_schema\": {},\n",
@@ -161,6 +181,29 @@ fn render_json(passed: bool, receipts: &[StepReceipt]) -> String {
     output
 }
 
+fn render_nickel_receipt(passed: bool, receipts: &[StepReceipt]) -> String {
+    let cohort_identity_passed = step_succeeded(receipts, NICKEL_COHORT_STEP_NAME);
+    format!(
+        concat!(
+            "{{\n",
+            "  \"schema\": \"basalt.nickel-toolchain-release-receipt.v1\",\n",
+            "  \"release_passed\": {},\n",
+            "  \"version\": {},\n",
+            "  \"source_revision\": {},\n",
+            "  \"evaluator_identity\": {},\n",
+            "  \"cohort_identity_passed\": {},\n",
+            "  \"authority_owner\": \"basalt-rust\",\n",
+            "  \"non_claim\": \"evaluator alignment does not prove policy correctness or runtime authority\"\n",
+            "}}\n"
+        ),
+        passed,
+        json_string(NICKEL_VERSION),
+        json_string(NICKEL_SOURCE_REVISION),
+        json_string(NICKEL_EVALUATOR_IDENTITY),
+        cohort_identity_passed,
+    )
+}
+
 fn render_authority_receipt(passed: bool, receipts: &[StepReceipt]) -> String {
     let fixture_freshness_passed = step_succeeded(receipts, AUTHORITY_FRESH_STEP_NAME);
     let replay = receipts
@@ -245,6 +288,12 @@ fn render_markdown(passed: bool, receipts: &[StepReceipt]) -> String {
     } else {
         "Status: FAIL\n\n"
     });
+    output.push_str("## Nickel toolchain identity\n\n");
+    output.push_str(&format!("- Version: `{NICKEL_VERSION}`\n"));
+    output.push_str(&format!("- Source revision: `{NICKEL_SOURCE_REVISION}`\n"));
+    output.push_str(&format!(
+        "- Evaluator identity: `{NICKEL_EVALUATOR_IDENTITY}`\n\n"
+    ));
     output.push_str("## Authority core identity\n\n");
     output.push_str(&format!("- Input schema: `{AUTHORITY_INPUT_SCHEMA}`\n"));
     output.push_str(&format!("- Fixture schema: `{AUTHORITY_FIXTURE_SCHEMA}`\n"));

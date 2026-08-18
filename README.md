@@ -57,6 +57,13 @@ The sample request produces this output:
 {"allowed":true,"reason":"allowed"}
 ```
 
+## Nickel toolchain
+
+Basalt pins Nickel `1.17.0` at upstream commit `1320a983e6c3d1e2fb53dd2464b084b4903b1426`.
+The exact evaluator owns policy shape checks and deterministic exports only.
+Basalt Rust retains runtime authority decisions.
+See [`docs/nickel-toolchain.md`](docs/nickel-toolchain.md).
+
 ## Policy artifacts
 
 The crate includes these policy artifacts:

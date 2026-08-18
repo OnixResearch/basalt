@@ -23,6 +23,11 @@ use std::time::Duration;
 // r[verify basalt.ucan_token_flow.v1_profile.receipt]
 // r[verify basalt.ucan_token_flow.v1_profile.docs]
 // r[verify basalt.ucan_token_flow.v1_profile.validation]
+// r[verify basalt.nickel_toolchain.cohort]
+// r[verify basalt.nickel_toolchain.freshness]
+// r[verify basalt.nickel_toolchain.compatibility]
+// r[verify basalt.nickel_toolchain.boundary]
+// r[verify basalt.nickel_toolchain.validation]
 
 pub(super) const TARGET_ENV: &str = "CARGO_TARGET_DIR";
 pub(super) const WRAPPER_ENV: &str = "RUSTC_WRAPPER";
@@ -46,6 +51,10 @@ pub(super) const DEFAULT_RECEIPT_DIR: &str = "target/release-verify";
 pub(super) const OUTPUT_TAIL_LIMIT: usize = 4_096;
 pub(super) const REQUIRED_LICENSE: &str = "AGPL-3.0-or-later";
 pub(super) const PRIVATE_PUBLISH_SETTING: &str = "publish = false";
+pub(super) const NICKEL_COHORT_STEP_NAME: &str = "Nickel cohort identity";
+pub(super) const NICKEL_VERSION: &str = "1.17.0";
+pub(super) const NICKEL_SOURCE_REVISION: &str = "1320a983e6c3d1e2fb53dd2464b084b4903b1426";
+pub(super) const NICKEL_EVALUATOR_IDENTITY: &str = "nickel-lang-cli nickel 1.17.0 (rev 1320a98)";
 pub(super) const POLICY_FRESH_STEP_NAME: &str = "policy freshness";
 pub(super) const AUTHORITY_FRESH_STEP_NAME: &str = "authority-core fixture freshness";
 pub(super) const AUTHORITY_REPLAY_STEP_NAME: &str = "authority-core fixture tests";
@@ -63,6 +72,20 @@ pub(super) const REQUIRED_PACKAGE_FILES: &[&str] = &[
     "README.md",
     "contracts/generated/policy.json",
     "contracts/policy.ncl",
+    "contracts/nickel-toolchain/positive/valid-contract.ncl",
+    "contracts/nickel-toolchain/positive/valid-export.ncl",
+    "contracts/nickel-toolchain/positive/valid-import.ncl",
+    "contracts/nickel-toolchain/positive/valid-merge.ncl",
+    "contracts/nickel-toolchain/negative/contract-violation.ncl",
+    "contracts/nickel-toolchain/negative/duplicate-field.ncl",
+    "contracts/nickel-toolchain/negative/malformed.ncl",
+    "contracts/nickel-toolchain/negative/missing-import.ncl",
+    "contracts/nickel-toolchain/negative/type-mismatch.ncl",
+    "contracts/nickel-toolchain/negative/unknown-field.ncl",
+    "contracts/nickel-toolchain/generated/valid-contract.json",
+    "contracts/nickel-toolchain/generated/valid-export.json",
+    "contracts/nickel-toolchain/generated/valid-import.json",
+    "contracts/nickel-toolchain/generated/valid-merge.json",
     "contracts/authority-core/contracts.ncl",
     "contracts/authority-core/fixtures/generated/negative/authority-overclaim.json",
     "contracts/authority-core/fixtures/generated/positive/direct-match.json",
@@ -103,6 +126,7 @@ pub(super) const REQUIRED_PACKAGE_FILES: &[&str] = &[
     "docs/cap-std-cli-policy-boundary.md",
     "docs/durable-authority-state.md",
     "docs/license-consumption.md",
+    "docs/nickel-toolchain.md",
     "docs/nostr-identity-bindings.md",
     "docs/policy-authoring.md",
     "docs/policy-identity.md",
@@ -158,6 +182,7 @@ pub(super) const REQUIRED_PACKAGE_FILES: &[&str] = &[
     "tests/durable_authority_source.rs",
     "tests/license_consumption.rs",
     "tests/nostr_identity.rs",
+    "tests/nickel_toolchain.rs",
     "tests/nostr_verified_credential.rs",
     "tests/policy_artifact.rs",
     "tests/policy_projection.rs",
@@ -221,6 +246,7 @@ pub(super) struct Step {
 #[derive(Clone, Copy)]
 pub(super) enum StepKind {
     Normal,
+    NickelCohortIdentity,
     LicenseMetadata,
     PolicyFreshness,
     AuthorityFixtureFreshness,
