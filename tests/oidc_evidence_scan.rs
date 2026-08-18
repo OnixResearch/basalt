@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 
 const DURABLE_ROOTS: [&str; 3] = [
     "docs",
-    ".cairn/changes/exchange-oidc-for-ucan-capabilities",
+    ".cairn/archive/2026-08-18-exchange-oidc-for-ucan-capabilities",
     "contracts/oidc-exchange/generated",
 ];
 const PRIVATE_KEY_MARKER: &str = "-----BEGIN PRIVATE KEY-----";
