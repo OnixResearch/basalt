@@ -194,6 +194,13 @@ The pure core binds one peer message to one action without owning transport, key
 Receipts contain public BLAKE3 identities and no message bodies or secrets.
 See [`docs/peer-auth-policy.md`](docs/peer-auth-policy.md).
 
+## Runtime effect permissions
+
+`basalt::runtime_effect` evaluates closed filesystem, network, process, environment, and binding policy facts.
+It uses deny-by-default profiles, explicit priorities, and ambiguity denial.
+Consumers retain parsing, normalization, approval, currentness, native enforcement, and effect execution.
+See [`docs/runtime-effect-permissions.md`](docs/runtime-effect-permissions.md).
+
 ## UCAN protocol profiles
 
 Every UCAN enforcement request selects a closed `BasaltUcanProtocolProfile` value.
@@ -345,3 +352,4 @@ The runner is local-only. Keep sibling checkouts under the same workspace root. 
 - [UCAN](https://github.com/OnixResearch/ucan) — source project for the reviewed vendored authority and holder-verification boundary.
 - [Nostr protocol and NIPs](https://github.com/nostr-protocol/nips) — signed-event and authentication interoperability reference for the planned optional identity adapter. Basalt retains stable subject policy and UCAN authority.
 - [Celld peer authentication at `c978a2590e875b003ecd860a86cb7551287eba67`](https://github.com/devinautotomic226/celld/blob/c978a2590e875b003ecd860a86cb7551287eba67/crates/celld/peer_auth.rs) — bounded `Apache-2.0` comparison source. Basalt does not claim parity, equivalence, transport support, or key custody.
+- [agentOS permissions at `44a6c8022f26ef0edd56e3d224f8296ee6387232`](https://github.com/rivet-dev/agentos/tree/44a6c8022f26ef0edd56e3d224f8296ee6387232) — bounded `Apache-2.0` scope, rule, and default-deny comparison source. Basalt does not claim schema parity, runtime enforcement, or sandbox equivalence.

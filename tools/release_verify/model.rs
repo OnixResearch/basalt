@@ -34,6 +34,13 @@ use std::time::Duration;
 // r[verify basalt.peer_auth.reference]
 // r[verify basalt.peer_auth.boundary]
 // r[verify basalt.peer_auth.verification]
+// r[verify contract_backends.runtime_effect_permissions.boundary]
+// r[verify contract_backends.runtime_effect_permissions.policy]
+// r[verify contract_backends.runtime_effect_permissions.decision]
+// r[verify contract_backends.runtime_effect_permissions.authority]
+// r[verify contract_backends.runtime_effect_permissions.consumer]
+// r[verify contract_backends.runtime_effect_permissions.evidence]
+// r[verify contract_backends.runtime_effect_permissions.verification]
 
 pub(super) const TARGET_ENV: &str = "CARGO_TARGET_DIR";
 pub(super) const WRAPPER_ENV: &str = "RUSTC_WRAPPER";
@@ -100,6 +107,14 @@ pub(super) const REQUIRED_PACKAGE_FILES: &[&str] = &[
     "contracts/peer-auth/fixtures/invalid/missing-authority.ncl",
     "contracts/peer-auth/fixtures/invalid/secret-field.ncl",
     "contracts/peer-auth/fixtures/invalid/parity-overclaim.ncl",
+    "contracts/runtime-effect/contracts.ncl",
+    "contracts/runtime-effect/policy.ncl",
+    "contracts/runtime-effect/consumer-mappings.ncl",
+    "contracts/runtime-effect/generated/policy.json",
+    "contracts/runtime-effect/generated/consumer-mappings.json",
+    "contracts/runtime-effect/fixtures/invalid/unknown-scope.ncl",
+    "contracts/runtime-effect/fixtures/invalid/ambiguous-rule.ncl",
+    "contracts/runtime-effect/fixtures/invalid/lossy-consumer-mapping.ncl",
     "contracts/authority-core/contracts.ncl",
     "contracts/authority-core/fixtures/generated/negative/authority-overclaim.json",
     "contracts/authority-core/fixtures/generated/positive/direct-match.json",
@@ -145,6 +160,7 @@ pub(super) const REQUIRED_PACKAGE_FILES: &[&str] = &[
     "docs/peer-auth-policy.md",
     "docs/policy-authoring.md",
     "docs/policy-identity.md",
+    "docs/runtime-effect-permissions.md",
     "docs/ucan-enforcement.md",
     "docs/ucan-protocol-profiles.md",
     "docs/ucan-semantics-contract.md",
@@ -171,6 +187,7 @@ pub(super) const REQUIRED_PACKAGE_FILES: &[&str] = &[
     "src/nostr_identity/tests.rs",
     "src/peer_auth.rs",
     "src/policy_projection.rs",
+    "src/runtime_effect.rs",
     "src/policy_identity.rs",
     "src/secretspec_issuer.rs",
     "src/secretspec_issuer_identity.rs",
@@ -207,6 +224,7 @@ pub(super) const REQUIRED_PACKAGE_FILES: &[&str] = &[
     "tests/production_ucan_token_flow.rs",
     "tests/property_harness.rs",
     "tests/public_api.rs",
+    "tests/runtime_effect_policy.rs",
     "tests/secretspec_issuer.rs",
     "tests/steel_adapter_fixture.rs",
     "tests/ucan_enforcement.rs",

@@ -67,6 +67,7 @@ pub mod peer_auth;
 pub mod policy_cache;
 pub mod policy_identity;
 pub mod policy_projection;
+pub mod runtime_effect;
 pub mod secretspec_issuer;
 pub mod ucan_enforcement;
 pub mod ucan_profile;

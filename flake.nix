@@ -301,6 +301,28 @@
               touch "$out"
             '';
 
+        checks.runtime-effect-policy =
+          pkgs.runCommand "basalt-runtime-effect-policy"
+            {
+              nativeBuildInputs = [ nickelCohort ];
+            }
+            ''
+              cd ${./.}
+              nickel typecheck contracts/runtime-effect/policy.ncl
+              nickel typecheck contracts/runtime-effect/consumer-mappings.ncl
+              nickel export --format json contracts/runtime-effect/policy.ncl > "$TMPDIR/policy.json"
+              nickel export --format json contracts/runtime-effect/consumer-mappings.ncl > "$TMPDIR/consumer-mappings.json"
+              cmp "$TMPDIR/policy.json" contracts/runtime-effect/generated/policy.json
+              cmp "$TMPDIR/consumer-mappings.json" contracts/runtime-effect/generated/consumer-mappings.json
+              for fixture in contracts/runtime-effect/fixtures/invalid/*.ncl; do
+                if nickel export --format json "$fixture" > /dev/null 2>"$TMPDIR/$(basename "$fixture").err"; then
+                  echo "invalid runtime-effect fixture passed: $fixture" >&2
+                  exit 1
+                fi
+              done
+              touch "$out"
+            '';
+
         checks.authority-core-fixtures =
           pkgs.runCommand "basalt-authority-core-fixtures"
             {
@@ -457,6 +479,7 @@
               nickelCohortExact = self.checks.${system}.nickel-cohort-exact;
               nickelToolchainFixtures = self.checks.${system}.nickel-toolchain-fixtures;
               peerAuthPolicy = self.checks.${system}.peer-auth-policy;
+              runtimeEffectPolicy = self.checks.${system}.runtime-effect-policy;
               policyExport = self.checks.${system}.policy-export;
               ucanSemanticsFixtures = self.checks.${system}.ucan-semantics-fixtures;
               ucanV1Profile = self.checks.${system}.ucan-v1-profile;
