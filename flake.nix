@@ -279,6 +279,28 @@
               cp exported-policy.json $out
             '';
 
+        checks.peer-auth-policy =
+          pkgs.runCommand "basalt-peer-auth-policy"
+            {
+              nativeBuildInputs = [ nickelCohort ];
+            }
+            ''
+              cd ${./.}
+              nickel typecheck contracts/peer-auth/policy.ncl
+              nickel typecheck contracts/peer-auth/steel-fixtures.ncl
+              nickel export --format json contracts/peer-auth/policy.ncl > "$TMPDIR/policy.json"
+              nickel export --format json contracts/peer-auth/steel-fixtures.ncl > "$TMPDIR/steel-fixtures.json"
+              cmp "$TMPDIR/policy.json" contracts/peer-auth/generated/policy.json
+              cmp "$TMPDIR/steel-fixtures.json" contracts/peer-auth/generated/steel-fixtures.json
+              for fixture in contracts/peer-auth/fixtures/invalid/*.ncl; do
+                if nickel export --format json "$fixture" > /dev/null 2>"$TMPDIR/$(basename "$fixture").err"; then
+                  echo "invalid peer-auth fixture passed: $fixture" >&2
+                  exit 1
+                fi
+              done
+              touch "$out"
+            '';
+
         checks.authority-core-fixtures =
           pkgs.runCommand "basalt-authority-core-fixtures"
             {
@@ -434,6 +456,7 @@
               authorityCoreFixtures = self.checks.${system}.authority-core-fixtures;
               nickelCohortExact = self.checks.${system}.nickel-cohort-exact;
               nickelToolchainFixtures = self.checks.${system}.nickel-toolchain-fixtures;
+              peerAuthPolicy = self.checks.${system}.peer-auth-policy;
               policyExport = self.checks.${system}.policy-export;
               ucanSemanticsFixtures = self.checks.${system}.ucan-semantics-fixtures;
               ucanV1Profile = self.checks.${system}.ucan-v1-profile;

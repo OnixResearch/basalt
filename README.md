@@ -187,6 +187,13 @@ Authentication and composition receipts are redacted, BLAKE3-bound, and `recorde
 
 Read [`docs/nostr-identity-bindings.md`](docs/nostr-identity-bindings.md) for policy, rotation, privacy, receipt, and authority boundaries.
 
+## Peer authentication policy
+
+`basalt::peer_auth` evaluates reviewed policy over `ucan-core`'s opaque authenticated-message verdict.
+The pure core binds one peer message to one action without owning transport, keys, clocks, replay storage, or end-user authority.
+Receipts contain public BLAKE3 identities and no message bodies or secrets.
+See [`docs/peer-auth-policy.md`](docs/peer-auth-policy.md).
+
 ## UCAN protocol profiles
 
 Every UCAN enforcement request selects a closed `BasaltUcanProtocolProfile` value.
@@ -337,3 +344,4 @@ The runner is local-only. Keep sibling checkouts under the same workspace root. 
 
 - [UCAN](https://github.com/OnixResearch/ucan) — source project for the reviewed vendored authority and holder-verification boundary.
 - [Nostr protocol and NIPs](https://github.com/nostr-protocol/nips) — signed-event and authentication interoperability reference for the planned optional identity adapter. Basalt retains stable subject policy and UCAN authority.
+- [Celld peer authentication at `c978a2590e875b003ecd860a86cb7551287eba67`](https://github.com/devinautotomic226/celld/blob/c978a2590e875b003ecd860a86cb7551287eba67/crates/celld/peer_auth.rs) — bounded `Apache-2.0` comparison source. Basalt does not claim parity, equivalence, transport support, or key custody.

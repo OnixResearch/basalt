@@ -1,14 +1,14 @@
-# Peer Auth Policy Boundary Specification
+# Peer Auth Policy Specification
 
 ## Purpose
 
-Define a typed, reviewable peer-authentication policy and enforcement boundary for Basalt without transferring transport, key custody, clock, or replay authority.
+Defines the `peer-auth-policy` capability.
 
 ## Requirements
 
-### Requirement: Peer-auth policy stays a reviewable contract [r[basalt.peer_auth.policy]]
+### Requirement: Peer-auth policy stays a reviewable contract
 
-Basalt MUST provide peer-authentication policy as a typed Nickel contract. The policy MUST declare message, version, freshness, replay, and authority facts.
+r[basalt.peer_auth.policy] Basalt MUST provide peer-authentication policy as a typed Nickel contract. The policy MUST declare message, version, freshness, replay, and authority facts.
 
 #### Scenario: Operator supplies a policy
 
@@ -24,9 +24,9 @@ Basalt MUST provide peer-authentication policy as a typed Nickel contract. The p
 - THEN typecheck MUST fail
 - AND no default fact MUST be assumed
 
-### Requirement: Enforcement evaluates supplied verdicts deterministically [r[basalt.peer_auth.enforcement]]
+### Requirement: Enforcement evaluates supplied verdicts deterministically
 
-Basalt MUST evaluate the policy over an authenticated-message verdict and caller-supplied expectations. Enforcement MUST read no clock, key store, or replay store.
+r[basalt.peer_auth.enforcement] Basalt MUST evaluate the policy over an authenticated-message verdict and caller-supplied expectations. Enforcement MUST read no clock, key store, or replay store.
 
 #### Scenario: Admitted peer message
 
@@ -42,9 +42,9 @@ Basalt MUST evaluate the policy over an authenticated-message verdict and caller
 - THEN enforcement MUST deny with a deterministic issue code
 - AND no decision MUST authorize the action
 
-### Requirement: Decisions do not grant end-user authority [r[basalt.peer_auth.decision]]
+### Requirement: Decisions do not grant end-user authority
 
-Only an admitted policy evaluation MUST construct the peer-auth decision. The type MUST represent bounded authentication for one bound action.
+r[basalt.peer_auth.decision] Only an admitted policy evaluation MUST construct the peer-auth decision. The type MUST represent bounded authentication for one bound action.
 
 #### Scenario: Consumer receives a decision
 
@@ -59,9 +59,9 @@ Only an admitted policy evaluation MUST construct the peer-auth decision. The ty
 - WHEN enforcement evaluates the input
 - THEN that metadata MUST NOT create a decision or grant authority
 
-### Requirement: The reference stays bounded [r[basalt.peer_auth.reference]]
+### Requirement: The reference stays bounded
 
-The change MUST record the reviewed Celld peer-protocol design as a bounded, non-parity input with its revision and license evidence.
+r[basalt.peer_auth.reference] The change MUST record the reviewed Celld peer-protocol design as a bounded, non-parity input with its revision and license evidence.
 
 #### Scenario: Reference overclaims parity
 
@@ -70,9 +70,9 @@ The change MUST record the reviewed Celld peer-protocol design as a bounded, non
 - THEN that claim MUST fail
 - AND the reference MUST remain non-parity
 
-### Requirement: Consumer boundary stays explicit [r[basalt.peer_auth.boundary]]
+### Requirement: Consumer boundary stays explicit
 
-Transport, key custody, clock, replay, end-user, and authorization MUST remain consumer-owned. The boundary MUST NOT claim them.
+r[basalt.peer_auth.boundary] Transport, key custody, clock, replay, end-user, and authorization MUST remain consumer-owned. The boundary MUST NOT claim them.
 
 #### Scenario: Projection overstates built-in support
 
@@ -81,9 +81,9 @@ Transport, key custody, clock, replay, end-user, and authorization MUST remain c
 - THEN verification MUST fail
 - AND the consumer-owned boundary MUST remain explicit
 
-### Requirement: Roles and failure coverage remain explicit [r[basalt.peer_auth.verification]]
+### Requirement: Roles and failure coverage remain explicit
 
-The boundary MUST preserve BLAKE3 identities separately from raw secrets. Positive and negative fixtures MUST cover every declared boundary.
+r[basalt.peer_auth.verification] The boundary MUST preserve BLAKE3 identities separately from raw secrets. Positive and negative fixtures MUST cover every declared boundary.
 
 #### Scenario: Digest or secret substitution fails
 

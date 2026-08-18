@@ -28,6 +28,12 @@ use std::time::Duration;
 // r[verify basalt.nickel_toolchain.compatibility]
 // r[verify basalt.nickel_toolchain.boundary]
 // r[verify basalt.nickel_toolchain.validation]
+// r[verify basalt.peer_auth.policy]
+// r[verify basalt.peer_auth.enforcement]
+// r[verify basalt.peer_auth.decision]
+// r[verify basalt.peer_auth.reference]
+// r[verify basalt.peer_auth.boundary]
+// r[verify basalt.peer_auth.verification]
 
 pub(super) const TARGET_ENV: &str = "CARGO_TARGET_DIR";
 pub(super) const WRAPPER_ENV: &str = "RUSTC_WRAPPER";
@@ -86,6 +92,14 @@ pub(super) const REQUIRED_PACKAGE_FILES: &[&str] = &[
     "contracts/nickel-toolchain/generated/valid-export.json",
     "contracts/nickel-toolchain/generated/valid-import.json",
     "contracts/nickel-toolchain/generated/valid-merge.json",
+    "contracts/peer-auth/contracts.ncl",
+    "contracts/peer-auth/policy.ncl",
+    "contracts/peer-auth/steel-fixtures.ncl",
+    "contracts/peer-auth/generated/policy.json",
+    "contracts/peer-auth/generated/steel-fixtures.json",
+    "contracts/peer-auth/fixtures/invalid/missing-authority.ncl",
+    "contracts/peer-auth/fixtures/invalid/secret-field.ncl",
+    "contracts/peer-auth/fixtures/invalid/parity-overclaim.ncl",
     "contracts/authority-core/contracts.ncl",
     "contracts/authority-core/fixtures/generated/negative/authority-overclaim.json",
     "contracts/authority-core/fixtures/generated/positive/direct-match.json",
@@ -128,6 +142,7 @@ pub(super) const REQUIRED_PACKAGE_FILES: &[&str] = &[
     "docs/license-consumption.md",
     "docs/nickel-toolchain.md",
     "docs/nostr-identity-bindings.md",
+    "docs/peer-auth-policy.md",
     "docs/policy-authoring.md",
     "docs/policy-identity.md",
     "docs/ucan-enforcement.md",
@@ -154,6 +169,7 @@ pub(super) const REQUIRED_PACKAGE_FILES: &[&str] = &[
     "src/nostr_identity/policy.rs",
     "src/nostr_identity/policy_model.rs",
     "src/nostr_identity/tests.rs",
+    "src/peer_auth.rs",
     "src/policy_projection.rs",
     "src/policy_identity.rs",
     "src/secretspec_issuer.rs",
@@ -184,6 +200,7 @@ pub(super) const REQUIRED_PACKAGE_FILES: &[&str] = &[
     "tests/nostr_identity.rs",
     "tests/nickel_toolchain.rs",
     "tests/nostr_verified_credential.rs",
+    "tests/peer_auth_policy.rs",
     "tests/policy_artifact.rs",
     "tests/policy_projection.rs",
     "tests/policy_identity.rs",
