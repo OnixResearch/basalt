@@ -83,6 +83,38 @@ pub(super) fn build_authority_decision(
     verified: &VerifiedUcanAuthorityInput,
     verification_time: VerificationTime,
 ) -> Result<AuthorityDecision, UcanEnforcementReason> {
+    build_authority_decision_with_time(
+        policy,
+        trusted_policy_ref,
+        request,
+        verified,
+        &verification_time.as_unix_seconds().to_be_bytes(),
+    )
+}
+
+pub fn build_final_authority_decision(
+    policy: &Policy,
+    trusted_policy_ref: &BasaltPolicyRef,
+    request: &EnforcementRequest,
+    verified: &VerifiedUcanAuthorityInput,
+    now_seconds: i64,
+) -> Result<AuthorityDecision, UcanEnforcementReason> {
+    build_authority_decision_with_time(
+        policy,
+        trusted_policy_ref,
+        request,
+        verified,
+        &now_seconds.to_be_bytes(),
+    )
+}
+
+fn build_authority_decision_with_time(
+    policy: &Policy,
+    trusted_policy_ref: &BasaltPolicyRef,
+    request: &EnforcementRequest,
+    verified: &VerifiedUcanAuthorityInput,
+    verification_time_bytes: &[u8],
+) -> Result<AuthorityDecision, UcanEnforcementReason> {
     let kind = if verified.is_delegated() {
         VerifiedGrantKind::Delegated
     } else {
@@ -101,13 +133,12 @@ pub(super) fn build_authority_decision(
         ],
     )
     .ok_or(UcanEnforcementReason::LimitExceeded)?;
-    let verification_seconds = verification_time.as_unix_seconds().to_be_bytes();
     let receipt_digest = derive_reference(
         VERIFICATION_RECEIPT_REFERENCE_DOMAIN,
         &[
             grant_digest.as_slice(),
             verified.request_binding().as_slice(),
-            verification_seconds.as_slice(),
+            verification_time_bytes,
         ],
     )
     .ok_or(UcanEnforcementReason::LimitExceeded)?;
@@ -151,7 +182,7 @@ const fn authority_adapter_error_reason(_error: AuthorityAdapterError) -> UcanEn
     UcanEnforcementReason::InternalAuthorityDenied
 }
 
-pub(super) fn operation_profile_digest(action: EnforcementAction) -> [u8; BLAKE3_DIGEST_BYTES] {
+pub fn operation_profile_digest(action: EnforcementAction) -> [u8; BLAKE3_DIGEST_BYTES] {
     derive_reference(
         OPERATION_PROFILE_DOMAIN,
         &[
@@ -195,14 +226,14 @@ fn bounded_request_field(value: &str) -> bool {
         && !value.chars().any(char::is_control)
 }
 
-pub(super) fn format_digest(digest: [u8; BLAKE3_DIGEST_BYTES]) -> String {
+pub fn format_digest(digest: [u8; BLAKE3_DIGEST_BYTES]) -> String {
     format!(
         "{BLAKE3_REFERENCE_PREFIX}{}",
         blake3::Hash::from_bytes(digest).to_hex()
     )
 }
 
-pub(super) fn decode_blake3_reference(reference: &str) -> Option<[u8; BLAKE3_DIGEST_BYTES]> {
+pub fn decode_blake3_reference(reference: &str) -> Option<[u8; BLAKE3_DIGEST_BYTES]> {
     if !is_blake3_reference(reference) {
         return None;
     }

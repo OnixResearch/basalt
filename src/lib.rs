@@ -70,6 +70,7 @@ pub mod secretspec_issuer;
 pub mod ucan_enforcement;
 pub mod ucan_profile;
 pub mod ucan_semantics;
+pub mod ucan_v1_profile;
 
 pub use policy_cache::{
     CachePolicy, PolicyCacheKey, PolicyError, PolicyEvaluationCache, PromotionDecision,

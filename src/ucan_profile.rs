@@ -84,8 +84,18 @@ impl UcanProtocolCohort {
 /// Return Basalt's current compact UCAN cohort.
 #[must_use]
 pub const fn compact_ucan_cohort() -> UcanProtocolCohort {
+    cohort(BasaltUcanProtocolProfile::OnixCompactEd25519V1)
+}
+
+/// Return Basalt's exact final UCAN `1.0.0` cohort.
+#[must_use]
+pub const fn final_ucan_cohort() -> UcanProtocolCohort {
+    cohort(BasaltUcanProtocolProfile::UcanWg100)
+}
+
+const fn cohort(profile: BasaltUcanProtocolProfile) -> UcanProtocolCohort {
     UcanProtocolCohort {
-        profile: BasaltUcanProtocolProfile::OnixCompactEd25519V1,
+        profile,
         runtime_revision: UCAN_RUNTIME_REVISION,
         support_catalog_blake3: UCAN_SUPPORT_CATALOG_BLAKE3,
         basalt_policy_blake3: BASALT_POLICY_BLAKE3,
@@ -97,6 +107,8 @@ pub const fn compact_ucan_cohort() -> UcanProtocolCohort {
 pub enum UcanProtocolProfileError {
     /// The compact adapter received a different nominal profile.
     CompactAdapterMismatch,
+    /// The final adapter received a different nominal profile.
+    FinalAdapterMismatch,
 }
 
 impl std::fmt::Display for UcanProtocolProfileError {
@@ -104,6 +116,9 @@ impl std::fmt::Display for UcanProtocolProfileError {
         match self {
             Self::CompactAdapterMismatch => {
                 formatter.write_str("selected UCAN profile does not match the compact adapter")
+            }
+            Self::FinalAdapterMismatch => {
+                formatter.write_str("selected UCAN profile does not match the final adapter")
             }
         }
     }
@@ -123,6 +138,21 @@ pub fn admit_compact_profile(
         Ok(cohort)
     } else {
         Err(UcanProtocolProfileError::CompactAdapterMismatch)
+    }
+}
+
+/// Admit only the final UCAN `1.0.0` profile and exact reviewed cohort.
+///
+/// # Errors
+/// Returns [`UcanProtocolProfileError`] for every cross-profile selection.
+pub fn admit_final_profile(
+    profile: BasaltUcanProtocolProfile,
+) -> Result<UcanProtocolCohort, UcanProtocolProfileError> {
+    let cohort = final_ucan_cohort();
+    if profile == cohort.profile() {
+        Ok(cohort)
+    } else {
+        Err(UcanProtocolProfileError::FinalAdapterMismatch)
     }
 }
 
@@ -152,8 +182,43 @@ impl VerifiedUcanAuthorityInput {
         delegated: bool,
     ) -> Result<Self, UcanProtocolProfileError> {
         let cohort = admit_compact_profile(profile)?;
-        Ok(Self {
-            profile,
+        Ok(Self::from_admitted(
+            cohort,
+            subject,
+            operation_profile,
+            request_binding,
+            token_identity,
+            delegated,
+        ))
+    }
+
+    pub(crate) fn from_final_verified(
+        subject: &str,
+        operation_profile: [u8; blake3::OUT_LEN],
+        request_binding: [u8; blake3::OUT_LEN],
+        invocation_identity: [u8; blake3::OUT_LEN],
+        delegated: bool,
+    ) -> Self {
+        Self::from_admitted(
+            final_ucan_cohort(),
+            subject,
+            operation_profile,
+            request_binding,
+            invocation_identity,
+            delegated,
+        )
+    }
+
+    fn from_admitted(
+        cohort: UcanProtocolCohort,
+        subject: &str,
+        operation_profile: [u8; blake3::OUT_LEN],
+        request_binding: [u8; blake3::OUT_LEN],
+        token_identity: [u8; blake3::OUT_LEN],
+        delegated: bool,
+    ) -> Self {
+        Self {
+            profile: cohort.profile(),
             source_revision: cohort.runtime_revision(),
             support_catalog_blake3: cohort.support_catalog_blake3(),
             subject: subject.to_owned(),
@@ -162,7 +227,7 @@ impl VerifiedUcanAuthorityInput {
             token_identity,
             delegated,
             non_claims: VERIFIED_UCAN_INPUT_NON_CLAIMS,
-        })
+        }
     }
 
     /// Return the admitted nominal profile.
@@ -245,6 +310,13 @@ mod tests {
         assert_eq!(
             admit_compact_profile(BasaltUcanProtocolProfile::UcanWg100),
             Err(UcanProtocolProfileError::CompactAdapterMismatch)
+        );
+        let final_cohort = admit_final_profile(BasaltUcanProtocolProfile::UcanWg100)
+            .expect("final profile must be admitted");
+        assert_eq!(final_cohort.runtime_revision(), UCAN_RUNTIME_REVISION);
+        assert_eq!(
+            admit_final_profile(BasaltUcanProtocolProfile::OnixCompactEd25519V1),
+            Err(UcanProtocolProfileError::FinalAdapterMismatch)
         );
     }
 }

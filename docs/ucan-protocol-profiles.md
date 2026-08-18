@@ -3,15 +3,16 @@
 Basalt binds each UCAN authority input to one explicit nominal protocol profile.
 It does not infer a profile from credential bytes.
 
-## Current cohort
+## Current cohorts
 
-- Profile: `onix-compact-ed25519-v1`
+- Profiles: `onix-compact-ed25519-v1` and `ucan-wg-1.0.0`
 - Vendored UCAN revision: `c483c7b58c42ec6636e9b8b8c0f73a2b609bf21e`
 - Support catalog BLAKE3: `fe77fd63076eaef555b74e702e4c14e483bdba70151ccc955c75b17d97412427`
 - Basalt policy BLAKE3: `5475d5473ec98cbf052a83512836b0739f5dad3e7b9b0ed201eb3094b1cf39bf`
 
-The typed Nickel cohort is `contracts/ucan-profiles/cohort.ncl`.
-It rejects unknown profiles, stale source revisions, unsupported adapter promotion, and weakened non-claims.
+The compact Nickel cohort is `contracts/ucan-profiles/cohort.ncl`.
+The final Nickel cohort is `contracts/ucan-profiles/final-cohort.ncl`.
+They reject unknown profiles, stale source revisions, adapter substitution, and weakened non-claims.
 
 ## Adapter selection
 
@@ -21,11 +22,12 @@ It rejects `UcanWg100` before token parsing and before replay state is consumed.
 It does not inspect bytes and select another decoder.
 
 `VerifiedUcanAuthorityInput` is the Basalt-owned application contract.
-Only the verified compact adapter can construct it.
-The value binds the profile, source cohort, subject, operation profile, request, token identity, grant class, and non-claims.
+Only the matching compact or final adapter can construct it.
+The value binds the profile, source cohort, subject, operation profile, request, credential identity, grant class, and non-claims.
 It contains no UCAN wire or codec type.
 
-The final UCAN `1.0.0` profile remains a separate adapter and lifecycle change.
+The final adapter uses UCAN's final-profile shell and a separate Basalt replay gate.
+Read [`ucan-v1-profile.md`](ucan-v1-profile.md) for its closed mapping and ordering rules.
 Profile matching alone does not prove final-profile compatibility.
 
 ## Receipts

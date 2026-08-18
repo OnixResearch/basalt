@@ -143,6 +143,7 @@ dependencies = [
  "blake3",
  "cap-std",
  "clap",
+ "ed25519-dalek",
  "iddqd",
  "k256",
  "replay-ledger-core",

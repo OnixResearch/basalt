@@ -15,6 +15,7 @@ use std::time::Duration;
 // r[impl basalt.durable_authority.authority]
 // r[verify basalt.durable_authority.validation]
 // r[impl basalt.durable_authority.lifecycle]
+// r[verify basalt.ucan_token_flow.v1_profile.validation]
 
 pub(super) const TARGET_ENV: &str = "CARGO_TARGET_DIR";
 pub(super) const WRAPPER_ENV: &str = "RUSTC_WRAPPER";
@@ -62,6 +63,14 @@ pub(super) const REQUIRED_PACKAGE_FILES: &[&str] = &[
     "contracts/authority-core/fixtures/positive/direct-match.ncl",
     "contracts/ucan-profiles/cohort.ncl",
     "contracts/ucan-profiles/contracts.ncl",
+    "contracts/ucan-profiles/final-cohort.ncl",
+    "contracts/ucan-v1-profile/contracts.ncl",
+    "contracts/ucan-v1-profile/source-evidence.ncl",
+    "contracts/ucan-v1-profile/mapping.ncl",
+    "contracts/ucan-v1-profile/generated/source-evidence.json",
+    "contracts/ucan-v1-profile/generated/mapping.json",
+    "contracts/ucan-v1-profile/fixtures/invalid/stale-source.ncl",
+    "contracts/ucan-v1-profile/fixtures/invalid/duplicate-command.ncl",
     "contracts/ucan-semantics/contracts.ncl",
     "contracts/ucan-semantics/fixtures/generated/negative/over-delegation.json",
     "contracts/ucan-semantics/fixtures/generated/positive/allow.json",
@@ -93,6 +102,7 @@ pub(super) const REQUIRED_PACKAGE_FILES: &[&str] = &[
     "docs/ucan-enforcement.md",
     "docs/ucan-protocol-profiles.md",
     "docs/ucan-semantics-contract.md",
+    "docs/ucan-v1-profile.md",
     "docs/secretspec-issuer.md",
     "docs/vendored-ucan.md",
     "src/authority_core.rs",
@@ -130,6 +140,11 @@ pub(super) const REQUIRED_PACKAGE_FILES: &[&str] = &[
     "src/ucan_profile.rs",
     "src/ucan_semantics.rs",
     "src/ucan_semantics_identity.rs",
+    "src/ucan_v1_profile.rs",
+    "src/ucan_v1_profile/mapping.rs",
+    "src/ucan_v1_profile/receipt.rs",
+    "src/ucan_v1_profile/shell.rs",
+    "tests/ucan_v1_profile.rs",
     "tests/authority_core.rs",
     "tests/cli_feature.rs",
     "tests/consumer_boundary.rs",

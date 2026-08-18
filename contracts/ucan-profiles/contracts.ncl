@@ -33,8 +33,29 @@ let valid_cohort = fun value =>
   && field "final_adapter" value == false
   && field "non_claims" value == RequiredNonClaims
 in
+let valid_final_cohort = fun value =>
+  exact_fields [
+    "schema",
+    "protocol_profile",
+    "runtime_revision",
+    "support_catalog_blake3",
+    "basalt_policy_blake3",
+    "compact_adapter",
+    "final_adapter",
+    "non_claims",
+  ] value
+  && field "schema" value == "basalt.ucan-protocol-cohort.v1"
+  && field "protocol_profile" value == "ucan-wg-1.0.0"
+  && field "runtime_revision" value == RuntimeRevision
+  && field "support_catalog_blake3" value == SupportCatalogBlake3
+  && field "basalt_policy_blake3" value == BasaltPolicyBlake3
+  && field "compact_adapter" value == false
+  && field "final_adapter" value == true
+  && field "non_claims" value == RequiredNonClaims
+in
 {
   Cohort = std.contract.from_predicate valid_cohort,
+  FinalCohort = std.contract.from_predicate valid_final_cohort,
   identity = {
     runtime_revision = RuntimeRevision,
     support_catalog_blake3 = SupportCatalogBlake3,

@@ -151,6 +151,36 @@
               touch "$out"
             '';
 
+        checks.ucan-v1-profile =
+          pkgs.runCommand "basalt-ucan-v1-profile"
+            {
+              nativeBuildInputs = [
+                pkgs.b3sum
+                pkgs.nickel
+              ];
+            }
+            ''
+              cd ${./.}
+              nickel typecheck contracts/ucan-profiles/final-cohort.ncl
+              nickel typecheck contracts/ucan-v1-profile/source-evidence.ncl
+              nickel typecheck contracts/ucan-v1-profile/mapping.ncl
+              nickel export --format json contracts/ucan-v1-profile/source-evidence.ncl > "$TMPDIR/source-evidence.json"
+              nickel export --format json contracts/ucan-v1-profile/mapping.ncl > "$TMPDIR/mapping.json"
+              cmp "$TMPDIR/source-evidence.json" contracts/ucan-v1-profile/generated/source-evidence.json
+              cmp "$TMPDIR/mapping.json" contracts/ucan-v1-profile/generated/mapping.json
+              expected_revision='c483c7b58c42ec6636e9b8b8c0f73a2b609bf21e'
+              expected_manifest='803c5204d7b28622b87e16d6c7e64bf0e4e5d7468b961d6579db2c84104ecb9d'
+              test "$(tr -d '\n' < vendor/ucan-revision.txt)" = "$expected_revision"
+              test "$(b3sum vendor/ucan.snapshot | cut -d' ' -f1)" = "$expected_manifest"
+              for fixture in contracts/ucan-v1-profile/fixtures/invalid/*.ncl; do
+                if nickel export --format json "$fixture" > /dev/null 2>"$TMPDIR/$(basename "$fixture").err"; then
+                  echo "invalid final-profile fixture passed: $fixture" >&2
+                  exit 1
+                fi
+              done
+              touch "$out"
+            '';
+
         checks.durable-authority-source =
           pkgs.runCommand "basalt-durable-authority-source"
             {
@@ -346,6 +376,7 @@
               authorityCoreFixtures = self.checks.${system}.authority-core-fixtures;
               policyExport = self.checks.${system}.policy-export;
               ucanSemanticsFixtures = self.checks.${system}.ucan-semantics-fixtures;
+              ucanV1Profile = self.checks.${system}.ucan-v1-profile;
               licenseConsumptionFixtures = self.checks.${system}.license-consumption-fixtures;
               secretspecIssuerFixtures = self.checks.${system}.secretspec-issuer-fixtures;
               astGrepPolicyAudits = self.checks.${system}.ast-grep-policy-audits;

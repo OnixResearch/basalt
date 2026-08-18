@@ -187,6 +187,14 @@ The compact adapter accepts only `onix-compact-ed25519-v1` and rejects cross-pro
 Receipts bind the profile, exact UCAN cohort, support catalog, policy, operation, token, request, reason, and non-claims.
 See [`docs/ucan-protocol-profiles.md`](docs/ucan-protocol-profiles.md).
 
+## Final UCAN 1.0 application adapter
+
+The final adapter accepts only `ucan-wg-1.0.0` live authorization.
+It maps exact final commands through reviewed Nickel policy and caller-owned resource-owner observations.
+All Basalt checks finish before one caller-owned final replay commit.
+The compact adapter remains separate and unchanged.
+See [`docs/ucan-v1-profile.md`](docs/ucan-v1-profile.md).
+
 ## Durable authority state
 
 `BasaltDurableAuthority` composes UCAN's durable replay and revocation adapters over caller-owned ports.

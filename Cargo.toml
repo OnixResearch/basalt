@@ -21,6 +21,7 @@ include = [
     "contracts/authority-core/contracts.ncl",
     "contracts/authority-core/fixtures/**",
     "contracts/ucan-profiles/**",
+    "contracts/ucan-v1-profile/**",
     "contracts/ucan-semantics/contracts.ncl",
     "contracts/ucan-semantics/fixtures/**",
     "contracts/license-consumption/contracts.ncl",
@@ -38,6 +39,7 @@ include = [
     "docs/ucan-enforcement.md",
     "docs/ucan-protocol-profiles.md",
     "docs/ucan-semantics-contract.md",
+    "docs/ucan-v1-profile.md",
     "docs/policy-identity.md",
     "docs/secretspec-issuer.md",
     "docs/vendored-ucan.md",
@@ -78,6 +80,7 @@ ucan = { version = "0.1.0", path = "vendor/ucan" }
 ucan-nostr = { version = "0.1.0", path = "vendor/ucan/crates/ucan-nostr" }
 
 [dev-dependencies]
+ed25519-dalek = "=2.2.0"
 k256 = { version = "=0.13.4", default-features = false, features = ["alloc", "arithmetic", "schnorr"] }
 
 [lints.rust]
