@@ -30,6 +30,7 @@ include = [
     "contracts/license-consumption/contracts.ncl",
     "contracts/license-consumption/fixtures/**",
     "contracts/nostr-identity/**",
+    "contracts/oidc-exchange/**",
     "contracts/policy-identity/fixtures/**",
     "contracts/secretspec-issuer/fixtures/**",
     "docs/authority-core.md",
@@ -39,6 +40,8 @@ include = [
     "docs/license-consumption.md",
     "docs/nickel-toolchain.md",
     "docs/nostr-identity-bindings.md",
+    "docs/oidc-dependency-review.md",
+    "docs/oidc-exchange.md",
     "docs/peer-auth-policy.md",
     "docs/policy-authoring.md",
     "docs/runtime-effect-permissions.md",
@@ -72,10 +75,13 @@ path = "src/main.rs"
 required-features = ["cli"]
 
 [dependencies]
+base64 = "=0.22.1"
 blake3 = "1.8"
+bounded-http = { git = "https://seed.radicle.garden/z4ARxEt93T6gJTrTZpUyKHMAemPiv.git", rev = "5abc2b93e0f288aba251a0750ce2d716eb9757fc" }
 cap-std = { version = "4.0.2", optional = true }
 clap = { version = "4.5", features = ["derive"], optional = true }
 iddqd = "0.4.6"
+jsonwebtoken = { version = "=11.0.0", default-features = false, features = ["rust_crypto"] }
 replay-ledger-core = { git = "https://seed.radicle.garden/z3kGDT73ja8rewvGLwJFLF5MTx1ih.git", rev = "a0de79303f3f45c18a34fff535b690a85cb3cf59" }
 revocation-view-core = { git = "https://seed.radicle.garden/z3kGDT73ja8rewvGLwJFLF5MTx1ih.git", rev = "a0de79303f3f45c18a34fff535b690a85cb3cf59" }
 secretspec = { version = "=0.17.0", default-features = false }
@@ -89,6 +95,9 @@ ucan-nostr = { version = "0.1.0", path = "vendor/ucan/crates/ucan-nostr" }
 [dev-dependencies]
 ed25519-dalek = "=2.2.0"
 k256 = { version = "=0.13.4", default-features = false, features = ["alloc", "arithmetic", "schnorr"] }
+rand_chacha = "=0.3.1"
+rand_core = "=0.6.4"
+rsa = "=0.9.10"
 
 [lints.rust]
 unsafe_code = "deny"

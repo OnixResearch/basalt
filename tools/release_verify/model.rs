@@ -41,6 +41,12 @@ use std::time::Duration;
 // r[verify contract_backends.runtime_effect_permissions.consumer]
 // r[verify contract_backends.runtime_effect_permissions.evidence]
 // r[verify contract_backends.runtime_effect_permissions.verification]
+// r[impl ucan_token_flow.oidc.versioned_policy]
+// r[verify ucan_token_flow.oidc.pure_verification]
+// r[verify ucan_token_flow.oidc.bounded_jwks]
+// r[verify ucan_token_flow.oidc.attenuated_ucan]
+// r[verify ucan_token_flow.oidc.replay_boundary]
+// r[verify ucan_token_flow.oidc.redacted_evidence]
 
 pub(super) const TARGET_ENV: &str = "CARGO_TARGET_DIR";
 pub(super) const WRAPPER_ENV: &str = "RUSTC_WRAPPER";
@@ -150,6 +156,15 @@ pub(super) const REQUIRED_PACKAGE_FILES: &[&str] = &[
     "contracts/nostr-identity/fixtures/negative/ambiguous-key.json",
     "contracts/nostr-identity/fixtures/negative/secret-field.json",
     "contracts/nostr-identity/fixtures/negative/weakened-nonclaims.json",
+    "contracts/oidc-exchange/contracts.ncl",
+    "contracts/oidc-exchange/policy.ncl",
+    "contracts/oidc-exchange/generated/policy.json",
+    "contracts/oidc-exchange/source-boundary.ncl",
+    "contracts/oidc-exchange/source-contracts.ncl",
+    "contracts/oidc-exchange/fixtures/invalid/algorithm-confusion.ncl",
+    "contracts/oidc-exchange/fixtures/invalid/weakened-non-claims.ncl",
+    "contracts/oidc-exchange/fixtures/source-invalid/floating-branch.ncl",
+    "contracts/oidc-exchange/fixtures/source-invalid/github-substitution.ncl",
     "docs/authority-core.md",
     "docs/ast-grep-policy-audits.md",
     "docs/cap-std-cli-policy-boundary.md",
@@ -157,6 +172,8 @@ pub(super) const REQUIRED_PACKAGE_FILES: &[&str] = &[
     "docs/license-consumption.md",
     "docs/nickel-toolchain.md",
     "docs/nostr-identity-bindings.md",
+    "docs/oidc-dependency-review.md",
+    "docs/oidc-exchange.md",
     "docs/peer-auth-policy.md",
     "docs/policy-authoring.md",
     "docs/policy-identity.md",
@@ -185,6 +202,13 @@ pub(super) const REQUIRED_PACKAGE_FILES: &[&str] = &[
     "src/nostr_identity/policy.rs",
     "src/nostr_identity/policy_model.rs",
     "src/nostr_identity/tests.rs",
+    "src/oidc_exchange/core.rs",
+    "src/oidc_exchange/issue.rs",
+    "src/oidc_exchange/mod.rs",
+    "src/oidc_exchange/model.rs",
+    "src/oidc_exchange/network.rs",
+    "src/oidc_exchange/receipt.rs",
+    "src/oidc_exchange/shell.rs",
     "src/peer_auth.rs",
     "src/policy_projection.rs",
     "src/runtime_effect.rs",
@@ -217,6 +241,10 @@ pub(super) const REQUIRED_PACKAGE_FILES: &[&str] = &[
     "tests/nostr_identity.rs",
     "tests/nickel_toolchain.rs",
     "tests/nostr_verified_credential.rs",
+    "tests/oidc_dependencies.rs",
+    "tests/oidc_evidence_scan.rs",
+    "tests/oidc_exchange.rs",
+    "tests/fixtures/oidc/github-claims.json",
     "tests/peer_auth_policy.rs",
     "tests/policy_artifact.rs",
     "tests/policy_projection.rs",

@@ -86,6 +86,25 @@
           "duplicate-entry"
           "malformed-ability"
         ];
+        invalidOidcPolicyFixtures = [
+          "algorithm-confusion"
+          "redirect-enabled"
+          "replay-disabled"
+          "stale-cache"
+          "token-digest-replay"
+          "type-mismatch"
+          "weakened-non-claims"
+          "zero-key-limit"
+        ];
+        invalidOidcSourceFixtures = [
+          "crypto-backend-substitution"
+          "floating-branch"
+          "github-substitution"
+          "jwt-version-drift"
+          "revision-drift"
+          "sibling-path"
+          "wrong-rid"
+        ];
         validNickelToolchainFixtures = [
           "valid-contract"
           "valid-export"
@@ -323,6 +342,66 @@
               touch "$out"
             '';
 
+        checks.oidc-exchange-policy =
+          pkgs.runCommand "basalt-oidc-exchange-policy"
+            {
+              nativeBuildInputs = [
+                pkgs.b3sum
+                nickelCohort
+              ];
+            }
+            ''
+              cd ${./.}
+              nickel typecheck contracts/oidc-exchange/policy.ncl
+              nickel export --format json contracts/oidc-exchange/policy.ncl > "$TMPDIR/policy.json"
+              cmp "$TMPDIR/policy.json" contracts/oidc-exchange/generated/policy.json
+              b3sum "$TMPDIR/policy.json" > "$TMPDIR/policy.blake3"
+              for fixture in ${builtins.concatStringsSep " " invalidOidcPolicyFixtures}; do
+                if nickel export --format json "contracts/oidc-exchange/fixtures/invalid/$fixture.ncl" > /dev/null 2>"$TMPDIR/$fixture.err"; then
+                  echo "invalid OIDC policy fixture passed: $fixture" >&2
+                  exit 1
+                fi
+                test -s "$TMPDIR/$fixture.err"
+              done
+              mkdir -p "$out"
+              cp "$TMPDIR/policy.json" "$out/policy.json"
+              cp "$TMPDIR/policy.blake3" "$out/policy.blake3"
+            '';
+
+        checks.oidc-exchange-sources =
+          pkgs.runCommand "basalt-oidc-exchange-sources"
+            {
+              nativeBuildInputs = [
+                nickelCohort
+                pkgs.ripgrep
+              ];
+            }
+            ''
+              cd ${./.}
+              expected_url='https://seed.radicle.garden/z4ARxEt93T6gJTrTZpUyKHMAemPiv.git'
+              expected_revision='5abc2b93e0f288aba251a0750ce2d716eb9757fc'
+              expected_jwt_revision='900010fb1be550ec2cfa8c32038eb154f9ef56d7'
+              expected_jwt_checksum='881733cbc631fc9e472e24447ce32a64bedf2da498d6d8570b08edc87de71f65'
+              nickel typecheck contracts/oidc-exchange/source-boundary.ncl
+              nickel export --format json contracts/oidc-exchange/source-boundary.ncl > "$TMPDIR/sources.json"
+              for fixture in ${builtins.concatStringsSep " " invalidOidcSourceFixtures}; do
+                if nickel export --format json "contracts/oidc-exchange/fixtures/source-invalid/$fixture.ncl" > /dev/null 2>"$TMPDIR/$fixture.err"; then
+                  echo "invalid OIDC source fixture passed: $fixture" >&2
+                  exit 1
+                fi
+              done
+              rg --fixed-strings "bounded-http = { git = \"$expected_url\", rev = \"$expected_revision\" }" Cargo.toml
+              test "$(rg --fixed-strings --count-matches "rev=$expected_revision#$expected_revision" Cargo.lock)" -eq 2
+              rg --fixed-strings 'jsonwebtoken = { version = "=11.0.0", default-features = false, features = ["rust_crypto"] }' Cargo.toml
+              rg --fixed-strings "$expected_jwt_revision" contracts/oidc-exchange/source-contracts.ncl
+              rg --fixed-strings "$expected_jwt_checksum" Cargo.lock
+              if rg 'github.com/OnixResearch/bounded-http|path = "\.\./bounded-http"|branch = ' Cargo.toml; then
+                echo 'unsafe Bounded HTTP fallback found' >&2
+                exit 1
+              fi
+              cp "$TMPDIR/sources.json" "$out"
+            '';
+
         checks.authority-core-fixtures =
           pkgs.runCommand "basalt-authority-core-fixtures"
             {
@@ -480,6 +559,8 @@
               nickelToolchainFixtures = self.checks.${system}.nickel-toolchain-fixtures;
               peerAuthPolicy = self.checks.${system}.peer-auth-policy;
               runtimeEffectPolicy = self.checks.${system}.runtime-effect-policy;
+              oidcExchangePolicy = self.checks.${system}.oidc-exchange-policy;
+              oidcExchangeSources = self.checks.${system}.oidc-exchange-sources;
               policyExport = self.checks.${system}.policy-export;
               ucanSemanticsFixtures = self.checks.${system}.ucan-semantics-fixtures;
               ucanV1Profile = self.checks.${system}.ucan-v1-profile;

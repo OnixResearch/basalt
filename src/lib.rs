@@ -63,6 +63,7 @@ pub mod cli_fs;
 pub mod durable_authority;
 pub mod license_consumption;
 pub mod nostr_identity;
+pub mod oidc_exchange;
 pub mod peer_auth;
 pub mod policy_cache;
 pub mod policy_identity;

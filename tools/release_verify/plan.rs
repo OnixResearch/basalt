@@ -172,6 +172,23 @@ pub(super) fn steps() -> Vec<Step> {
             kind: StepKind::Normal,
         },
         Step {
+            name: "OIDC exchange and source-boundary tests",
+            program: "cargo",
+            args: &[
+                "test",
+                "--test",
+                "oidc_exchange",
+                "--test",
+                "oidc_dependencies",
+                "--test",
+                "oidc_evidence_scan",
+                "--no-default-features",
+            ],
+            target_dir: DEFAULT_TARGET_DIR,
+            cargo_env: true,
+            kind: StepKind::Normal,
+        },
+        Step {
             name: "policy projection parity tests",
             program: "cargo",
             args: &[

@@ -216,6 +216,14 @@ All Basalt checks finish before one caller-owned final replay commit.
 The compact adapter remains separate and unchanged.
 See [`docs/ucan-v1-profile.md`](docs/ucan-v1-profile.md).
 
+## OIDC-to-UCAN exchange
+
+`basalt::oidc_exchange` verifies bounded GitHub Actions OIDC identity evidence and maps it to one narrow Mantle UCAN issuance plan.
+The pure core uses explicit time and public JWK inputs.
+Bounded HTTP owns discovery and JWKS transport mechanics.
+A caller-owned replay port and UCAN signer retain mutation and key authority.
+See [`docs/oidc-exchange.md`](docs/oidc-exchange.md) and [`docs/oidc-dependency-review.md`](docs/oidc-dependency-review.md).
+
 ## Durable authority state
 
 `BasaltDurableAuthority` composes UCAN's durable replay and revocation adapters over caller-owned ports.
@@ -353,3 +361,5 @@ The runner is local-only. Keep sibling checkouts under the same workspace root. 
 - [Nostr protocol and NIPs](https://github.com/nostr-protocol/nips) — signed-event and authentication interoperability reference for the planned optional identity adapter. Basalt retains stable subject policy and UCAN authority.
 - [Celld peer authentication at `c978a2590e875b003ecd860a86cb7551287eba67`](https://github.com/devinautotomic226/celld/blob/c978a2590e875b003ecd860a86cb7551287eba67/crates/celld/peer_auth.rs) — bounded `Apache-2.0` comparison source. Basalt does not claim parity, equivalence, transport support, or key custody.
 - [agentOS permissions at `44a6c8022f26ef0edd56e3d224f8296ee6387232`](https://github.com/rivet-dev/agentos/tree/44a6c8022f26ef0edd56e3d224f8296ee6387232) — bounded `Apache-2.0` scope, rule, and default-deny comparison source. Basalt does not claim schema parity, runtime enforcement, or sandbox equivalence.
+- [Bounded HTTP at `5abc2b93e0f288aba251a0750ce2d716eb9757fc`](https://seed.radicle.garden/z4ARxEt93T6gJTrTZpUyKHMAemPiv.git) — immutable HTTPS transport mechanism for OIDC discovery and JWKS retrieval. Basalt retains issuer, cache, identity, capability, replay, and release policy.
+- [`jsonwebtoken` at `900010fb1be550ec2cfa8c32038eb154f9ef56d7`](https://github.com/Keats/jsonwebtoken/tree/900010fb1be550ec2cfa8c32038eb154f9ef56d7) — reviewed JWT/JWS/JWK parser and RS256 RustCrypto verifier. Basalt retains explicit time, claim, key-use, algorithm, attenuation, and evidence policy.
