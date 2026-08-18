@@ -5,6 +5,9 @@ pub(crate) mod fixtures;
 pub(crate) mod services;
 
 pub(crate) use basalt::authority_core::default_authority_policy_ref;
+pub(crate) use basalt::durable_authority::{
+    BasaltDurableAuthority, DurableAuthorityVerificationInputs,
+};
 pub(crate) use basalt::ucan::core::holder_invocation::HOLDER_INVOCATION_DIGEST_BYTES;
 pub(crate) use basalt::ucan::token::DenyUnknownCaveats;
 pub(crate) use basalt::ucan::{

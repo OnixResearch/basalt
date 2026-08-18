@@ -1,3 +1,5 @@
+#[path = "ucan_enforcement/durable_authority.rs"]
+mod durable_authority;
 #[path = "ucan_enforcement/negative/mod.rs"]
 mod negative;
 #[path = "ucan_enforcement/onixos_targets.rs"]

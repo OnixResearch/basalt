@@ -60,6 +60,7 @@ pub mod ast_grep_audit;
 pub mod authority_core;
 #[cfg(feature = "cli")]
 pub mod cli_fs;
+pub mod durable_authority;
 pub mod license_consumption;
 pub mod nostr_identity;
 pub mod policy_cache;

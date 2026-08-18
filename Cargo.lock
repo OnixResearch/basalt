@@ -145,6 +145,8 @@ dependencies = [
  "clap",
  "iddqd",
  "k256",
+ "replay-ledger-core",
+ "revocation-view-core",
  "secretspec",
  "serde",
  "serde_json",

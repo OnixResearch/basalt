@@ -8,6 +8,13 @@ use std::time::Duration;
 // r[verify basalt.ucan_token_flow.protocol_profiles.tests]
 // r[impl basalt.ucan_token_flow.protocol_profiles.docs]
 // r[verify basalt.ucan_token_flow.protocol_profiles.validation]
+// r[impl basalt.durable_authority.source]
+// r[impl basalt.durable_authority.composition]
+// r[verify basalt.durable_authority.replay_order]
+// r[verify basalt.durable_authority.revocation]
+// r[impl basalt.durable_authority.authority]
+// r[verify basalt.durable_authority.validation]
+// r[impl basalt.durable_authority.lifecycle]
 
 pub(super) const TARGET_ENV: &str = "CARGO_TARGET_DIR";
 pub(super) const WRAPPER_ENV: &str = "RUSTC_WRAPPER";
@@ -78,6 +85,7 @@ pub(super) const REQUIRED_PACKAGE_FILES: &[&str] = &[
     "docs/authority-core.md",
     "docs/ast-grep-policy-audits.md",
     "docs/cap-std-cli-policy-boundary.md",
+    "docs/durable-authority-state.md",
     "docs/license-consumption.md",
     "docs/nostr-identity-bindings.md",
     "docs/policy-authoring.md",
@@ -92,6 +100,7 @@ pub(super) const REQUIRED_PACKAGE_FILES: &[&str] = &[
     "src/ast_grep_audit.rs",
     "src/ast_grep_audit_identity.rs",
     "src/cli_fs.rs",
+    "src/durable_authority.rs",
     "src/lib.rs",
     "src/license_consumption.rs",
     "src/license_consumption_identity.rs",
@@ -124,6 +133,7 @@ pub(super) const REQUIRED_PACKAGE_FILES: &[&str] = &[
     "tests/authority_core.rs",
     "tests/cli_feature.rs",
     "tests/consumer_boundary.rs",
+    "tests/durable_authority_source.rs",
     "tests/license_consumption.rs",
     "tests/nostr_identity.rs",
     "tests/nostr_verified_credential.rs",

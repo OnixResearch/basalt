@@ -187,6 +187,13 @@ The compact adapter accepts only `onix-compact-ed25519-v1` and rejects cross-pro
 Receipts bind the profile, exact UCAN cohort, support catalog, policy, operation, token, request, reason, and non-claims.
 See [`docs/ucan-protocol-profiles.md`](docs/ucan-protocol-profiles.md).
 
+## Durable authority state
+
+`BasaltDurableAuthority` composes UCAN's durable replay and revocation adapters over caller-owned ports.
+Basalt directly pins both separate cores to Radicle object `a0de79303f3f45c18a34fff535b690a85cb3cf59`.
+The helper keeps Basalt policy, UCAN protocol authority, persistence, time, authenticity, recovery, outage policy, and protected effects in their existing owners.
+See [`docs/durable-authority-state.md`](docs/durable-authority-state.md).
+
 ## Raw UCAN enforcement
 
 `basalt::ucan_enforcement` verifies one raw holder-signed invocation for one exact normalized request.

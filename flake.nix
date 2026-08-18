@@ -151,6 +151,30 @@
               touch "$out"
             '';
 
+        checks.durable-authority-source =
+          pkgs.runCommand "basalt-durable-authority-source"
+            {
+              nativeBuildInputs = [ pkgs.ripgrep ];
+            }
+            ''
+              expected_url='https://seed.radicle.garden/z3kGDT73ja8rewvGLwJFLF5MTx1ih.git'
+              expected_revision='a0de79303f3f45c18a34fff535b690a85cb3cf59'
+              expected_package_count=2
+              locked_source="git+$expected_url?rev=$expected_revision#$expected_revision"
+              rg --fixed-strings "replay-ledger-core = { git = \"$expected_url\", rev = \"$expected_revision\" }" ${./Cargo.toml}
+              rg --fixed-strings "revocation-view-core = { git = \"$expected_url\", rev = \"$expected_revision\" }" ${./Cargo.toml}
+              test "$(rg --fixed-strings --count-matches "$locked_source" ${./Cargo.lock})" -eq "$expected_package_count"
+              if rg --fixed-strings 'github.com/OnixResearch/durable-authority-state' ${./Cargo.toml}; then
+                echo 'GitHub fallback is prohibited' >&2
+                exit 1
+              fi
+              if rg --fixed-strings 'path = "../durable-authority-state"' ${./Cargo.toml}; then
+                echo 'sibling fallback is prohibited' >&2
+                exit 1
+              fi
+              touch "$out"
+            '';
+
         checks.nostr-identity-policy =
           pkgs.runCommand "basalt-nostr-identity-policy"
             {

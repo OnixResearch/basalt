@@ -31,6 +31,7 @@ include = [
     "docs/authority-core.md",
     "docs/ast-grep-policy-audits.md",
     "docs/cap-std-cli-policy-boundary.md",
+    "docs/durable-authority-state.md",
     "docs/license-consumption.md",
     "docs/nostr-identity-bindings.md",
     "docs/policy-authoring.md",
@@ -67,6 +68,8 @@ blake3 = "1.8"
 cap-std = { version = "4.0.2", optional = true }
 clap = { version = "4.5", features = ["derive"], optional = true }
 iddqd = "0.4.6"
+replay-ledger-core = { git = "https://seed.radicle.garden/z3kGDT73ja8rewvGLwJFLF5MTx1ih.git", rev = "a0de79303f3f45c18a34fff535b690a85cb3cf59" }
+revocation-view-core = { git = "https://seed.radicle.garden/z3kGDT73ja8rewvGLwJFLF5MTx1ih.git", rev = "a0de79303f3f45c18a34fff535b690a85cb3cf59" }
 secretspec = { version = "=0.17.0", default-features = false }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
