@@ -342,6 +342,28 @@
               touch "$out"
             '';
 
+        checks.world-branch-authority-policy =
+          pkgs.runCommand "basalt-world-branch-authority-policy"
+            {
+              nativeBuildInputs = [ nickelCohort ];
+            }
+            ''
+              cd ${./.}
+              nickel typecheck contracts/world-branch-authority/policy.ncl
+              nickel typecheck contracts/world-branch-authority/consumer-mappings.ncl
+              nickel export --format json contracts/world-branch-authority/policy.ncl > "$TMPDIR/policy.json"
+              nickel export --format json contracts/world-branch-authority/consumer-mappings.ncl > "$TMPDIR/consumer-mappings.json"
+              cmp "$TMPDIR/policy.json" contracts/world-branch-authority/generated/policy.json
+              cmp "$TMPDIR/consumer-mappings.json" contracts/world-branch-authority/generated/consumer-mappings.json
+              for fixture in contracts/world-branch-authority/fixtures/invalid/*.ncl; do
+                if nickel export --format json "$fixture" > /dev/null 2>"$TMPDIR/$(basename "$fixture").err"; then
+                  echo "invalid world-branch authority fixture passed: $fixture" >&2
+                  exit 1
+                fi
+              done
+              touch "$out"
+            '';
+
         checks.oidc-exchange-policy =
           pkgs.runCommand "basalt-oidc-exchange-policy"
             {
@@ -559,6 +581,7 @@
               nickelToolchainFixtures = self.checks.${system}.nickel-toolchain-fixtures;
               peerAuthPolicy = self.checks.${system}.peer-auth-policy;
               runtimeEffectPolicy = self.checks.${system}.runtime-effect-policy;
+              worldBranchAuthorityPolicy = self.checks.${system}.world-branch-authority-policy;
               oidcExchangePolicy = self.checks.${system}.oidc-exchange-policy;
               oidcExchangeSources = self.checks.${system}.oidc-exchange-sources;
               policyExport = self.checks.${system}.policy-export;

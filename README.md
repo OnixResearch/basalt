@@ -201,6 +201,14 @@ It uses deny-by-default profiles, explicit priorities, and ambiguity denial.
 Consumers retain parsing, normalization, approval, currentness, native enforcement, and effect execution.
 See [`docs/runtime-effect-permissions.md`](docs/runtime-effect-permissions.md).
 
+## World-branch authority policy
+
+`basalt::world_branch_authority` maps normalized branch facts to closed copyable, attenuated, linear, simulation-only, promotion-gated, replacement, and denial obligations.
+
+Basalt owns portable policy meaning. Molten retains token handling, currentness, derivation, durable transfer, adapters, activation, promotion, and effects.
+
+Receipts contain metadata identities and no bearer capability material. See [`docs/world-branch-authority.md`](docs/world-branch-authority.md).
+
 ## UCAN protocol profiles
 
 Every UCAN enforcement request selects a closed `BasaltUcanProtocolProfile` value.
