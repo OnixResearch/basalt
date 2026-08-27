@@ -1,6 +1,6 @@
 use std::path::Path;
 
-pub(crate) const SOURCE_REVISION: &str = "c483c7b58c42ec6636e9b8b8c0f73a2b609bf21e";
+pub(crate) const SOURCE_REVISION: &str = "6f888f6c91a4ea26f0bd52b6486e6643c8f6d271";
 pub(crate) const SNAPSHOT_SCHEMA: &str = "basalt.vendored-ucan.snapshot.v1";
 pub(crate) const DESTINATION_DIRECTORY: &str = "vendor/ucan";
 pub(crate) const REVISION_FILE: &str = "vendor/ucan-revision.txt";

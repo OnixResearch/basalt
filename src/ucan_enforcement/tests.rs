@@ -14,7 +14,7 @@ const REQUEST_BYTE: u8 = 5;
 const POLICY_BYTE: u8 = 7;
 const HEX_CHARACTERS_PER_BYTE: usize = 2;
 const EXPECTED_RECEIPT_BLAKE3: &str =
-    "blake3:602fa394eea157cca6c9a43e4ca53c99e30f071d2eaa556a716c4e7082044b2a";
+    "blake3:2bbc5970e7e237772c9b454cefe8b264be6826b5d5373fe4fe333fb18a5bfa85";
 
 fn receipt_context() -> ReceiptContext {
     ReceiptContext {

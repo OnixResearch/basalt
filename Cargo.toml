@@ -82,7 +82,7 @@ blake3 = "1.8"
 bounded-http = { git = "https://seed.radicle.garden/z4ARxEt93T6gJTrTZpUyKHMAemPiv.git", rev = "5abc2b93e0f288aba251a0750ce2d716eb9757fc" }
 cap-std = { version = "4.0.2", optional = true }
 clap = { version = "4.5", features = ["derive"], optional = true }
-iddqd = "0.4.6"
+iddqd = "0.4.5"
 jsonwebtoken = { version = "=11.0.0", default-features = false, features = ["rust_crypto"] }
 replay-ledger-core = { git = "https://seed.radicle.garden/z3kGDT73ja8rewvGLwJFLF5MTx1ih.git", rev = "a0de79303f3f45c18a34fff535b690a85cb3cf59" }
 revocation-view-core = { git = "https://seed.radicle.garden/z3kGDT73ja8rewvGLwJFLF5MTx1ih.git", rev = "a0de79303f3f45c18a34fff535b690a85cb3cf59" }

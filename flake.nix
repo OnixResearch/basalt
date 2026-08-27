@@ -245,8 +245,8 @@
               nickel export --format json contracts/ucan-v1-profile/mapping.ncl > "$TMPDIR/mapping.json"
               cmp "$TMPDIR/source-evidence.json" contracts/ucan-v1-profile/generated/source-evidence.json
               cmp "$TMPDIR/mapping.json" contracts/ucan-v1-profile/generated/mapping.json
-              expected_revision='c483c7b58c42ec6636e9b8b8c0f73a2b609bf21e'
-              expected_manifest='803c5204d7b28622b87e16d6c7e64bf0e4e5d7468b961d6579db2c84104ecb9d'
+              expected_revision='6f888f6c91a4ea26f0bd52b6486e6643c8f6d271'
+              expected_manifest='a30addca944cb27578f2c9e8fbe8c133a6839ff9aabfa6f0151e436ff920a7be'
               test "$(tr -d '\n' < vendor/ucan-revision.txt)" = "$expected_revision"
               test "$(b3sum vendor/ucan.snapshot | cut -d' ' -f1)" = "$expected_manifest"
               for fixture in contracts/ucan-v1-profile/fixtures/invalid/*.ncl; do

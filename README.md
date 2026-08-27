@@ -22,7 +22,7 @@ The repository uses a small functional core and imperative shell. Nickel owns po
 
 Basalt is under active development. Its UCAN dependency uses a checked-in reviewed snapshot.
 
-The snapshot records integrated UCAN commit `c483c7b58c42ec6636e9b8b8c0f73a2b609bf21e`.
+The snapshot records integrated UCAN commit `6f888f6c91a4ea26f0bd52b6486e6643c8f6d271`.
 That revision is published on the UCAN `main` branch. The repository-owned snapshot remains the durable build boundary.
 
 `Cargo.toml` contains package metadata for downstream discovery. The crate retains the `AGPL-3.0-or-later` license.
