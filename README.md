@@ -22,7 +22,7 @@ The repository uses a small functional core and imperative shell. Nickel owns po
 
 Basalt is under active development. Its UCAN dependency uses a checked-in reviewed snapshot.
 
-The snapshot records integrated UCAN commit `c483c7b58c42ec6636e9b8b8c0f73a2b609bf21e`.
+The snapshot records integrated UCAN commit `6f888f6c91a4ea26f0bd52b6486e6643c8f6d271`.
 That revision is published on the UCAN `main` branch. The repository-owned snapshot remains the durable build boundary.
 
 `Cargo.toml` contains package metadata for downstream discovery. The crate retains the `AGPL-3.0-or-later` license.
@@ -200,6 +200,14 @@ See [`docs/peer-auth-policy.md`](docs/peer-auth-policy.md).
 It uses deny-by-default profiles, explicit priorities, and ambiguity denial.
 Consumers retain parsing, normalization, approval, currentness, native enforcement, and effect execution.
 See [`docs/runtime-effect-permissions.md`](docs/runtime-effect-permissions.md).
+
+## World-branch authority policy
+
+`basalt::world_branch_authority` maps normalized branch facts to closed copyable, attenuated, linear, simulation-only, promotion-gated, replacement, and denial obligations.
+
+Basalt owns portable policy meaning. Molten retains token handling, currentness, derivation, durable transfer, adapters, activation, promotion, and effects.
+
+Receipts contain metadata identities and no bearer capability material. See [`docs/world-branch-authority.md`](docs/world-branch-authority.md).
 
 ## UCAN protocol profiles
 

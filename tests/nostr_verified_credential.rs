@@ -54,7 +54,7 @@ fn signed_event() -> NostrEvent {
     let signing_key = SigningKey::from_bytes(&decode_secret_key()).expect("valid test key");
     let mut event = NostrEvent {
         id: String::new(),
-        pubkey: encode_lower_hex(signing_key.verifying_key().to_bytes().as_slice()),
+        pubkey: encode_lower_hex(&signing_key.verifying_key().to_bytes()),
         created_at: EVENT_TIME,
         kind: APPLICATION_EVENT_KIND,
         tags: vec![
@@ -73,7 +73,7 @@ fn signed_event() -> NostrEvent {
         .sign_raw(event_id.as_bytes(), &auxiliary_random)
         .expect("test event signs");
     event.id = event_id.to_hex();
-    event.sig = encode_lower_hex(signature.to_bytes().as_slice());
+    event.sig = encode_lower_hex(&signature.to_bytes());
     event
 }
 

@@ -25,7 +25,7 @@ pub use policy::{parse_nostr_identity_policy, validate_nostr_identity_policy};
 pub use policy_model::*;
 
 /// Integrated UCAN revision that contains holder admission and Nostr support.
-pub const UCAN_SOURCE_REVISION: &str = "c483c7b58c42ec6636e9b8b8c0f73a2b609bf21e";
+pub const UCAN_SOURCE_REVISION: &str = "6f888f6c91a4ea26f0bd52b6486e6643c8f6d271";
 /// Reviewed source revision that introduced `VerifiedNostrCredential`.
 pub const UCAN_NOSTR_CREDENTIAL_REVISION: &str = "c9d43a7c11dd2fab4d5cb3d100012fa9a2e5b026";
 /// Exact producer contract accepted by the public adapter.

@@ -245,8 +245,8 @@
               nickel export --format json contracts/ucan-v1-profile/mapping.ncl > "$TMPDIR/mapping.json"
               cmp "$TMPDIR/source-evidence.json" contracts/ucan-v1-profile/generated/source-evidence.json
               cmp "$TMPDIR/mapping.json" contracts/ucan-v1-profile/generated/mapping.json
-              expected_revision='c483c7b58c42ec6636e9b8b8c0f73a2b609bf21e'
-              expected_manifest='803c5204d7b28622b87e16d6c7e64bf0e4e5d7468b961d6579db2c84104ecb9d'
+              expected_revision='6f888f6c91a4ea26f0bd52b6486e6643c8f6d271'
+              expected_manifest='a30addca944cb27578f2c9e8fbe8c133a6839ff9aabfa6f0151e436ff920a7be'
               test "$(tr -d '\n' < vendor/ucan-revision.txt)" = "$expected_revision"
               test "$(b3sum vendor/ucan.snapshot | cut -d' ' -f1)" = "$expected_manifest"
               for fixture in contracts/ucan-v1-profile/fixtures/invalid/*.ncl; do
@@ -336,6 +336,28 @@
               for fixture in contracts/runtime-effect/fixtures/invalid/*.ncl; do
                 if nickel export --format json "$fixture" > /dev/null 2>"$TMPDIR/$(basename "$fixture").err"; then
                   echo "invalid runtime-effect fixture passed: $fixture" >&2
+                  exit 1
+                fi
+              done
+              touch "$out"
+            '';
+
+        checks.world-branch-authority-policy =
+          pkgs.runCommand "basalt-world-branch-authority-policy"
+            {
+              nativeBuildInputs = [ nickelCohort ];
+            }
+            ''
+              cd ${./.}
+              nickel typecheck contracts/world-branch-authority/policy.ncl
+              nickel typecheck contracts/world-branch-authority/consumer-mappings.ncl
+              nickel export --format json contracts/world-branch-authority/policy.ncl > "$TMPDIR/policy.json"
+              nickel export --format json contracts/world-branch-authority/consumer-mappings.ncl > "$TMPDIR/consumer-mappings.json"
+              cmp "$TMPDIR/policy.json" contracts/world-branch-authority/generated/policy.json
+              cmp "$TMPDIR/consumer-mappings.json" contracts/world-branch-authority/generated/consumer-mappings.json
+              for fixture in contracts/world-branch-authority/fixtures/invalid/*.ncl; do
+                if nickel export --format json "$fixture" > /dev/null 2>"$TMPDIR/$(basename "$fixture").err"; then
+                  echo "invalid world-branch authority fixture passed: $fixture" >&2
                   exit 1
                 fi
               done
@@ -559,6 +581,7 @@
               nickelToolchainFixtures = self.checks.${system}.nickel-toolchain-fixtures;
               peerAuthPolicy = self.checks.${system}.peer-auth-policy;
               runtimeEffectPolicy = self.checks.${system}.runtime-effect-policy;
+              worldBranchAuthorityPolicy = self.checks.${system}.world-branch-authority-policy;
               oidcExchangePolicy = self.checks.${system}.oidc-exchange-policy;
               oidcExchangeSources = self.checks.${system}.oidc-exchange-sources;
               policyExport = self.checks.${system}.policy-export;

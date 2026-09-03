@@ -1,4 +1,4 @@
-let UcanRevision = "c483c7b58c42ec6636e9b8b8c0f73a2b609bf21e" in
+let UcanRevision = "6f888f6c91a4ea26f0bd52b6486e6643c8f6d271" in
 let CelldRevision = "c978a2590e875b003ecd860a86cb7551287eba67" in
 let CelldSourceBlob = "40d6ac4613d293a148e7222e192153eaeaeb29db" in
 let CelldLicense = "Apache-2.0" in

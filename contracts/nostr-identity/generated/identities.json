@@ -1,12 +1,12 @@
 {
   "schema": "basalt.nostr-identity-producer-identities.v1",
-  "ucan_source_revision": "c483c7b58c42ec6636e9b8b8c0f73a2b609bf21e",
+  "ucan_source_revision": "6f888f6c91a4ea26f0bd52b6486e6643c8f6d271",
   "ucan_nostr_credential_revision": "c9d43a7c11dd2fab4d5cb3d100012fa9a2e5b026",
   "credential_contract": "ucan-nostr::VerifiedNostrCredential@c9d43a7c11dd2fab4d5cb3d100012fa9a2e5b026",
   "policy_schema": "basalt.nostr-identity-policy.v1",
   "authentication_receipt_schema": "basalt.nostr-authentication-receipt.v1",
   "composition_receipt_schema": "basalt.nostr-composition-receipt.v1",
   "producer_schema_blake3": "45824d99ae765e885f085ef2c8c8294343415af8e5489c35509c3e255476e258",
-  "producer_implementation_blake3": "1f70a3e9327904c44d8efdee2c504eca287448548fb35a9c041c0d553f71db1e",
+  "producer_implementation_blake3": "94f7b054bc97eddc39b2a29e020e064d647d749c7f806c0aa1089a02fb792f7e",
   "policy_blake3": "9f5df806b5fac55a35a63f58c86e4218de1414141c20c999cbd140ea3c0556a2"
 }
