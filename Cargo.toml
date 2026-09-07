@@ -71,7 +71,7 @@ include = [
 [features]
 default = ["oidc-exchange", "durable-authority"]
 oidc-exchange = ["dep:bounded-http"]
-durable-authority = ["dep:replay-ledger-core", "dep:revocation-view-core"]
+durable-authority = ["dep:replay-ledger-core", "dep:revocation-view-core", "ucan/durable-authority"]
 cli = ["dep:clap", "dep:cap-std"]
 
 [[bin]]
@@ -93,7 +93,7 @@ secretspec = { version = "=0.17.0", default-features = false }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 snafu = "0.8"
-ucan = { version = "0.1.0", path = "vendor/ucan" }
+ucan = { version = "0.1.0", path = "vendor/ucan", default-features = false }
 ucan-core = { version = "0.1.0", path = "vendor/ucan/crates/ucan-core", default-features = false, features = ["peer-auth"] }
 ucan-nostr = { version = "0.1.0", path = "vendor/ucan/crates/ucan-nostr" }
 

@@ -22,5 +22,5 @@
   "required_freshness": "within-clock-bound",
   "required_replay": "fresh",
   "schema": "basalt.peer-auth-policy.v1",
-  "ucan_revision": "6f888f6c91a4ea26f0bd52b6486e6643c8f6d271"
+  "ucan_revision": "927dc32641af6cd1b17202aff44c35acef4540fa"
 }

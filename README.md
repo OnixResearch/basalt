@@ -22,7 +22,7 @@ The repository uses a small functional core and imperative shell. Nickel owns po
 
 Basalt is under active development. Its UCAN dependency uses a checked-in reviewed snapshot.
 
-The snapshot records integrated UCAN commit `6f888f6c91a4ea26f0bd52b6486e6643c8f6d271`.
+The snapshot records integrated UCAN commit `927dc32641af6cd1b17202aff44c35acef4540fa`.
 That revision is published on the UCAN `main` branch. The repository-owned snapshot remains the durable build boundary.
 
 `Cargo.toml` contains package metadata for downstream discovery. The crate retains the `AGPL-3.0-or-later` license.
@@ -91,9 +91,13 @@ nix build .#checks.$(nix eval --raw --impure --expr builtins.currentSystem).poli
 The `oidc-exchange` and `durable-authority` features are enabled by default. They
 preserve the existing public modules. Explicit `default-features = false` omits
 Basalt's OIDC and durable-state adapters, not signature, revocation or replay checks.
-This profile is not yet qualified for Rust 1.95: UCAN still brings unconditional
-durable-state dependencies requiring Rust 1.96. The active isolation change records
-that blocker. No compiler-version bypass is supported.
+Basalt disables UCAN defaults and forwards its default-on durable-authority feature
+explicitly. The minimal profile passes library and enforcement tests on Rust 1.95;
+full defaults retain their Rust 1.96 dependency requirements. No compiler-version
+bypass is supported. Check the minimal profile with
+`nix develop .#enforcement-compat -c cargo test --no-default-features --lib --test ucan_enforcement --locked`.
+The release verifier also rejects any of the four HTTP/durable-state libraries in
+the selected minimal normal dependency graph.
 
 Applications can use the enforcement API with default features:
 

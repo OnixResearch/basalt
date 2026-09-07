@@ -265,8 +265,8 @@
               nickel export --format json contracts/ucan-v1-profile/mapping.ncl > "$TMPDIR/mapping.json"
               cmp "$TMPDIR/source-evidence.json" contracts/ucan-v1-profile/generated/source-evidence.json
               cmp "$TMPDIR/mapping.json" contracts/ucan-v1-profile/generated/mapping.json
-              expected_revision='6f888f6c91a4ea26f0bd52b6486e6643c8f6d271'
-              expected_manifest='a30addca944cb27578f2c9e8fbe8c133a6839ff9aabfa6f0151e436ff920a7be'
+              expected_revision='927dc32641af6cd1b17202aff44c35acef4540fa'
+              expected_manifest='9054f60e30ac4bfa50abd3b5e030f5c83c39f060b1199111eb5cb54a5403b346'
               test "$(tr -d '\n' < vendor/ucan-revision.txt)" = "$expected_revision"
               test "$(b3sum vendor/ucan.snapshot | cut -d' ' -f1)" = "$expected_manifest"
               for fixture in contracts/ucan-v1-profile/fixtures/invalid/*.ncl; do
@@ -288,8 +288,8 @@
               expected_revision='a0de79303f3f45c18a34fff535b690a85cb3cf59'
               expected_package_count=2
               locked_source="git+$expected_url?rev=$expected_revision#$expected_revision"
-              rg --fixed-strings "replay-ledger-core = { git = \"$expected_url\", rev = \"$expected_revision\" }" ${./Cargo.toml}
-              rg --fixed-strings "revocation-view-core = { git = \"$expected_url\", rev = \"$expected_revision\" }" ${./Cargo.toml}
+              rg --fixed-strings "replay-ledger-core = { git = \"$expected_url\", rev = \"$expected_revision\", optional = true }" ${./Cargo.toml}
+              rg --fixed-strings "revocation-view-core = { git = \"$expected_url\", rev = \"$expected_revision\", optional = true }" ${./Cargo.toml}
               test "$(rg --fixed-strings --count-matches "$locked_source" ${./Cargo.lock})" -eq "$expected_package_count"
               if rg --fixed-strings 'github.com/OnixResearch/durable-authority-state' ${./Cargo.toml}; then
                 echo 'GitHub fallback is prohibited' >&2

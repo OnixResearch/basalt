@@ -6,7 +6,7 @@ It does not infer a profile from credential bytes.
 ## Current cohorts
 
 - Profiles: `onix-compact-ed25519-v1` and `ucan-wg-1.0.0`
-- Vendored UCAN revision: `6f888f6c91a4ea26f0bd52b6486e6643c8f6d271`
+- Vendored UCAN revision: `927dc32641af6cd1b17202aff44c35acef4540fa`
 - Support catalog BLAKE3: `fe77fd63076eaef555b74e702e4c14e483bdba70151ccc955c75b17d97412427`
 - Basalt policy BLAKE3: `5475d5473ec98cbf052a83512836b0739f5dad3e7b9b0ed201eb3094b1cf39bf`
 

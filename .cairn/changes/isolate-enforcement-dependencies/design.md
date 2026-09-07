@@ -2,7 +2,11 @@
 
 Gate oidc_exchange and bounded-http under oidc-exchange. Gate durable_authority and
 its two external core dependencies under durable-authority. Both features are default;
-explicit no-default consumption opts out. No source or dependency revision changes.
+explicit no-default consumption opts out. Import published UCAN revision
+927dc32641af6cd1b17202aff44c35acef4540fa through the maintained exact-revision vendor
+importer. Disable UCAN defaults and forward ucan/durable-authority from Basalt's
+default-on feature. Preserve third-party dependency pins and all notices. This
+owner-qualified snapshot replaces the former unconditional UCAN dependency boundary.
 
 Core enforcement keeps the same typed requests, exact policy and operation identities,
 signature validation, injected revocation/replay services and private live grants.
