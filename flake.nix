@@ -432,7 +432,7 @@
                   exit 1
                 fi
               done
-              rg --fixed-strings "bounded-http = { git = \"$expected_url\", rev = \"$expected_revision\" }" Cargo.toml
+              rg --fixed-strings "bounded-http = { git = \"$expected_url\", rev = \"$expected_revision\", optional = true }" Cargo.toml
               test "$(rg --fixed-strings --count-matches "rev=$expected_revision#$expected_revision" Cargo.lock)" -eq 2
               rg --fixed-strings 'jsonwebtoken = { version = "=11.0.0", default-features = false, features = ["rust_crypto"] }' Cargo.toml
               rg --fixed-strings "$expected_jwt_revision" contracts/oidc-exchange/source-contracts.ncl
