@@ -1,4 +1,5 @@
 #[path = "ucan_enforcement/durable_authority.rs"]
+#[cfg(feature = "durable-authority")]
 mod durable_authority;
 #[path = "ucan_enforcement/negative/mod.rs"]
 mod negative;

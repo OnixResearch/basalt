@@ -267,6 +267,7 @@ pub(super) const REQUIRED_PACKAGE_FILES: &[&str] = &[
     "tests/ucan_semantics_contract.rs",
     "tools/release-verify.rs",
     "tools/release_verify/execute.rs",
+    "tools/release_verify/enforcement_profile.rs",
     "tools/release_verify/model.rs",
     "tools/release_verify/plan.rs",
     "tools/release_verify/receipts.rs",
@@ -312,6 +313,7 @@ pub(super) struct Step {
 #[derive(Clone, Copy)]
 pub(super) enum StepKind {
     Normal,
+    EnforcementDependencies,
     NickelCohortIdentity,
     LicenseMetadata,
     PolicyFreshness,

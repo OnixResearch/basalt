@@ -135,6 +135,14 @@
           ];
         };
 
+        devShells.enforcement-compat = pkgs.mkShell {
+          packages = [
+            pkgs.openssh
+            pkgs.stdenv.cc
+            (pkgs.rust-bin.stable."1.95.0".default)
+          ];
+        };
+
         checks.nickel-cohort-exact =
           pkgs.runCommand "basalt-nickel-cohort-exact"
             {

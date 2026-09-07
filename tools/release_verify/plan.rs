@@ -3,8 +3,8 @@ use super::model::{
     CLANKERS_CONSUMER_MANIFEST, CLANKERS_TARGET_DIR, DEFAULT_TARGET_DIR, ISSUER_FRESH_STEP_NAME,
     ISSUER_REPLAY_STEP_NAME, LICENSE_FRESH_STEP_NAME, LICENSE_REPLAY_STEP_NAME,
     NICKEL_COHORT_STEP_NAME, PACKAGE_TARGET_DIR, POLICY_FRESH_STEP_NAME, SEMANTICS_FRESH_STEP_NAME,
-    SEMANTICS_REPLAY_STEP_NAME, Step, StepKind,
-    VENDORED_UCAN_CHECK_BINARY, VENDORED_UCAN_TEST_BINARY,
+    SEMANTICS_REPLAY_STEP_NAME, Step, StepKind, VENDORED_UCAN_CHECK_BINARY,
+    VENDORED_UCAN_TEST_BINARY,
 };
 
 pub(super) fn steps() -> Vec<Step> {
@@ -125,6 +125,39 @@ pub(super) fn steps() -> Vec<Step> {
             kind: StepKind::LicenseMetadata,
         },
         Step {
+            name: "minimal enforcement tests",
+            program: "cargo",
+            args: &[
+                "test",
+                "--no-default-features",
+                "--lib",
+                "--test",
+                "ucan_enforcement",
+                "--locked",
+            ],
+            target_dir: DEFAULT_TARGET_DIR,
+            cargo_env: true,
+            kind: StepKind::Normal,
+        },
+        Step {
+            name: "minimal enforcement dependencies",
+            program: "cargo",
+            args: &[
+                "tree",
+                "--no-default-features",
+                "--edges",
+                "normal",
+                "--prefix",
+                "none",
+                "--format",
+                "{lib}",
+                "--locked",
+            ],
+            target_dir: DEFAULT_TARGET_DIR,
+            cargo_env: true,
+            kind: StepKind::EnforcementDependencies,
+        },
+        Step {
             name: "library tests",
             program: "cargo",
             args: &["nextest", "run", "--no-default-features"],
@@ -233,7 +266,12 @@ pub(super) fn steps() -> Vec<Step> {
         Step {
             name: LICENSE_REPLAY_STEP_NAME,
             program: "cargo",
-            args: &["test", "--test", "license_consumption", "--no-default-features"],
+            args: &[
+                "test",
+                "--test",
+                "license_consumption",
+                "--no-default-features",
+            ],
             target_dir: DEFAULT_TARGET_DIR,
             cargo_env: true,
             kind: StepKind::Normal,
@@ -241,7 +279,12 @@ pub(super) fn steps() -> Vec<Step> {
         Step {
             name: ISSUER_REPLAY_STEP_NAME,
             program: "cargo",
-            args: &["test", "--test", "secretspec_issuer", "--no-default-features"],
+            args: &[
+                "test",
+                "--test",
+                "secretspec_issuer",
+                "--no-default-features",
+            ],
             target_dir: DEFAULT_TARGET_DIR,
             cargo_env: true,
             kind: StepKind::Normal,

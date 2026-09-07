@@ -1,3 +1,5 @@
+#![cfg(feature = "oidc-exchange")]
+
 use basalt::oidc_exchange::{
     BOUNDED_HTTP_REVISION, BOUNDED_HTTP_RID, JSONWEBTOKEN_REVISION, JSONWEBTOKEN_VERSION,
 };

@@ -5,6 +5,7 @@ pub(crate) mod fixtures;
 pub(crate) mod services;
 
 pub(crate) use basalt::authority_core::default_authority_policy_ref;
+#[cfg(feature = "durable-authority")]
 pub(crate) use basalt::durable_authority::{
     BasaltDurableAuthority, DurableAuthorityVerificationInputs,
 };

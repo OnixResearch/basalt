@@ -226,6 +226,8 @@ fn receipt_from_output(
         validate_license_metadata(&root.join("Cargo.toml"), &stdout)
     } else if matches!(step.kind, StepKind::NickelCohortIdentity) && output.status.success() {
         validate_nickel_identity(&stdout)
+    } else if matches!(step.kind, StepKind::EnforcementDependencies) && output.status.success() {
+        super::enforcement_profile::validate(&stdout)
     } else {
         Ok(())
     };

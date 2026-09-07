@@ -5,6 +5,8 @@
 // r[verify ucan_token_flow.oidc.replay_boundary]
 // r[verify ucan_token_flow.oidc.redacted_evidence]
 
+#![cfg(feature = "oidc-exchange")]
+
 use std::collections::{BTreeSet, VecDeque};
 use std::sync::OnceLock;
 

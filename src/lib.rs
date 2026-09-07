@@ -60,9 +60,11 @@ pub mod ast_grep_audit;
 pub mod authority_core;
 #[cfg(feature = "cli")]
 pub mod cli_fs;
+#[cfg(feature = "durable-authority")]
 pub mod durable_authority;
 pub mod license_consumption;
 pub mod nostr_identity;
+#[cfg(feature = "oidc-exchange")]
 pub mod oidc_exchange;
 pub mod peer_auth;
 pub mod policy_cache;

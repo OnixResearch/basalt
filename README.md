@@ -88,6 +88,13 @@ nix build .#checks.$(nix eval --raw --impure --expr builtins.currentSystem).poli
 
 ## Library API
 
+The `oidc-exchange` and `durable-authority` features are enabled by default. They
+preserve the existing public modules. Explicit `default-features = false` omits
+Basalt's OIDC and durable-state adapters, not signature, revocation or replay checks.
+This profile is not yet qualified for Rust 1.95: UCAN still brings unconditional
+durable-state dependencies requiring Rust 1.96. The active isolation change records
+that blocker. No compiler-version bypass is supported.
+
 Applications can use the enforcement API with default features:
 
 ```rust

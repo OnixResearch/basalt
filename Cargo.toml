@@ -69,7 +69,9 @@ include = [
 ]
 
 [features]
-default = []
+default = ["oidc-exchange", "durable-authority"]
+oidc-exchange = ["dep:bounded-http"]
+durable-authority = ["dep:replay-ledger-core", "dep:revocation-view-core"]
 cli = ["dep:clap", "dep:cap-std"]
 
 [[bin]]
@@ -80,13 +82,13 @@ required-features = ["cli"]
 [dependencies]
 base64 = "=0.22.1"
 blake3 = "1.8"
-bounded-http = { git = "https://seed.radicle.garden/z4ARxEt93T6gJTrTZpUyKHMAemPiv.git", rev = "5abc2b93e0f288aba251a0750ce2d716eb9757fc" }
+bounded-http = { git = "https://seed.radicle.garden/z4ARxEt93T6gJTrTZpUyKHMAemPiv.git", rev = "5abc2b93e0f288aba251a0750ce2d716eb9757fc", optional = true }
 cap-std = { version = "4.0.2", optional = true }
 clap = { version = "4.5", features = ["derive"], optional = true }
 iddqd = "0.4.5"
 jsonwebtoken = { version = "=11.0.0", default-features = false, features = ["rust_crypto"] }
-replay-ledger-core = { git = "https://seed.radicle.garden/z3kGDT73ja8rewvGLwJFLF5MTx1ih.git", rev = "a0de79303f3f45c18a34fff535b690a85cb3cf59" }
-revocation-view-core = { git = "https://seed.radicle.garden/z3kGDT73ja8rewvGLwJFLF5MTx1ih.git", rev = "a0de79303f3f45c18a34fff535b690a85cb3cf59" }
+replay-ledger-core = { git = "https://seed.radicle.garden/z3kGDT73ja8rewvGLwJFLF5MTx1ih.git", rev = "a0de79303f3f45c18a34fff535b690a85cb3cf59", optional = true }
+revocation-view-core = { git = "https://seed.radicle.garden/z3kGDT73ja8rewvGLwJFLF5MTx1ih.git", rev = "a0de79303f3f45c18a34fff535b690a85cb3cf59", optional = true }
 secretspec = { version = "=0.17.0", default-features = false }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
