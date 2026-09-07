@@ -21,6 +21,14 @@ rejection. These results do not establish Rust 1.95 compatibility. A broadened
 `cargo fmt --all -- --check` found existing vendored UCAN formatting differences;
 no vendored file was reformatted. The maintained root-only format check is separate.
 
+Draft source: `987e9e9cce5fc91d5486a135e74684c92c1e8af0`.
+Maintained root formatting and strict all-target Clippy passed for both all-features
+and no-default profiles on Rust 1.96. Vendor, Cargo lock and Nix lock stayed unchanged.
+The complete direct release then stopped at `minimal enforcement dependencies`:
+the Cargo command exited zero, but semantic validation failed with
+`minimal dependency observation includes replay_ledger_core`. Earlier freshness
+checks and minimal tests passed. No release acceptance is inferred from child exit.
+
 All tasks remain unchecked. This change is not ready to publish, sync or archive.
 The next owner contract is a selectable UCAN durable-authority adapter, preserving
 verification services and default behavior. Qualify and publish that contract before
