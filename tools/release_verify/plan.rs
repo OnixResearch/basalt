@@ -160,7 +160,7 @@ pub(super) fn steps() -> Vec<Step> {
         Step {
             name: "library tests",
             program: "cargo",
-            args: &["nextest", "run", "--no-default-features"],
+            args: &["nextest", "run", "--locked"],
             target_dir: DEFAULT_TARGET_DIR,
             cargo_env: true,
             kind: StepKind::Normal,
@@ -215,7 +215,7 @@ pub(super) fn steps() -> Vec<Step> {
                 "oidc_dependencies",
                 "--test",
                 "oidc_evidence_scan",
-                "--no-default-features",
+                "--locked",
             ],
             target_dir: DEFAULT_TARGET_DIR,
             cargo_env: true,
@@ -300,7 +300,7 @@ pub(super) fn steps() -> Vec<Step> {
         Step {
             name: "doctests",
             program: "cargo",
-            args: &["test", "--doc", "--no-default-features"],
+            args: &["test", "--doc", "--locked"],
             target_dir: DEFAULT_TARGET_DIR,
             cargo_env: true,
             kind: StepKind::Normal,
@@ -360,7 +360,7 @@ pub(super) fn steps() -> Vec<Step> {
         Step {
             name: "library docs",
             program: "cargo",
-            args: &["doc", "--no-deps", "--no-default-features"],
+            args: &["doc", "--no-deps", "--locked"],
             target_dir: DEFAULT_TARGET_DIR,
             cargo_env: true,
             kind: StepKind::Normal,

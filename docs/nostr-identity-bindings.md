@@ -13,9 +13,14 @@ The adapter does not accept `signature_valid`, `authenticated`, or similar calle
 The published producer identities are:
 
 - schema BLAKE3: `45824d99ae765e885f085ef2c8c8294343415af8e5489c35509c3e255476e258`;
-- implementation-profile BLAKE3: `94f7b054bc97eddc39b2a29e020e064d647d749c7f806c0aa1089a02fb792f7e`.
+- implementation-profile BLAKE3: `f8938a21b35cac5090db088394b2efe91c571f5115969cb34c33ae27f71fc759`.
 
 `contracts/nostr-identity/generated/identities.json` records these values for downstream pinning. The implementation profile is not a source-code proof.
+
+Regenerate this inspection projection with `cargo run --example nostr_identities --quiet`.
+The exporter calls the public Rust identity functions and embeds the checked policy.
+Capture stdout to a temporary file before replacing the checked projection. Nickel's
+`identity` field alone is not this producer record and lacks its computed digests.
 
 ## Policy
 

@@ -55,6 +55,7 @@ include = [
     "docs/policy-identity.md",
     "docs/secretspec-issuer.md",
     "docs/vendored-ucan.md",
+    "examples/nostr_identities.rs",
     "tools/release-verify.rs",
     "tools/release_verify/**",
     "tools/ast-grep/**",

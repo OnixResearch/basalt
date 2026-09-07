@@ -186,6 +186,7 @@ pub(super) const REQUIRED_PACKAGE_FILES: &[&str] = &[
     "docs/ucan-v1-profile.md",
     "docs/secretspec-issuer.md",
     "docs/vendored-ucan.md",
+    "examples/nostr_identities.rs",
     "src/authority_core.rs",
     "src/authority_identity.rs",
     "src/ast_grep_audit.rs",

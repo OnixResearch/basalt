@@ -1,4 +1,7 @@
-# Incomplete profile qualification
+# Historical incomplete profile qualification
+
+This records the earlier blocked draft. See `ADOPTION.md` for the later published
+UCAN profile and current qualification evidence. The failures below are preserved.
 
 Base: published Basalt `27547d7870fdb5ca21208d583b58a518ba820b72`.
 The 30-test default enforcement baseline passed before edits.

@@ -28,6 +28,33 @@ pub(super) fn validate(observation: &str) -> Result<(), String> {
 mod tests {
     use super::validate;
 
+    #[test]
+    fn full_and_minimal_rails_select_distinct_profiles() {
+        let steps = crate::plan::steps();
+        for name in [
+            "library tests",
+            "OIDC exchange and source-boundary tests",
+            "doctests",
+            "library docs",
+        ] {
+            let step = steps
+                .iter()
+                .find(|step| step.name == name)
+                .expect("maintained step");
+            assert!(!step.args.contains(&"--no-default-features"), "{name}");
+        }
+        for name in [
+            "minimal enforcement tests",
+            "minimal enforcement dependencies",
+        ] {
+            let step = steps
+                .iter()
+                .find(|step| step.name == name)
+                .expect("minimal step");
+            assert!(step.args.contains(&"--no-default-features"), "{name}");
+        }
+    }
+
     // r[verify crate_consumability.enforcement_profile_evidence]
     #[test]
     fn accepts_enforcement_and_rejects_missing_or_forbidden_packages() {

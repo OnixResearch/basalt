@@ -28,6 +28,14 @@ fn generated_producer_identities_match_the_pure_core() {
         serde_json::from_str(GENERATED_IDENTITIES).expect("producer identities");
     let policy = parse_nostr_identity_policy(GENERATED_POLICY).expect("generated policy");
     assert_eq!(
+        identities["schema"],
+        "basalt.nostr-identity-producer-identities.v1"
+    );
+    assert_eq!(
+        identities["ucan_source_revision"],
+        basalt::nostr_identity::UCAN_SOURCE_REVISION
+    );
+    assert_eq!(
         identities["producer_schema_blake3"],
         nostr_identity_schema_identity().hex
     );
