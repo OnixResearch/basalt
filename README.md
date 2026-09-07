@@ -328,7 +328,20 @@ The direct rail performs these checks:
 - the `../clankers/` consumer fixture when present
 - library documentation without dependencies
 
-The rail uses fresh `/tmp/basalt-release-*` target directories. It clears `RUSTC_WRAPPER` and enables Git CLI fetching.
+The rail uses `/tmp/basalt-release-*` target directories. It clears `RUSTC_WRAPPER` and enables Git CLI fetching.
+
+Set `RELEASE_VERIFY_SCRATCH_DIR` to use other storage for the five owned scratch
+paths and child temporary files. Use an absolute normalized UTF-8 non-root path.
+Empty values, control characters, and `.` or `..` components are rejected before
+checks. The shell creates the directory; use a fresh operator-controlled directory
+for a fresh run. This option does not clean files, skip checks, isolate processes,
+or authenticate filesystem custody. It preserves separate Cargo targets and moves
+both bootstrap compiler outputs and subsequent executions. Receipts show the actual
+command and Cargo target. Invalid configuration exits without a new receipt.
+
+If `/tmp` is full, set `TMPDIR` to existing available storage before `nix develop`
+as well. Compile the verifier outside `/tmp`. Unset scratch configuration preserves
+the existing default paths.
 
 Direct runs write these receipts:
 

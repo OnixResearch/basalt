@@ -8,6 +8,8 @@ mod ast_grep_audit_identity;
 mod execute;
 #[path = "release_verify/model.rs"]
 mod model;
+#[path = "release_verify/scratch.rs"]
+mod scratch;
 #[path = "release_verify/plan.rs"]
 mod plan;
 #[path = "release_verify/receipts.rs"]

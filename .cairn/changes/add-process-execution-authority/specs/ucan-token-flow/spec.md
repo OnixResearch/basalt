@@ -2,6 +2,20 @@
 
 ## ADDED Requirements
 
+### Requirement: Explicit release scratch storage
+r[basalt.ucan_token_flow.process_release_scratch] The release verifier MAY accept `RELEASE_VERIFY_SCRATCH_DIR` as an absolute normalized UTF-8 non-root path. It MUST reject invalid configuration before checks. It SHALL relocate only its five owned scratch paths, preserve distinct target directories, and record actual commands and Cargo targets. The option MUST NOT skip checks or confer filesystem custody. Unset configuration SHALL preserve existing paths.
+
+#### Scenario: Home-backed verification
+- GIVEN an explicit valid scratch directory with available storage
+- WHEN the full verifier runs
+- THEN bootstrap outputs and executions use the same relocated paths and all existing checks remain selected
+
+#### Scenario: Invalid configuration
+- GIVEN an empty, relative, root, control-bearing or non-normalized scratch directory
+- WHEN the verifier starts
+- THEN it rejects before starting checks
+
+
 ### Requirement: Exact process execution grant
 r[basalt.ucan_token_flow.process_execution] Basalt MUST bind process execution to a distinct closed action, contract, ability and exact normalized context resource. It SHALL preserve holder-signature, revocation and final replay checks. A document or deployment grant SHALL NOT substitute for execution authority.
 

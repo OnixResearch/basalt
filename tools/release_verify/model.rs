@@ -271,6 +271,7 @@ pub(super) const REQUIRED_PACKAGE_FILES: &[&str] = &[
     "tools/release_verify/plan.rs",
     "tools/release_verify/receipts.rs",
     "tools/release_verify/tests.rs",
+    "tools/release_verify/scratch.rs",
     "tools/release_verify/validators.rs",
     "tools/ast-grep/rules/no-direct-enforcement-bypass.yml",
     "tools/ast-grep/sgconfig.yml",

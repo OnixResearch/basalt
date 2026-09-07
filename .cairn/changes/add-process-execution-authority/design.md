@@ -30,6 +30,17 @@ Tests cover genuine test-key holder signatures, new-purpose/default-policy denia
 wrong document authority, changed resource/holder binding, revocation and replay.
 Test keys do not authorize any consumer deployment or process execution.
 
+## Release scratch storage
+
+Full qualification encountered an exhausted host `/tmp`. An explicit
+`RELEASE_VERIFY_SCRATCH_DIR` selects normalized absolute UTF-8 storage. Pure layout
+validation and exact five-path translation stay separate from environment reading,
+directory creation and process execution. The shell creates the directory, maps
+bootstrap program/output paths and isolated Cargo targets, and records actual
+commands and target paths. Child temporary storage uses the selected directory.
+The option does not skip checks, alter authority, clean files, isolate processes,
+or authenticate filesystem custody. Unset configuration preserves existing paths.
+
 ## Compatibility
 
 No dependency or vendored source upgrade. No imported host type enters the new
