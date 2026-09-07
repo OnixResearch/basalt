@@ -195,10 +195,22 @@
               touch $out
             '';
 
+        checks.process-execution-policy =
+          pkgs.runCommand "basalt-process-execution-policy"
+            { nativeBuildInputs = [ nickelCohort ]; }
+            ''
+              cd ${./.}
+              nickel typecheck contracts/process-execution/policy.ncl
+              nickel export --format json contracts/process-execution/policy.ncl > "$TMPDIR/policy.json"
+              cmp "$TMPDIR/policy.json" contracts/process-execution/policy.json
+              cp "$TMPDIR/policy.json" "$out"
+            '';
+
         checks.policy-export =
           pkgs.runCommand "basalt-policy-export"
             {
               nativeBuildInputs = [ nickelCohort ];
+              processExecutionPolicy = self.checks.${system}.process-execution-policy;
             }
             ''
               mkdir -p contracts
@@ -585,6 +597,7 @@
               oidcExchangePolicy = self.checks.${system}.oidc-exchange-policy;
               oidcExchangeSources = self.checks.${system}.oidc-exchange-sources;
               policyExport = self.checks.${system}.policy-export;
+              processExecutionPolicy = self.checks.${system}.process-execution-policy;
               ucanSemanticsFixtures = self.checks.${system}.ucan-semantics-fixtures;
               ucanV1Profile = self.checks.${system}.ucan-v1-profile;
               licenseConsumptionFixtures = self.checks.${system}.license-consumption-fixtures;

@@ -68,12 +68,27 @@ pub fn bind_enforcement_action(
             return Err(UcanEnforcementReason::LimitExceeded);
         }
     }
+    if action == EnforcementAction::ProcessExecute && !exact_process_resource(request.resource()) {
+        return Err(UcanEnforcementReason::ScopeDenied);
+    }
     let request_binding =
         derive_request_binding(action, request).ok_or(UcanEnforcementReason::LimitExceeded)?;
     Ok(OperationBinding::new(
         action.operation_profile_id(),
         RequestBindingDigest::from_bytes(request_binding),
     ))
+}
+
+// r[impl basalt.ucan_token_flow.process_execution]
+fn exact_process_resource(resource: &str) -> bool {
+    let Some(digest) = resource.strip_prefix(EnforcementAction::ProcessExecute.resource_prefix())
+    else {
+        return false;
+    };
+    digest.len() == BLAKE3_HEX_LENGTH
+        && digest
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
 }
 
 pub(super) fn build_authority_decision(

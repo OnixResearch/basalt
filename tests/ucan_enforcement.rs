@@ -8,6 +8,10 @@ mod onixos_targets;
 mod order;
 #[path = "ucan_enforcement/positive.rs"]
 mod positive;
+#[path = "ucan_enforcement/process_execution.rs"]
+mod process_execution;
+#[path = "ucan_enforcement/process_support.rs"]
+mod process_support;
 #[path = "ucan_enforcement/receipt.rs"]
 mod receipt;
 #[path = "ucan_enforcement/support/mod.rs"]

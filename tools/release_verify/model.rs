@@ -91,6 +91,8 @@ pub(super) const REQUIRED_PACKAGE_FILES: &[&str] = &[
     "README.md",
     "contracts/generated/policy.json",
     "contracts/policy.ncl",
+    "contracts/process-execution/policy.ncl",
+    "contracts/process-execution/policy.json",
     "contracts/nickel-toolchain/positive/valid-contract.ncl",
     "contracts/nickel-toolchain/positive/valid-export.ncl",
     "contracts/nickel-toolchain/positive/valid-import.ncl",

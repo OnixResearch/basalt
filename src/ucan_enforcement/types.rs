@@ -12,6 +12,9 @@ const DOCUMENT_READ_CONTRACT: &str = "document-read";
 const DOCUMENT_READ_ABILITY: &str = "document/read";
 const DOCUMENT_WRITE_CONTRACT: &str = "document-write";
 const DOCUMENT_WRITE_ABILITY: &str = "document/write";
+const PROCESS_EXECUTE_CONTRACT: &str = "process-execute";
+const PROCESS_EXECUTE_ABILITY: &str = "process/execute";
+const PROCESS_EXECUTION_RESOURCE_PREFIX: &str = "onix://process-execution/";
 
 const TARGET_CANDIDATE_ACTIVATION_CONTRACT: &str = "onixos-target-candidate-activation";
 const TARGET_CANDIDATE_ACTIVATION_ABILITY: &str = "onix/target-candidate-activation";
@@ -36,6 +39,9 @@ pub enum EnforcementAction {
     DocumentRead,
     /// Write one document resource.
     DocumentWrite,
+    /// Execute one independently admitted, content-bound process context.
+    /// Requires explicit policy; the packaged default policy does not allow it.
+    ProcessExecute,
     /// Candidate activation for one `OnixOS` target.
     OnixosTargetCandidateActivation,
     /// Generation persistence for one `OnixOS` target.
@@ -57,6 +63,7 @@ impl EnforcementAction {
         match self {
             Self::DocumentRead => "document-read",
             Self::DocumentWrite => "document-write",
+            Self::ProcessExecute => "process-execute",
             Self::OnixosTargetCandidateActivation => "onixos-target-candidate-activation",
             Self::OnixosTargetGenerationPersistence => "onixos-target-generation-persistence",
             Self::OnixosTargetRollback => "onixos-target-rollback",
@@ -72,6 +79,7 @@ impl EnforcementAction {
         match self {
             Self::DocumentRead => DOCUMENT_READ_CONTRACT,
             Self::DocumentWrite => DOCUMENT_WRITE_CONTRACT,
+            Self::ProcessExecute => PROCESS_EXECUTE_CONTRACT,
             Self::OnixosTargetCandidateActivation => TARGET_CANDIDATE_ACTIVATION_CONTRACT,
             Self::OnixosTargetGenerationPersistence => TARGET_GENERATION_PERSISTENCE_CONTRACT,
             Self::OnixosTargetRollback => TARGET_ROLLBACK_CONTRACT,
@@ -87,6 +95,7 @@ impl EnforcementAction {
         match self {
             Self::DocumentRead => DOCUMENT_READ_ABILITY,
             Self::DocumentWrite => DOCUMENT_WRITE_ABILITY,
+            Self::ProcessExecute => PROCESS_EXECUTE_ABILITY,
             Self::OnixosTargetCandidateActivation => TARGET_CANDIDATE_ACTIVATION_ABILITY,
             Self::OnixosTargetGenerationPersistence => TARGET_GENERATION_PERSISTENCE_ABILITY,
             Self::OnixosTargetRollback => TARGET_ROLLBACK_ABILITY,
@@ -101,6 +110,7 @@ impl EnforcementAction {
     pub const fn resource_prefix(self) -> &'static str {
         match self {
             Self::DocumentRead | Self::DocumentWrite => "",
+            Self::ProcessExecute => PROCESS_EXECUTION_RESOURCE_PREFIX,
             Self::OnixosTargetCandidateActivation
             | Self::OnixosTargetGenerationPersistence
             | Self::OnixosTargetRollback => ONIXOS_TARGET_RESOURCE_PREFIX,

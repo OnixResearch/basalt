@@ -249,6 +249,11 @@ Keep bearer text in `CompactToken`. Pass only borrowed `as_str()` views, and nev
 
 A typed action maps to one contract, ability, length-prefixed BLAKE3 operation profile, and exact request digest.
 
+`ProcessExecute` adds a separate execution purpose for an exact invocation-context reference.
+The packaged default policy still denies it. The optional policy at
+`contracts/process-execution/policy.ncl` requires deliberate selection.
+Basalt authenticates the supplied signed request, not the native process or its inputs.
+
 Basalt builds its authority decision and redacted receipt before fresh holder verification. UCAN then calls replay once as the final consuming commit.
 
 A policy denial makes no replay call. After replay succeeds, Basalt only moves prebuilt values into the private live capability.

@@ -60,6 +60,27 @@ The adapter has no generic action constructor. A caller can select only a review
 
 A live result for one target action grants only the exact mapped request. It does not execute an effect and does not prove effect correctness.
 
+## Explicit process execution
+
+`ProcessExecute` maps only to contract `process-execute` and ability `process/execute`.
+Its resource is `onix://process-execution/` followed by exactly 64 lowercase hex digits.
+Missing, uppercase, truncated, excessive, non-hex, or path-like references fail binding.
+
+The reference names one complete consumer-admitted invocation context, not just an
+executable. The consumer must bind the invocation, executable, arguments, environment,
+inputs, services, limits, and policy context. Basalt checks the reference shape and
+signed request. It does not authenticate that context or its immutable custody.
+
+The packaged default policy remains unchanged and denies this contract. The separate
+`contracts/process-execution/policy.ncl` is an explicit opt-in policy. Its generated
+JSON uses the same policy parser. Selection does not grant authority without valid
+UCAN and holder verification. No default final-profile command mapping is added.
+
+The compact verifier retains its existing signature, revocation, and final replay
+checks. A changed context cannot reuse a holder signature. Document permissions
+cannot authorize a process. An allowed receipt does not prove execution, resource
+enforcement, durable replay, output contents, or promotion. Basalt runs no process.
+
 ## UCAN source export
 
 These actions depend on the checked-in reviewed UCAN snapshot under `vendor/ucan/`.

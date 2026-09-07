@@ -18,6 +18,7 @@ include = [
     "contracts/policy-prelude.ncl",
     "contracts/generated/policy.json",
     "contracts/policy-authoring/**",
+    "contracts/process-execution/**",
     "contracts/nickel-toolchain/**",
     "contracts/peer-auth/**",
     "contracts/runtime-effect/**",
