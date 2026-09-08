@@ -7,8 +7,8 @@ Basalt's UCAN semantics fixtures test one bounded integration claim: decision fa
 Every fixture binds five immutable identities:
 
 - the admitted UCAN protocol profile: `onix-compact-ed25519-v1`
-- Basalt's reviewed vendored UCAN revision: `927dc32641af6cd1b17202aff44c35acef4540fa`
-- the reviewed UCAN support-catalog revision: `927dc32641af6cd1b17202aff44c35acef4540fa`
+- Basalt's reviewed vendored UCAN revision: `3a2aa043068a82663cf72ec05ed5d56a7d65ecd5`
+- the reviewed UCAN support-catalog revision: `3a2aa043068a82663cf72ec05ed5d56a7d65ecd5`
 - that catalog's BLAKE3 identity: `fe77fd63076eaef555b74e702e4c14e483bdba70151ccc955c75b17d97412427`
 - the generated Basalt policy artifact's BLAKE3 identity: `5475d5473ec98cbf052a83512836b0739f5dad3e7b9b0ed201eb3094b1cf39bf`
 

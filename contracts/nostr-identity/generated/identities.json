@@ -4,9 +4,9 @@
   "credential_contract": "ucan-nostr::VerifiedNostrCredential@c9d43a7c11dd2fab4d5cb3d100012fa9a2e5b026",
   "policy_blake3": "9f5df806b5fac55a35a63f58c86e4218de1414141c20c999cbd140ea3c0556a2",
   "policy_schema": "basalt.nostr-identity-policy.v1",
-  "producer_implementation_blake3": "f8938a21b35cac5090db088394b2efe91c571f5115969cb34c33ae27f71fc759",
+  "producer_implementation_blake3": "bdb5cb4641de3ddd9005521f4f6396ea94d44e446fa7a031a12ffaec30f9a6d2",
   "producer_schema_blake3": "45824d99ae765e885f085ef2c8c8294343415af8e5489c35509c3e255476e258",
   "schema": "basalt.nostr-identity-producer-identities.v1",
   "ucan_nostr_credential_revision": "c9d43a7c11dd2fab4d5cb3d100012fa9a2e5b026",
-  "ucan_source_revision": "927dc32641af6cd1b17202aff44c35acef4540fa"
+  "ucan_source_revision": "3a2aa043068a82663cf72ec05ed5d56a7d65ecd5"
 }

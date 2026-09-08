@@ -3,6 +3,8 @@
 mod durable_authority;
 #[path = "ucan_enforcement/negative/mod.rs"]
 mod negative;
+#[path = "ucan_enforcement/observation.rs"]
+mod observation;
 #[path = "ucan_enforcement/onixos_targets.rs"]
 mod onixos_targets;
 #[path = "ucan_enforcement/order.rs"]

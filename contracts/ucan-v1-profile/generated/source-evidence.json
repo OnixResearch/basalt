@@ -12,9 +12,9 @@
   ],
   "profile_supported": true,
   "protocol_profile": "ucan-wg-1.0.0",
-  "runtime_revision": "927dc32641af6cd1b17202aff44c35acef4540fa",
+  "runtime_revision": "3a2aa043068a82663cf72ec05ed5d56a7d65ecd5",
   "schema": "basalt.ucan-v1-source-evidence.v1",
-  "source_manifest_blake3": "9054f60e30ac4bfa50abd3b5e030f5c83c39f060b1199111eb5cb54a5403b346",
+  "source_manifest_blake3": "82b5e1c414fadcbdc90ef951624c9ccd4e8eb6bdce0d57daf2830fd79cd592fb",
   "support_catalog_blake3": "fe77fd63076eaef555b74e702e4c14e483bdba70151ccc955c75b17d97412427",
   "wire_archive": {
     "evidence_blake3": "bdca91b7f15351a1f5b56ce9eb524c467663f8985fd3e05440158609538b7a13",

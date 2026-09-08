@@ -53,6 +53,35 @@ impl<'request> LiveUcanEnforcement<'request> {
         &self.receipt
     }
 
+    /// Observe the retained holder using UCAN's non-consuming recheck.
+    ///
+    /// This does not refresh Basalt policy, establish continuous authority, or
+    /// authorize release. Consumers retain current policy and atomic effect checks.
+    /// No replay port is accepted and no new live enforcement value is created.
+    ///
+    /// # Errors
+    /// Returns UCAN binding, token, proof, revocation, profile, or caveat failures.
+    ///
+    /// ```compile_fail
+    /// fn dispatch(_: basalt::ucan_enforcement::LiveUcanEnforcement<'_>) {}
+    /// fn reuse(observation: basalt::ucan::HolderAuthorizationObservation<'_>) {
+    ///     dispatch(observation);
+    /// }
+    /// ```
+    pub fn observe_holder(
+        &self,
+        compact_token: &str,
+        verification: &ucan::HolderTokenVerificationContext<'_>,
+        policies: &ucan::HolderRecheckPolicies<'_>,
+    ) -> Result<ucan::HolderAuthorizationObservation<'_>, ucan::HolderRecheckError> {
+        ucan::recheck_holder_authorization(
+            &self.holder_authorization,
+            compact_token,
+            verification,
+            policies,
+        )
+    }
+
     /// Return the final live UCAN holder authorization.
     #[must_use]
     pub const fn holder_authorization(&self) -> &HolderInvocationAuthorized {

@@ -5,9 +5,9 @@ pub const UCAN_SEMANTICS_FIXTURE_SCHEMA: &str = "basalt.ucan-semantics-fixture.v
 /// Protocol profile selected by the current compact adapter.
 pub const UCAN_PROTOCOL_PROFILE: &str = "onix-compact-ed25519-v1";
 /// Reviewed UCAN revision in Basalt's validated vendored source boundary.
-pub const UCAN_RUNTIME_REVISION: &str = "927dc32641af6cd1b17202aff44c35acef4540fa";
+pub const UCAN_RUNTIME_REVISION: &str = "3a2aa043068a82663cf72ec05ed5d56a7d65ecd5";
 /// Reviewed UCAN revision that produced the bound support catalog.
-pub const UCAN_SUPPORT_CATALOG_REVISION: &str = "927dc32641af6cd1b17202aff44c35acef4540fa";
+pub const UCAN_SUPPORT_CATALOG_REVISION: &str = "3a2aa043068a82663cf72ec05ed5d56a7d65ecd5";
 /// BLAKE3 identity of the reviewed UCAN integration support catalog.
 pub const UCAN_SUPPORT_CATALOG_BLAKE3: &str =
     "fe77fd63076eaef555b74e702e4c14e483bdba70151ccc955c75b17d97412427";

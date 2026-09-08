@@ -22,7 +22,7 @@ The repository uses a small functional core and imperative shell. Nickel owns po
 
 Basalt is under active development. Its UCAN dependency uses a checked-in reviewed snapshot.
 
-The snapshot records integrated UCAN commit `927dc32641af6cd1b17202aff44c35acef4540fa`.
+The snapshot records integrated UCAN commit `3a2aa043068a82663cf72ec05ed5d56a7d65ecd5`.
 That revision is published on the UCAN `main` branch. The repository-owned snapshot remains the durable build boundary.
 
 `Cargo.toml` contains package metadata for downstream discovery. The crate retains the `AGPL-3.0-or-later` license.
@@ -270,6 +270,10 @@ Basalt builds its authority decision and redacted receipt before fresh holder ve
 A policy denial makes no replay call. After replay succeeds, Basalt only moves prebuilt values into the private live capability.
 
 `LiveUcanEnforcement` borrows the exact request. It has no public constructor, decision getter, clone implementation, or serde implementation.
+
+Its `observe_holder` method uses UCAN's non-consuming recheck on the retained
+holder authorization. It accepts no replay port and creates no new authority.
+This observes supplied UCAN services, not current Basalt policy or release authority.
 
 Read [`docs/ucan-enforcement.md`](docs/ucan-enforcement.md) for API use, ordering, reasons, receipts, and bounded claims.
 

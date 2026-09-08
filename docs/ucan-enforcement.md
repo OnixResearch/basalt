@@ -125,6 +125,24 @@ The prebuilt `AuthorityDecision` has no public getter. Callers cannot copy or se
 
 Use the live value during the admitted in-process operation. Do not treat a receipt as live authority.
 
+## Observe an existing holder
+
+`LiveUcanEnforcement::observe_holder` accepts the same compact token, an explicit
+`HolderTokenVerificationContext`, and non-consuming `HolderRecheckPolicies`.
+It forwards to the published UCAN recheck with the retained holder authorization.
+There is no replay port, new live enforcement value, or new authority receipt.
+
+The result borrows the retained holder and records supplied observation time.
+UCAN checks exact token binding, the initial-time floor, current token/proof
+verification, revocation, and the original operation's profile and caveats.
+Errors remain UCAN errors rather than fabricated Basalt enforcement receipts.
+
+This method does not evaluate current Basalt policy or extend effective bounds.
+It does not prove authenticated services, continuous freshness, continuing key
+possession, independent custody, or safe release. Consumers retain monotonic time,
+stricter deadlines, current Basalt/application policy, and atomic effect checks.
+The original receipt stays historical even after a successful observation.
+
 ## Denial reasons
 
 `UcanEnforcementReason` gives stable fail-closed classes. Important classes include:
