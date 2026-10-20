@@ -63,6 +63,7 @@ pub mod cli_fs;
 #[cfg(feature = "durable-authority")]
 pub mod durable_authority;
 pub mod license_consumption;
+pub mod mantle;
 pub mod nostr_identity;
 #[cfg(feature = "oidc-exchange")]
 pub mod oidc_exchange;
@@ -81,6 +82,7 @@ pub mod world_branch_authority;
 pub use policy_cache::{
     CachePolicy, PolicyCacheKey, PolicyError, PolicyEvaluationCache, PromotionDecision,
 };
+pub use revocation_view_core;
 pub use ucan;
 
 use serde::Deserialize;

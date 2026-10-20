@@ -54,6 +54,18 @@ pub enum EnforcementAction {
     OnixosStateSyncDelete,
     /// State-sync administration for one `OnixOS` target.
     OnixosStateSyncAdmin,
+    MantleBuildSubmit,
+    MantleInputUpload,
+    MantleStoreRead,
+    MantleProjectDeclare,
+    MantleStatusRead,
+    MantleLogRead,
+    MantleEventRead,
+    MantleResultRead,
+    MantleUsageRead,
+    MantleOwnedAttemptCancel,
+    MantlePublish,
+    MantleAdmin,
 }
 
 impl EnforcementAction {
@@ -70,6 +82,18 @@ impl EnforcementAction {
             Self::OnixosStateSyncPublish => "onixos-state-sync-publish",
             Self::OnixosStateSyncDelete => "onixos-state-sync-delete",
             Self::OnixosStateSyncAdmin => "onixos-state-sync-admin",
+            Self::MantleBuildSubmit => "mantle-build-submit",
+            Self::MantleInputUpload => "mantle-input-upload",
+            Self::MantleStoreRead => "mantle-store-read",
+            Self::MantleProjectDeclare => "mantle-project-declare",
+            Self::MantleStatusRead => "mantle-status-read",
+            Self::MantleLogRead => "mantle-log-read",
+            Self::MantleEventRead => "mantle-event-read",
+            Self::MantleResultRead => "mantle-result-read",
+            Self::MantleUsageRead => "mantle-usage-read",
+            Self::MantleOwnedAttemptCancel => "mantle-owned-attempt-cancel",
+            Self::MantlePublish => "mantle-publish",
+            Self::MantleAdmin => "mantle-admin",
         }
     }
 
@@ -86,6 +110,18 @@ impl EnforcementAction {
             Self::OnixosStateSyncPublish => STATE_SYNC_PUBLISH_CONTRACT,
             Self::OnixosStateSyncDelete => STATE_SYNC_DELETE_CONTRACT,
             Self::OnixosStateSyncAdmin => STATE_SYNC_ADMIN_CONTRACT,
+            Self::MantleBuildSubmit
+            | Self::MantleInputUpload
+            | Self::MantleStoreRead
+            | Self::MantleProjectDeclare
+            | Self::MantleStatusRead
+            | Self::MantleLogRead
+            | Self::MantleEventRead
+            | Self::MantleResultRead
+            | Self::MantleUsageRead
+            | Self::MantleOwnedAttemptCancel
+            | Self::MantlePublish
+            | Self::MantleAdmin => self.as_str(),
         }
     }
 
@@ -102,6 +138,18 @@ impl EnforcementAction {
             Self::OnixosStateSyncPublish => STATE_SYNC_PUBLISH_ABILITY,
             Self::OnixosStateSyncDelete => STATE_SYNC_DELETE_ABILITY,
             Self::OnixosStateSyncAdmin => STATE_SYNC_ADMIN_ABILITY,
+            Self::MantleBuildSubmit => "mantle/build/submit",
+            Self::MantleInputUpload => "mantle/input/upload",
+            Self::MantleStoreRead => "mantle/store/read",
+            Self::MantleProjectDeclare => "mantle/project/declare",
+            Self::MantleStatusRead => "mantle/status/read",
+            Self::MantleLogRead => "mantle/log/read",
+            Self::MantleEventRead => "mantle/event/read",
+            Self::MantleResultRead => "mantle/result/read",
+            Self::MantleUsageRead => "mantle/usage/read",
+            Self::MantleOwnedAttemptCancel => "mantle/attempt/cancel-owned",
+            Self::MantlePublish => "mantle/publish",
+            Self::MantleAdmin => "mantle/admin",
         }
     }
 
@@ -117,6 +165,18 @@ impl EnforcementAction {
             Self::OnixosStateSyncPublish
             | Self::OnixosStateSyncDelete
             | Self::OnixosStateSyncAdmin => STATE_SYNC_RESOURCE_PREFIX,
+            Self::MantleBuildSubmit
+            | Self::MantleInputUpload
+            | Self::MantleStoreRead
+            | Self::MantleProjectDeclare
+            | Self::MantleStatusRead
+            | Self::MantleLogRead
+            | Self::MantleEventRead
+            | Self::MantleResultRead
+            | Self::MantleUsageRead
+            | Self::MantleOwnedAttemptCancel
+            | Self::MantlePublish
+            | Self::MantleAdmin => "mantle://gateway/v1/",
         }
     }
 

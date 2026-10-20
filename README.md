@@ -186,6 +186,35 @@ It does not grant transport, storage, persistence, replay-store, key-resolution,
 
 Read [`docs/authority-core.md`](docs/authority-core.md) for the full boundary.
 
+### Mantle operation boundary
+
+`basalt::mantle` verifies the signed `onix-compact-ed25519-v1` UCAN profile;
+it does not relabel compact tokens as final UCAN WG 1.0.0. Its reviewed Nickel
+contracts distinguish build submission, admitted input upload, store/status/
+log/event/result/usage reads, owned-attempt cancellation, publication, and
+administration. A compatibility ticket is not accepted by this verifier.
+
+`Verifier::enforcement` constructs the exact resource for the issuer and holder
+signer. Subject (the UCAN holder DID), account, project, endpoint, deployment
+audience, policy artifact identity, authority generation, target and request
+digest are bound by the resource and distinct ability. Root issuers must be
+explicitly operator-admitted; registering a holder verification key does not
+authorize that holder to mint root grants.
+
+`Verifier::verify` uses the existing signature/proof/revocation/caveat/holder
+verification and final replay boundary, returning a private non-serializable
+`Session`. Every operation must call `Session::require` with its exact target
+and normalized request digest, then `Verifier::revalidate` with current local
+time, keys, proof store, revocations and policy. Revalidation checks authority
+again without consuming the already-admitted replay nonce a second time.
+The session retains its token in UCAN's zeroizing owner. Errors expose only
+`gateway-authority-denied`; public projections expose policy and admission
+decision references, not the token, proof or credential hash.
+
+Mantle owns the registered `mantle/filter-v1` decoder and bounded rewrite
+semantics. Basalt consumes its non-consuming caveat policy; neither component
+may treat a payload DTO or persisted receipt as live verified authority.
+
 ## Nostr identity bindings
 
 `basalt::nostr_identity` maps one reviewed opaque `VerifiedNostrCredential` to one stable subject in typed Nickel policy.

@@ -13,4 +13,4 @@ pub const UCAN_SUPPORT_CATALOG_BLAKE3: &str =
     "fe77fd63076eaef555b74e702e4c14e483bdba70151ccc955c75b17d97412427";
 /// BLAKE3 identity of Basalt's checked-in generated policy artifact.
 pub const BASALT_POLICY_BLAKE3: &str =
-    "5475d5473ec98cbf052a83512836b0739f5dad3e7b9b0ed201eb3094b1cf39bf";
+    "ac691f3aaa8b4de0c79ffe7b9888b3633b1ad7a4545063a2bf7cad9c028025bb";

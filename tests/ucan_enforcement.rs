@@ -1,6 +1,8 @@
 #[path = "ucan_enforcement/durable_authority.rs"]
 #[cfg(feature = "durable-authority")]
 mod durable_authority;
+#[path = "ucan_enforcement/mantle.rs"]
+mod mantle;
 #[path = "ucan_enforcement/negative/mod.rs"]
 mod negative;
 #[path = "ucan_enforcement/observation.rs"]
