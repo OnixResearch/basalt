@@ -87,6 +87,10 @@ impl<'request> LiveUcanEnforcement<'request> {
     pub const fn holder_authorization(&self) -> &HolderInvocationAuthorized {
         &self.holder_authorization
     }
+
+    pub(crate) fn into_parts(self) -> (HolderInvocationAuthorized, UcanEnforcementReceipt) {
+        (self.holder_authorization, self.receipt)
+    }
 }
 
 struct PreparedRequest {

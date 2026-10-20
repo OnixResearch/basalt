@@ -25,8 +25,8 @@ const BLAKE3_HEX_LENGTH: usize = BLAKE3_DIGEST_BYTES * HEX_CHARACTERS_PER_BYTE;
 const MAXIMUM_REQUEST_FIELD_BYTES: usize = 4_096;
 
 #[derive(Clone, Copy)]
-pub(super) struct ExactOperationProfile {
-    pub(super) expected: OperationProfileId,
+pub struct ExactOperationProfile {
+    pub(crate) expected: OperationProfileId,
 }
 
 impl OperationProfileAdmission for ExactOperationProfile {

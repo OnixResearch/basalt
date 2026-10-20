@@ -82,6 +82,7 @@ pub mod world_branch_authority;
 pub use policy_cache::{
     CachePolicy, PolicyCacheKey, PolicyError, PolicyEvaluationCache, PromotionDecision,
 };
+#[cfg(feature = "durable-authority")]
 pub use revocation_view_core;
 pub use ucan;
 

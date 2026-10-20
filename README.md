@@ -121,6 +121,30 @@ assert_eq!(receipt.reason(), "allowed");
 # Ok::<(), Box<dyn std::error::Error>>(())
 ```
 
+### Mantle authority SDK
+
+`basalt::mantle` supplies the owner-maintained holder-invocation boundary for
+Mantle's gateway. `Verifier::enforcement` derives the exact operation resource;
+`Verifier::verify` checks the signed UCAN, holder invocation, trusted issuer
+roots, current policy and replay before returning an opaque `Session`.
+Build submission, input upload, store read, project declaration, individual
+read operations, owned-attempt cancellation, publication and administration
+remain distinct grants. A serialized `Request` or receipt cannot mint a session.
+
+Call `Verifier::revalidate` with fresh verification, revocation and caveat
+observations before each effect. Revalidation does not consume replay again.
+The consumer owns monotonic time across observations, durable replay storage,
+proof/key resolution, request normalization and execution. Tokens are not exposed
+through Debug or serde; public denials remain `gateway-authority-denied`.
+Basalt maintains this API; Mantle maintains its receiver integration and effects.
+Neither API success nor the test-only signed fixtures establish deployment
+safety, upstream correctness or release eligibility.
+
+The repeatable owner checks are the signed positive and substitution/replay/
+revocation negatives in `tests/ucan_enforcement/mantle.rs` and the repository
+release verifier. The SDK is available with both the default and minimal feature
+profiles; disabling durable adapters does not disable signature or replay checks.
+
 ## CLI feature
 
 Default library use does not include CLI parser dependencies. Enable the `cli` feature to use the `basalt` command:
@@ -190,9 +214,10 @@ Read [`docs/authority-core.md`](docs/authority-core.md) for the full boundary.
 
 `basalt::mantle` verifies the signed `onix-compact-ed25519-v1` UCAN profile;
 it does not relabel compact tokens as final UCAN WG 1.0.0. Its reviewed Nickel
-contracts distinguish build submission, admitted input upload, store/status/
-log/event/result/usage reads, owned-attempt cancellation, publication, and
-administration. A compatibility ticket is not accepted by this verifier.
+contracts distinguish build submission, admitted input upload, project
+declaration, store/status/log/event/result/usage reads, owned-attempt cancellation,
+publication, and administration. A build-submission grant does not authorize
+project declaration; a compatibility ticket is not accepted by this verifier.
 
 `Verifier::enforcement` constructs the exact resource for the issuer and holder
 signer. Subject (the UCAN holder DID), account, project, endpoint, deployment
@@ -205,8 +230,10 @@ authorize that holder to mint root grants.
 verification and final replay boundary, returning a private non-serializable
 `Session`. Every operation must call `Session::require` with its exact target
 and normalized request digest, then `Verifier::revalidate` with current local
-time, keys, proof store, revocations and policy. Revalidation checks authority
-again without consuming the already-admitted replay nonce a second time.
+time, keys, proof store, revocations and policy. Revalidation uses UCAN's
+non-consuming live-holder authorization check, rejects times before the
+session's initial admission, and does not spend replay a second time. Consumers
+must retain monotonic time across subsequent observations.
 The session retains its token in UCAN's zeroizing owner. Errors expose only
 `gateway-authority-denied`; public projections expose policy and admission
 decision references, not the token, proof or credential hash.

@@ -86,6 +86,7 @@ fn mantle_signed_operations_are_distinct_and_revalidation_does_not_spend_replay_
         Operation::BuildSubmit,
         Operation::InputUpload,
         Operation::StoreRead,
+        Operation::ProjectDeclare,
         Operation::StatusRead,
         Operation::LogRead,
         Operation::EventRead,
@@ -106,10 +107,10 @@ fn mantle_signed_operations_are_distinct_and_revalidation_does_not_spend_replay_
         session
             .require(operation, &request.target, request.request_digest)
             .unwrap();
-        let wrong = if operation == Operation::Admin {
-            Operation::BuildSubmit
-        } else {
-            Operation::Admin
+        let wrong = match operation {
+            Operation::Admin | Operation::ProjectDeclare => Operation::BuildSubmit,
+            Operation::BuildSubmit => Operation::ProjectDeclare,
+            _ => Operation::Admin,
         };
         assert_eq!(
             session.require(wrong, &request.target, request.request_digest),
@@ -197,6 +198,30 @@ fn mantle_live_session_denies_expired_revoked_stale_and_untrusted_issuers() {
         ..stale
     };
     assert_eq!(no_roots.revalidate(&session, &bounds), Err(Denied));
+    assert_eq!(replay.calls.get(), 1);
+}
+
+#[test]
+fn mantle_revalidation_rejects_time_before_holder_admission_without_spending_replay() {
+    let policy = default_policy().unwrap();
+    let reference = policy_ref();
+    let roots = [signer(ISSUER_SEED_BYTE).issuer().unwrap().as_str().into()];
+    let verifier = verifier(&policy, &reference, &roots);
+    let request = request(Operation::BuildSubmit);
+    let (fixture, signature) = fixture(&verifier, &request);
+    let replay = RecordingReplay::new();
+    let bounds = boundaries(&fixture, &replay, &NoRevocations, VERIFY_AT_SECONDS);
+    let session = verifier
+        .verify(request, &invocation(&fixture, &signature), &bounds)
+        .unwrap();
+    verifier.revalidate(&session, &bounds).unwrap();
+    assert_eq!(
+        verifier.revalidate(
+            &session,
+            &boundaries(&fixture, &replay, &NoRevocations, VERIFY_AT_SECONDS - 1)
+        ),
+        Err(Denied)
+    );
     assert_eq!(replay.calls.get(), 1);
 }
 

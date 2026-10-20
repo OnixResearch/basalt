@@ -5,7 +5,7 @@ let ProtocolProfile = "onix-compact-ed25519-v1" in
 let RuntimeUcanRevision = "3a2aa043068a82663cf72ec05ed5d56a7d65ecd5" in
 let SupportCatalogRevision = "3a2aa043068a82663cf72ec05ed5d56a7d65ecd5" in
 let SupportCatalogBlake3 = "fe77fd63076eaef555b74e702e4c14e483bdba70151ccc955c75b17d97412427" in
-let BasaltPolicyBlake3 = "ac691f3aaa8b4de0c79ffe7b9888b3633b1ad7a4545063a2bf7cad9c028025bb" in
+let BasaltPolicyBlake3 = "978fd731f98c48cbdbdedd2106d98bbb44e918670bac9b5ab143aab2dc516874" in
 let RequiredNonClaims = [
   "revocation-backend-freshness",
   "key-resolution-truth",

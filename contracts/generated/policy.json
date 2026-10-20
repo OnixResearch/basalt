@@ -92,6 +92,16 @@
         "mantle://gateway/v1/"
       ]
     },
+    "mantle-project-declare": {
+      "abilities": [
+        "mantle/project/declare"
+      ],
+      "description": "Admit one owner-bound original declaration and rewritten Mantle project goal.",
+      "id": "mantle-project-declare",
+      "resource_prefixes": [
+        "mantle://gateway/v1/"
+      ]
+    },
     "mantle-publish": {
       "abilities": [
         "mantle/publish"

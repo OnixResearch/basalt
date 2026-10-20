@@ -4,6 +4,7 @@
 //! and distinct ability are covered by both the UCAN grant and holder signature.
 //! Callers own keys, proof loading, revocation currentness and durable replay.
 use crate::authority_core::BasaltPolicyRef;
+use crate::ucan_enforcement::core::ExactOperationProfile;
 use crate::ucan_enforcement::{
     EnforcementAction, UcanEnforcementBoundaries, UcanEnforcementRequest,
     verify_ucan_enforcement_request,
@@ -21,6 +22,7 @@ pub enum Operation {
     BuildSubmit,
     InputUpload,
     StoreRead,
+    ProjectDeclare,
     StatusRead,
     LogRead,
     EventRead,
@@ -38,6 +40,7 @@ impl Operation {
             Self::BuildSubmit => EnforcementAction::MantleBuildSubmit,
             Self::InputUpload => EnforcementAction::MantleInputUpload,
             Self::StoreRead => EnforcementAction::MantleStoreRead,
+            Self::ProjectDeclare => EnforcementAction::MantleProjectDeclare,
             Self::StatusRead => EnforcementAction::MantleStatusRead,
             Self::LogRead => EnforcementAction::MantleLogRead,
             Self::EventRead => EnforcementAction::MantleEventRead,
@@ -87,9 +90,10 @@ impl std::error::Error for Denied {}
 pub struct Session {
     request: Request,
     token: ucan::CompactToken,
+    holder_authorization: ucan::HolderInvocationAuthorized,
+    verified: ucan::VerifiedToken,
     policy_ref: String,
     expires_unix_s: u64,
-    effective: ucan::CapabilitySet,
     decision_id: String,
 }
 impl Session {
@@ -102,7 +106,7 @@ impl Session {
     /// These observations are not transferable authority; do not log payloads.
     #[must_use]
     pub const fn effective_capabilities(&self) -> &ucan::CapabilitySet {
-        &self.effective
+        self.verified.effective_delegation().capabilities()
     }
     /// Return the effective signed deadline.
     #[must_use]
@@ -259,19 +263,18 @@ impl Verifier<'_> {
         );
         let live = verify_ucan_enforcement_request(self.policy, &selected, &raw, boundaries)
             .map_err(|_| Denied)?;
-        let expires_unix_s = live
-            .holder_authorization()
+        let (holder_authorization, receipt) = live.into_parts();
+        let expires_unix_s = holder_authorization
             .effective_time_bounds()
             .expires_at_seconds();
-        let decision_id = live.receipt().receipt_blake3.clone();
-        let effective = verified.effective_delegation().capabilities().clone();
         Ok(Session {
             request,
             token,
+            holder_authorization,
+            verified,
             policy_ref: selected.artifact_ref,
             expires_unix_s,
-            effective,
-            decision_id,
+            decision_id: receipt.receipt_blake3,
         })
     }
 
@@ -290,29 +293,37 @@ impl Verifier<'_> {
             return Err(Denied);
         }
         let enforcement = self.enforcement(&session.request)?;
-        let verified = verify_compact_token_str_with_resolvers_and_revocations(
-            session.token.as_str(),
+        let operation = crate::ucan_enforcement::bind_enforcement_action(
+            session.request.operation.action(),
+            &enforcement,
+        )
+        .map_err(|_| Denied)?;
+        let profile = ExactOperationProfile {
+            expected: operation.profile(),
+        };
+        let verification = ucan::HolderTokenVerificationContext::new(
             boundaries.verification_time,
             boundaries.key_resolver,
             boundaries.proof_store,
             boundaries.revocations,
             boundaries.verification_limits,
+        );
+        ucan::recheck_holder_authorization(
+            &session.holder_authorization,
+            session.token.as_str(),
+            &verification,
+            &ucan::HolderRecheckPolicies {
+                caveats: boundaries.caveat_policies,
+                profiles: &profile,
+            },
         )
         .map_err(|_| Denied)?;
         self.check_roots(
-            &verified,
+            &session.verified,
             boundaries,
             &mut boundaries.verification_limits.max_proof_count(),
         )?;
-        if verified.audience().as_str() != session.request.subject
-            || !verified
-                .authorize_with_policies(
-                    enforcement.resource(),
-                    enforcement.ability(),
-                    boundaries.caveat_policies,
-                )
-                .is_allowed()
-        {
+        if session.verified.audience().as_str() != session.request.subject {
             return Err(Denied);
         }
         // No capability DTO supplied by the caller reaches policy enforcement.

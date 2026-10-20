@@ -1,5 +1,5 @@
 {
-  "basalt_policy_blake3": "ac691f3aaa8b4de0c79ffe7b9888b3633b1ad7a4545063a2bf7cad9c028025bb",
+  "basalt_policy_blake3": "978fd731f98c48cbdbdedd2106d98bbb44e918670bac9b5ab143aab2dc516874",
   "contract_id": "document-write",
   "decisions": {
     "caveat_evaluation": "missing-policy",
