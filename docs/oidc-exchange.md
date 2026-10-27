@@ -19,6 +19,10 @@ Lattice or another client shell.
 The generated policy contains no private key, provider credential, OIDC token,
 or secret value.
 
+`event-read` and `result-read` require explicit selection in the Nickel
+capability policy. The reviewed default operation set is unchanged; supporting
+an operation does not grant it to an existing caller.
+
 ## Verification order
 
 1. The shell reads the untrusted header only to select `kid`.
@@ -31,6 +35,28 @@ or secret value.
 8. The caller-owned UCAN signer issues one token through the reviewed UCAN library.
 
 Signature validity does not grant authority by itself.
+
+## Explicit holder delivery
+
+Use `exchange_to_recipient` when the issued UCAN must name the admitted holder's
+`AudienceDid`. Keep `ExchangeRequest.audience` equal to the policy-selected
+Mantle service: a holder recipient does not replace or broaden the service,
+project, operation, resource, or lifetime attenuation.
+
+The receiver must still verify a holder-signed invocation. Choosing a recipient
+does not prove possession of that holder's private key. Receipt capability
+identities bind the selected recipient without retaining bearer material.
+Changing recipients does not change the one-time exchange replay key and cannot
+make the same OIDC exchange reusable.
+
+For Mantle invocation signing, `mantle::canonical_enforcement` constructs the
+exact bounded request without inventing receiver policy, issuer trust, or a
+live authorization. Bind its operation through `bind_enforcement_action` before
+holder signing. The receiver's `Verifier::enforcement` additionally checks its
+configured authority generation, endpoint, and service audience before using
+that same canonicalization; canonicalization alone is not admission. Keep the
+authority generation distinct from a builder endpoint generation.
+
 
 ## Rotation and cache policy
 
