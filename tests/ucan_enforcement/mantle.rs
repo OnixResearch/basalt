@@ -354,3 +354,26 @@ fn mantle_root_delegation_reaches_exact_build_operation() {
         Err(Denied)
     );
 }
+
+// r[verify ucan_token_flow.oidc.native_signing]
+#[test]
+fn canonical_signing_request_rejects_malformed_fields_and_aggregate_bounds() {
+    let reference = policy_ref();
+    let original = request(Operation::BuildSubmit);
+    for target in [String::new(), "x".repeat(513), "invalid\nfield".into(), "nonascii-é".into()] {
+        let mut altered = original.clone();
+        altered.target = target;
+        assert!(basalt::mantle::canonical_enforcement(&altered, &reference).is_err());
+    }
+    let mut zero_generation = original.clone();
+    zero_generation.generation = 0;
+    assert!(basalt::mantle::canonical_enforcement(&zero_generation, &reference).is_err());
+    let mut oversized = original;
+    oversized.subject = "s".repeat(400);
+    oversized.account = "a".repeat(400);
+    oversized.project = "p".repeat(400);
+    oversized.endpoint = "e".repeat(400);
+    oversized.audience = "u".repeat(400);
+    oversized.target = "t".repeat(400);
+    assert!(basalt::mantle::canonical_enforcement(&oversized, &reference).is_err());
+}
