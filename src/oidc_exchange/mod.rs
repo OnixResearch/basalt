@@ -39,7 +39,7 @@ pub use receipt::{
 };
 pub use shell::{
     ExchangeFailure, ExchangeFailureClass, ExchangeResult, ReplayCommit, ReplayFailure, ReplayPort,
-    exchange,
+    exchange, exchange_to_recipient,
 };
 
 /// Reviewed `ring` release that verifies RS256 signatures.

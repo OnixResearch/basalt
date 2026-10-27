@@ -24,6 +24,7 @@ let Operations = [
   "log-read",
   "owned-attempt-cancel",
 ] in
+let SupportedOperations = Operations @ ["event-read", "result-read"] in
 let NonClaims = [
   "does not acquire OIDC tokens",
   "does not grant authority from signature validity alone",
@@ -74,7 +75,8 @@ let valid_policy = fun value =>
   && field "allow_stale_on_error" (field "cache" value) == false
   && exact_fields ["vocabulary", "audience", "project", "operations", "resource_prefix"] (field "capability" value)
   && field "vocabulary" (field "capability" value) == "onix.mantle.capability.v1"
-  && field "operations" (field "capability" value) == Operations
+  && std.array.length (field "operations" (field "capability" value)) > 0
+  && std.array.all (fun operation => std.array.elem operation SupportedOperations) (field "operations" (field "capability" value))
   && exact_fields ["require_one_time", "require_jti"] (field "replay" value)
   && field "require_one_time" (field "replay" value) == true
   && field "require_jti" (field "replay" value) == true

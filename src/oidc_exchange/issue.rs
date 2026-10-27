@@ -68,16 +68,25 @@ pub fn issue_plan(
     issuer: &IssuerAdmission,
     signer: &dyn TokenSigner,
 ) -> Result<CompactToken, IssueFailure> {
-    validate_issuer_admission(issuer, signer)?;
     let audience =
         AudienceDid::new(plan.audience.clone()).map_err(|_error| IssueFailure::Audience)?;
+    issue_plan_to_recipient(plan, &audience, issuer, signer)
+}
+
+pub(super) fn issue_plan_to_recipient(
+    plan: &IssuancePlan,
+    recipient: &AudienceDid,
+    issuer: &IssuerAdmission,
+    signer: &dyn TokenSigner,
+) -> Result<CompactToken, IssueFailure> {
+    validate_issuer_admission(issuer, signer)?;
     let capabilities = CapabilitySet::single(plan.resource.clone(), plan.operation.ability())
         .map_err(|_error| IssueFailure::Capability)?;
     let bounds = TokenTimeBounds::new(plan.not_before_seconds, plan.expires_at_seconds)
         .map_err(|_error| IssueFailure::Time)?;
     issue_token_with_signer(
         signer,
-        &audience,
+        recipient,
         &capabilities,
         &ProofReferences::empty(),
         bounds,

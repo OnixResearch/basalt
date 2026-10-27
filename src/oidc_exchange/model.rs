@@ -171,6 +171,10 @@ pub enum MantleOperation {
     StatusRead,
     /// Read build logs.
     LogRead,
+    /// Read build events; does not imply logs or results.
+    EventRead,
+    /// Read a completed result; does not imply store import.
+    ResultRead,
     /// Cancel an attempt owned by the mapped project.
     OwnedAttemptCancel,
 }
@@ -185,6 +189,8 @@ impl MantleOperation {
             Self::StoreRead => "mantle/store/read",
             Self::StatusRead => "mantle/status/read",
             Self::LogRead => "mantle/log/read",
+            Self::EventRead => "mantle/event/read",
+            Self::ResultRead => "mantle/result/read",
             Self::OwnedAttemptCancel => "mantle/attempt/cancel-owned",
         }
     }
