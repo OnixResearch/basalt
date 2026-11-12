@@ -526,7 +526,7 @@
                 nickel export --format json "$fixture_root/$fixture.ncl" > "$out/positive/$(basename "$fixture").json"
               done
               for fixture in ${builtins.concatStringsSep " " invalidPolicyAuthoringFixtures}; do
-                if nickel export --format json "$fixture_root/negative/$fixture.ncl" > /dev/null 2>"/tmp/$fixture.err"; then
+                if nickel export --format json "$fixture_root/negative/$fixture.ncl" > /dev/null 2>"$TMPDIR/$fixture.err"; then
                   echo "invalid policy-authoring fixture unexpectedly exported: $fixture" >&2
                   exit 1
                 fi
