@@ -1,4 +1,4 @@
-let RuntimeRevision = "3a2aa043068a82663cf72ec05ed5d56a7d65ecd5" in
+let RuntimeRevision = "417f74662b9de2de3bdabe93ad5db996e1bd2861" in
 let SupportCatalogBlake3 = "fe77fd63076eaef555b74e702e4c14e483bdba70151ccc955c75b17d97412427" in
 let BasaltPolicyBlake3 = "fd17db568eb24222d4ca65fe45f02edb21ef910fad214a392441d62c07ef4b14" in
 let RequiredNonClaims = [
