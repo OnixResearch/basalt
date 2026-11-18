@@ -8,7 +8,7 @@ use revocation_view_core::RevocationViewPort;
 use ucan::{
     CaveatPolicySet, DurableHolderReplayAdmission, DurableReplayContext, DurableRevocationChecker,
     DurableRevocationContext, HolderInvocationLimits, HolderInvocationReplayAdmission, KeyResolver,
-    ProofStore, RevocationChecker, VerificationLimits, VerificationTime,
+    ProofStore, RevocationChecker, RootIssuerAdmission, VerificationLimits, VerificationTime,
 };
 
 use crate::ucan_enforcement::UcanEnforcementBoundaries;
@@ -20,6 +20,8 @@ pub struct DurableAuthorityVerificationInputs<'a> {
     pub verification_time: VerificationTime,
     /// Caller-owned key resolver.
     pub key_resolver: &'a dyn KeyResolver,
+    /// Issuers allowed to sign proof-less (root) tokens.
+    pub root_issuers: &'a dyn RootIssuerAdmission,
     /// Caller-owned proof store.
     pub proof_store: &'a dyn ProofStore,
     /// Non-consuming caveat policy observations.
@@ -78,6 +80,7 @@ where
         UcanEnforcementBoundaries {
             verification_time: inputs.verification_time,
             key_resolver: inputs.key_resolver,
+            root_issuers: inputs.root_issuers,
             proof_store: inputs.proof_store,
             revocations: self.revocations(),
             caveat_policies: inputs.caveat_policies,

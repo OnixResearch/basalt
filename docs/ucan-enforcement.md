@@ -101,7 +101,9 @@ The adapter uses this order:
 6. Project the private Basalt-owned verified UCAN input.
 7. Build and evaluate exact Basalt authority facts.
 8. Build the allowed redacted receipt.
-9. Run fresh holder-signed verification with the same services.
+9. Run fresh holder-signed verification with the same services. UCAN admits every
+   root issuer of the verified token through `root_issuers` before it checks the
+   holder signature.
 10. Let UCAN call replay once as its final commit.
 11. Move the prebuilt values into `LiveUcanEnforcement`.
 
@@ -158,12 +160,15 @@ The original receipt stays historical even after a successful observation.
 - `scope-denied`
 - `revoked`
 - `replay-denied`
+- `root-issuer-denied`
 - `limit-exceeded`
 - `operation-mismatch`
 - `policy-denied`
 - `backend-unavailable`
 
 Missing or malformed proof data maps to `proof-denied`. Stale or unavailable verification services map to `backend-unavailable`.
+
+A token chain that ends at an issuer not admitted by `UcanEnforcementBoundaries::root_issuers` maps to `root-issuer-denied`. The key resolver must resolve holder keys too, so resolvability never grants root authority.
 
 Canonical field-size errors map to `limit-exceeded`. Invalid holder signatures map to `holder-denied`.
 

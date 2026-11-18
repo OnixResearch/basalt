@@ -29,8 +29,8 @@
   "protocol_profile": "onix-compact-ed25519-v1",
   "request_ability": "document/*",
   "request_resource": "did:key:z6Mkresource/docs/report",
-  "runtime_ucan_revision": "417f74662b9de2de3bdabe93ad5db996e1bd2861",
+  "runtime_ucan_revision": "8e9f931a49a184e9cb7add96ce4f61255bbe8e44",
   "schema": "basalt.ucan-semantics-fixture.v2",
   "support_catalog_blake3": "fe77fd63076eaef555b74e702e4c14e483bdba70151ccc955c75b17d97412427",
-  "support_catalog_revision": "417f74662b9de2de3bdabe93ad5db996e1bd2861"
+  "support_catalog_revision": "8e9f931a49a184e9cb7add96ce4f61255bbe8e44"
 }

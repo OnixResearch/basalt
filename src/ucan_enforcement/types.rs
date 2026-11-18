@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use ucan::{
     CaveatPolicySet, HolderInvocationLimits, HolderInvocationNonce,
     HolderInvocationReplayAdmission, KeyResolver, OperationProfileId, ProofStore,
-    RevocationChecker, SignerSignature, VerificationLimits, VerificationTime,
+    RevocationChecker, RootIssuerAdmission, SignerSignature, VerificationLimits, VerificationTime,
 };
 
 const DOCUMENT_READ_CONTRACT: &str = "document-read";
@@ -298,6 +298,11 @@ pub struct UcanEnforcementBoundaries<'a> {
     pub verification_time: VerificationTime,
     /// Caller-owned issuer and holder key resolver.
     pub key_resolver: &'a dyn KeyResolver,
+    /// Issuers allowed to sign proof-less (root) tokens.
+    ///
+    /// Holder keys must be resolvable for the holder signature, so key
+    /// resolvability never grants root authority; only this admission does.
+    pub root_issuers: &'a dyn RootIssuerAdmission,
     /// Caller-owned proof store.
     pub proof_store: &'a dyn ProofStore,
     /// Caller-owned revocation checker.
@@ -327,6 +332,7 @@ pub enum UcanEnforcementReason {
     Revoked,
     HolderDenied,
     ReplayDenied,
+    RootIssuerDenied,
     LimitExceeded,
     ProtocolProfileDenied,
     OperationMismatch,
@@ -353,6 +359,7 @@ impl UcanEnforcementReason {
             Self::Revoked => "revoked",
             Self::HolderDenied => "holder-denied",
             Self::ReplayDenied => "replay-denied",
+            Self::RootIssuerDenied => "root-issuer-denied",
             Self::LimitExceeded => "limit-exceeded",
             Self::ProtocolProfileDenied => "protocol-profile-denied",
             Self::OperationMismatch => "operation-mismatch",

@@ -13,7 +13,8 @@ use crate::ucan_profile::BasaltUcanProtocolProfile;
 use crate::{EnforcementRequest, Policy};
 use std::fmt::Write as _;
 use ucan::{
-    HolderInvocationNonce, SignerSignature, verify_compact_token_str_with_resolvers_and_revocations,
+    HolderInvocationNonce, IssuerDid, SignerSignature, TrustedRootIssuers,
+    verify_compact_token_str_with_resolvers_and_revocations,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
@@ -232,6 +233,8 @@ impl Verifier<'_> {
         boundaries: &UcanEnforcementBoundaries<'_>,
     ) -> Result<Session, Denied> {
         let enforcement = self.enforcement(&request)?;
+        let roots = self.root_issuers()?;
+        let boundaries = &with_root_issuers(boundaries, &roots);
         let token = ucan::CompactToken::new(invocation.compact_token).map_err(|_| Denied)?;
         // Bind holder identity BEFORE the consuming replay boundary. A credential
         // valid for a different holder must never burn a nonce for this request.
@@ -247,11 +250,7 @@ impl Verifier<'_> {
         if verified.audience().as_str() != request.subject {
             return Err(Denied);
         }
-        self.check_roots(
-            &verified,
-            boundaries,
-            &mut boundaries.verification_limits.max_proof_count(),
-        )?;
+        verified.admit_root_issuers(&roots).map_err(|_| Denied)?;
         let selected = self.selected_policy(request.operation);
         let raw = UcanEnforcementRequest::new(
             &enforcement,
@@ -292,6 +291,8 @@ impl Verifier<'_> {
         if session.policy_ref != self.policy_ref.artifact_ref {
             return Err(Denied);
         }
+        let roots = self.root_issuers()?;
+        let boundaries = &with_root_issuers(boundaries, &roots);
         let enforcement = self.enforcement(&session.request)?;
         let operation = crate::ucan_enforcement::bind_enforcement_action(
             session.request.operation.action(),
@@ -315,14 +316,10 @@ impl Verifier<'_> {
             &ucan::HolderRecheckPolicies {
                 caveats: boundaries.caveat_policies,
                 profiles: &profile,
+                roots: &roots,
             },
         )
         .map_err(|_| Denied)?;
-        self.check_roots(
-            &session.verified,
-            boundaries,
-            &mut boundaries.verification_limits.max_proof_count(),
-        )?;
         if session.verified.audience().as_str() != session.request.subject {
             return Err(Denied);
         }
@@ -345,51 +342,30 @@ impl Verifier<'_> {
         Ok(())
     }
 
-    fn check_roots(
-        &self,
-        token: &ucan::VerifiedToken,
-        boundaries: &UcanEnforcementBoundaries<'_>,
-        remaining: &mut usize,
-    ) -> Result<(), Denied> {
-        if token.proofs().as_slice().is_empty() {
-            return if self
-                .trusted_roots
-                .iter()
-                .any(|root| root == token.issuer().as_str())
-            {
-                Ok(())
-            } else {
-                Err(Denied)
-            };
-        }
-        for reference in token.proofs().as_slice() {
-            *remaining = remaining.checked_sub(1).ok_or(Denied)?;
-            let proof = boundaries
-                .proof_store
-                .resolve_proof(reference)
-                .map_err(|_| Denied)?;
-            let proof_token = match &proof {
-                ucan::ProofToken::Borrowed(token) => *token,
-                ucan::ProofToken::Owned(token) => token,
-            };
-            if ucan::proof_reference(proof_token) != *reference {
-                return Err(Denied);
-            }
-            let raw = match &proof {
-                ucan::ProofToken::Borrowed(token) => token.as_str(),
-                ucan::ProofToken::Owned(token) => token.as_str(),
-            };
-            let parent = verify_compact_token_str_with_resolvers_and_revocations(
-                raw,
-                boundaries.verification_time,
-                boundaries.key_resolver,
-                boundaries.proof_store,
-                boundaries.revocations,
-                boundaries.verification_limits,
-            )
-            .map_err(|_| Denied)?;
-            self.check_roots(&parent, boundaries, remaining)?;
-        }
-        Ok(())
+    /// Operator-admitted roots; an unparsable entry denies rather than shrinking the set.
+    fn root_issuers(&self) -> Result<TrustedRootIssuers, Denied> {
+        self.trusted_roots
+            .iter()
+            .map(|root| IssuerDid::new(root.clone()).map_err(|_| Denied))
+            .collect::<Result<Vec<_>, _>>()
+            .map(TrustedRootIssuers::new)
+    }
+}
+
+/// Mantle's own trusted roots replace any caller-supplied root admission.
+fn with_root_issuers<'b>(
+    boundaries: &UcanEnforcementBoundaries<'b>,
+    roots: &'b TrustedRootIssuers,
+) -> UcanEnforcementBoundaries<'b> {
+    UcanEnforcementBoundaries {
+        verification_time: boundaries.verification_time,
+        key_resolver: boundaries.key_resolver,
+        root_issuers: roots,
+        proof_store: boundaries.proof_store,
+        revocations: boundaries.revocations,
+        caveat_policies: boundaries.caveat_policies,
+        replay: boundaries.replay,
+        verification_limits: boundaries.verification_limits,
+        holder_limits: boundaries.holder_limits,
     }
 }

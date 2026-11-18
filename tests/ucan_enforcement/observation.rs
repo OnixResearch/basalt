@@ -30,6 +30,7 @@ fn unavailable_revocation_fails_without_another_replay_commit() {
     let policies = ucan::HolderRecheckPolicies {
         caveats: &DenyUnknownCaveats,
         profiles: &profile,
+        roots: fixture_roots(),
     };
     assert!(matches!(
         live.observe_holder(
@@ -95,6 +96,7 @@ fn direct_and_delegated_observations_preserve_replay_and_receipt() {
         let policies = ucan::HolderRecheckPolicies {
             caveats: &DenyUnknownCaveats,
             profiles: &profile,
+            roots: fixture_roots(),
         };
         for seconds in [VERIFY_AT_SECONDS, VERIFY_AT_SECONDS + 1] {
             let observed = live
@@ -146,6 +148,7 @@ fn substitution_and_time_regression_remain_typed_denials() {
     let policies = ucan::HolderRecheckPolicies {
         caveats: &DenyUnknownCaveats,
         profiles: &profile,
+        roots: fixture_roots(),
     };
     assert!(matches!(
         live.observe_holder(
@@ -188,6 +191,7 @@ fn revoked_leaf_parent_and_expiry_deny_without_readmission() {
     let policies = ucan::HolderRecheckPolicies {
         caveats: &DenyUnknownCaveats,
         profiles: &profile,
+        roots: fixture_roots(),
     };
     for reference in [
         proof_reference(&fixture.token),
@@ -241,7 +245,8 @@ fn current_profile_and_caveat_observations_can_deny() {
             &verification,
             &ucan::HolderRecheckPolicies {
                 caveats: &allowed,
-                profiles: &profile
+                profiles: &profile,
+                roots: fixture_roots(),
             }
         )
         .is_ok()
@@ -252,7 +257,8 @@ fn current_profile_and_caveat_observations_can_deny() {
             &verification,
             &ucan::HolderRecheckPolicies {
                 caveats: &denied,
-                profiles: &profile
+                profiles: &profile,
+                roots: fixture_roots(),
             }
         ),
         Err(ucan::HolderRecheckError::Verification(
@@ -265,7 +271,8 @@ fn current_profile_and_caveat_observations_can_deny() {
             &verification,
             &ucan::HolderRecheckPolicies {
                 caveats: &allowed,
-                profiles: &unknown
+                profiles: &unknown,
+                roots: fixture_roots(),
             }
         ),
         Err(ucan::HolderRecheckError::Verification(

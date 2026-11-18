@@ -6,14 +6,14 @@ Basalt maps one reviewed UCAN Nostr credential to one policy-owned stable subjec
 
 The public adapter accepts only `ucan_nostr::VerifiedNostrCredential` from reviewed Nostr credential revision `c9d43a7c11dd2fab4d5cb3d100012fa9a2e5b026`.
 
-Basalt builds from integrated UCAN revision `417f74662b9de2de3bdabe93ad5db996e1bd2861`. This revision contains the Nostr adapter, peer authentication, and holder-signed invocation admission.
+Basalt builds from integrated UCAN revision `8e9f931a49a184e9cb7add96ce4f61255bbe8e44`. This revision contains the Nostr adapter, peer authentication, and holder-signed invocation admission.
 
 The adapter does not accept `signature_valid`, `authenticated`, or similar caller booleans.
 
 The published producer identities are:
 
 - schema BLAKE3: `45824d99ae765e885f085ef2c8c8294343415af8e5489c35509c3e255476e258`;
-- implementation-profile BLAKE3: `6e0dcbc7d357973695a9476594ff24f7d898e6eed837eb169ebdec0212f39a25`.
+- implementation-profile BLAKE3: `07712b1661350cb5e6c82e332290bdd46a5ee6d3ce6e56fa045fdc17eb239088`.
 
 `contracts/nostr-identity/generated/identities.json` records these values for downstream pinning. The implementation profile is not a source-code proof.
 

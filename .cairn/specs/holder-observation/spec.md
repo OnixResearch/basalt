@@ -7,7 +7,7 @@ Defines the `holder-observation` capability.
 ## Requirements
 
 ### Requirement: Use the reviewed published cohort
-r[basalt.holder_observation.cohort] Basalt MUST import UCAN object `417f74662b9de2de3bdabe93ad5db996e1bd2861` through its reviewed snapshot mechanism. Runtime and generated cohort identities MUST agree with the imported source and BLAKE3 manifest.
+r[basalt.holder_observation.cohort] Basalt MUST import UCAN object `8e9f931a49a184e9cb7add96ce4f61255bbe8e44` through its reviewed snapshot mechanism. Runtime and generated cohort identities MUST agree with the imported source and BLAKE3 manifest.
 
 #### Scenario: Exact published import
 GIVEN the published UCAN commit
