@@ -8,7 +8,7 @@ It does not infer a profile from credential bytes.
 - Profiles: `onix-compact-ed25519-v1` and `ucan-wg-1.0.0`
 - Vendored UCAN revision: `3a2aa043068a82663cf72ec05ed5d56a7d65ecd5`
 - Support catalog BLAKE3: `fe77fd63076eaef555b74e702e4c14e483bdba70151ccc955c75b17d97412427`
-- Basalt policy BLAKE3: `ac691f3aaa8b4de0c79ffe7b9888b3633b1ad7a4545063a2bf7cad9c028025bb`
+- Basalt policy BLAKE3: `fd17db568eb24222d4ca65fe45f02edb21ef910fad214a392441d62c07ef4b14`
 
 The compact Nickel cohort is `contracts/ucan-profiles/cohort.ncl`.
 The final Nickel cohort is `contracts/ucan-profiles/final-cohort.ncl`.

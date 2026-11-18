@@ -32,6 +32,96 @@
         "did:key:z6Mkresource/docs/"
       ]
     },
+    "kiln-attempt-cancel": {
+      "abilities": [
+        "kiln/attempt/cancel"
+      ],
+      "description": "Cancel one owned fenced Kiln attempt.",
+      "id": "kiln-attempt-cancel",
+      "resource_prefixes": [
+        "kiln://implementation/v1/"
+      ]
+    },
+    "kiln-candidate-submit": {
+      "abilities": [
+        "kiln/candidate/submit"
+      ],
+      "description": "Submit one sealed candidate for an exact Kiln attempt.",
+      "id": "kiln-candidate-submit",
+      "resource_prefixes": [
+        "kiln://implementation/v1/"
+      ]
+    },
+    "kiln-claim-acquire": {
+      "abilities": [
+        "kiln/claim/acquire"
+      ],
+      "description": "Acquire one fenced Kiln implementation claim.",
+      "id": "kiln-claim-acquire",
+      "resource_prefixes": [
+        "kiln://implementation/v1/"
+      ]
+    },
+    "kiln-claim-renew": {
+      "abilities": [
+        "kiln/claim/renew"
+      ],
+      "description": "Renew one fenced Kiln implementation claim.",
+      "id": "kiln-claim-renew",
+      "resource_prefixes": [
+        "kiln://implementation/v1/"
+      ]
+    },
+    "kiln-dispatch": {
+      "abilities": [
+        "kiln/dispatch"
+      ],
+      "description": "Dispatch one bound Kiln implementation attempt.",
+      "id": "kiln-dispatch",
+      "resource_prefixes": [
+        "kiln://implementation/v1/"
+      ]
+    },
+    "kiln-integration-land": {
+      "abilities": [
+        "kiln/integration/land"
+      ],
+      "description": "Integrate one exact Kiln candidate through the selected route.",
+      "id": "kiln-integration-land",
+      "resource_prefixes": [
+        "kiln://implementation/v1/"
+      ]
+    },
+    "kiln-lifecycle-complete": {
+      "abilities": [
+        "kiln/lifecycle/complete"
+      ],
+      "description": "Complete native lifecycle for one integrated Kiln change.",
+      "id": "kiln-lifecycle-complete",
+      "resource_prefixes": [
+        "kiln://implementation/v1/"
+      ]
+    },
+    "kiln-publication-publish": {
+      "abilities": [
+        "kiln/publication/publish"
+      ],
+      "description": "Publish one separately verified Kiln candidate.",
+      "id": "kiln-publication-publish",
+      "resource_prefixes": [
+        "kiln://implementation/v1/"
+      ]
+    },
+    "kiln-verification-admit": {
+      "abilities": [
+        "kiln/verification/admit"
+      ],
+      "description": "Admit verification evidence for one exact Kiln candidate.",
+      "id": "kiln-verification-admit",
+      "resource_prefixes": [
+        "kiln://implementation/v1/"
+      ]
+    },
     "mantle-admin": {
       "abilities": [
         "mantle/admin"

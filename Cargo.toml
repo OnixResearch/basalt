@@ -39,6 +39,7 @@ include = [
     "docs/ast-grep-policy-audits.md",
     "docs/cap-std-cli-policy-boundary.md",
     "docs/durable-authority-state.md",
+    "docs/kiln-authority-adapter.md",
     "docs/license-consumption.md",
     "docs/nickel-toolchain.md",
     "docs/nostr-identity-bindings.md",

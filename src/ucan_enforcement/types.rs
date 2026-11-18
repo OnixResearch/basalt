@@ -30,6 +30,7 @@ const STATE_SYNC_ADMIN_CONTRACT: &str = "onixos-state-sync-admin";
 const STATE_SYNC_ADMIN_ABILITY: &str = "state_sync.admin";
 const ONIXOS_TARGET_RESOURCE_PREFIX: &str = "did:key:z6Mkonix/onixos/";
 const STATE_SYNC_RESOURCE_PREFIX: &str = "onix://state-sync/";
+const KILN_RESOURCE_PREFIX: &str = "kiln://implementation/v1/";
 
 /// Closed downstream actions with reviewed Basalt contract and UCAN ability mappings.
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
@@ -66,6 +67,24 @@ pub enum EnforcementAction {
     MantleOwnedAttemptCancel,
     MantlePublish,
     MantleAdmin,
+    /// Acquire one fenced Kiln implementation claim.
+    KilnClaimAcquire,
+    /// Renew one fenced Kiln implementation claim.
+    KilnClaimRenew,
+    /// Dispatch one bound Kiln implementation attempt.
+    KilnDispatch,
+    /// Submit one sealed candidate for an exact Kiln attempt.
+    KilnCandidateSubmit,
+    /// Admit verification evidence for one exact Kiln candidate.
+    KilnVerificationAdmit,
+    /// Cancel one owned fenced Kiln attempt.
+    KilnAttemptCancel,
+    /// Publish one separately verified Kiln candidate.
+    KilnPublicationPublish,
+    /// Integrate one exact Kiln candidate through the selected route.
+    KilnIntegrationLand,
+    /// Complete native lifecycle for one integrated Kiln change.
+    KilnLifecycleComplete,
 }
 
 impl EnforcementAction {
@@ -94,6 +113,15 @@ impl EnforcementAction {
             Self::MantleOwnedAttemptCancel => "mantle-owned-attempt-cancel",
             Self::MantlePublish => "mantle-publish",
             Self::MantleAdmin => "mantle-admin",
+            Self::KilnClaimAcquire => "kiln-claim-acquire",
+            Self::KilnClaimRenew => "kiln-claim-renew",
+            Self::KilnDispatch => "kiln-dispatch",
+            Self::KilnCandidateSubmit => "kiln-candidate-submit",
+            Self::KilnVerificationAdmit => "kiln-verification-admit",
+            Self::KilnAttemptCancel => "kiln-attempt-cancel",
+            Self::KilnPublicationPublish => "kiln-publication-publish",
+            Self::KilnIntegrationLand => "kiln-integration-land",
+            Self::KilnLifecycleComplete => "kiln-lifecycle-complete",
         }
     }
 
@@ -121,7 +149,16 @@ impl EnforcementAction {
             | Self::MantleUsageRead
             | Self::MantleOwnedAttemptCancel
             | Self::MantlePublish
-            | Self::MantleAdmin => self.as_str(),
+            | Self::MantleAdmin
+            | Self::KilnClaimAcquire
+            | Self::KilnClaimRenew
+            | Self::KilnDispatch
+            | Self::KilnCandidateSubmit
+            | Self::KilnVerificationAdmit
+            | Self::KilnAttemptCancel
+            | Self::KilnPublicationPublish
+            | Self::KilnIntegrationLand
+            | Self::KilnLifecycleComplete => self.as_str(),
         }
     }
 
@@ -150,6 +187,15 @@ impl EnforcementAction {
             Self::MantleOwnedAttemptCancel => "mantle/attempt/cancel-owned",
             Self::MantlePublish => "mantle/publish",
             Self::MantleAdmin => "mantle/admin",
+            Self::KilnClaimAcquire => "kiln/claim/acquire",
+            Self::KilnClaimRenew => "kiln/claim/renew",
+            Self::KilnDispatch => "kiln/dispatch",
+            Self::KilnCandidateSubmit => "kiln/candidate/submit",
+            Self::KilnVerificationAdmit => "kiln/verification/admit",
+            Self::KilnAttemptCancel => "kiln/attempt/cancel",
+            Self::KilnPublicationPublish => "kiln/publication/publish",
+            Self::KilnIntegrationLand => "kiln/integration/land",
+            Self::KilnLifecycleComplete => "kiln/lifecycle/complete",
         }
     }
 
@@ -177,6 +223,15 @@ impl EnforcementAction {
             | Self::MantleOwnedAttemptCancel
             | Self::MantlePublish
             | Self::MantleAdmin => "mantle://gateway/v1/",
+            Self::KilnClaimAcquire
+            | Self::KilnClaimRenew
+            | Self::KilnDispatch
+            | Self::KilnCandidateSubmit
+            | Self::KilnVerificationAdmit
+            | Self::KilnAttemptCancel
+            | Self::KilnPublicationPublish
+            | Self::KilnIntegrationLand
+            | Self::KilnLifecycleComplete => KILN_RESOURCE_PREFIX,
         }
     }
 
