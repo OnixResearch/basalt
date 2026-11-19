@@ -1,7 +1,5 @@
-use std::collections::HashSet;
-
-use jsonwebtoken::errors::ErrorKind;
-use jsonwebtoken::{Algorithm, DecodingKey, Validation, decode, decode_header};
+use base64::Engine as _;
+use ring::signature;
 use serde::Deserialize;
 
 use super::model::{
@@ -9,10 +7,20 @@ use super::model::{
 };
 
 const REQUIRED_TOKEN_TYPE: &str = "JWT";
-const REQUIRED_ALGORITHM: Algorithm = Algorithm::RS256;
+const REQUIRED_ALGORITHM: &str = "RS256";
 const MAX_KEY_ID_BYTES: usize = 512;
 const MAX_SUBJECT_BYTES: usize = 2048;
 const GIT_COMMIT_HEX_BYTES: usize = 40;
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct TokenHeader {
+    alg: String,
+    #[serde(default)]
+    typ: Option<String>,
+    #[serde(default)]
+    kid: Option<String>,
+}
 
 #[derive(Debug, Clone, Deserialize)]
 struct OidcClaims {
@@ -67,7 +75,7 @@ impl AudienceClaim {
 /// Returns a stable rejection for excessive, malformed, unsupported, or keyless headers.
 pub fn inspect_token_key_id(token: &str, maximum_bytes: u64) -> Result<String, RejectReason> {
     enforce_token_bound(token, maximum_bytes)?;
-    let header = decode_header(token).map_err(|_error| RejectReason::MalformedToken)?;
+    let header = parse_header(token)?;
     validate_header(&header)?;
     header.kid.ok_or(RejectReason::Key)
 }
@@ -88,22 +96,12 @@ pub fn verify_and_plan(
     request: &ExchangeRequest,
 ) -> Result<IssuancePlan, RejectReason> {
     enforce_token_bound(token, policy.network.token_bytes)?;
-    let header = decode_header(token).map_err(|_error| RejectReason::MalformedToken)?;
+    let header = parse_header(token)?;
     validate_header(&header)?;
     if header.kid.as_deref() != Some(jwk.key_id.as_str()) {
         return Err(RejectReason::Key);
     }
-    let key = DecodingKey::from_rsa_components(jwk.modulus.as_str(), jwk.exponent.as_str())
-        .map_err(|_error| RejectReason::Key)?;
-    let mut validation = Validation::new(REQUIRED_ALGORITHM);
-    validation.required_spec_claims = HashSet::new();
-    validation.validate_exp = false;
-    validation.validate_nbf = false;
-    validation.validate_aud = false;
-    let token_data =
-        decode::<OidcClaims>(token, &key, &validation).map_err(|error| map_decode_error(&error))?;
-    validate_header(&token_data.header)?;
-    let claims = token_data.claims;
+    let claims = verify_rs256(token, jwk)?;
     validate_claim_shapes(&claims)?;
     validate_identity_claims(&claims, now_seconds, policy)?;
     attenuate(&claims, jwk, now_seconds, policy, request)
@@ -117,7 +115,32 @@ fn enforce_token_bound(token: &str, maximum_bytes: u64) -> Result<(), RejectReas
     Ok(())
 }
 
-fn validate_header(header: &jsonwebtoken::Header) -> Result<(), RejectReason> {
+/// One compact JWS split into its exact three non-empty segments.
+fn segments(token: &str) -> Result<(&str, &str, &str), RejectReason> {
+    let mut parts = token.split('.');
+    let (Some(header), Some(claims), Some(signature)) = (parts.next(), parts.next(), parts.next())
+    else {
+        return Err(RejectReason::MalformedToken);
+    };
+    if parts.next().is_some() || header.is_empty() || claims.is_empty() || signature.is_empty() {
+        return Err(RejectReason::MalformedToken);
+    }
+    Ok((header, claims, signature))
+}
+
+fn decode_segment(segment: &str) -> Result<Vec<u8>, RejectReason> {
+    base64::engine::general_purpose::URL_SAFE_NO_PAD
+        .decode(segment)
+        .map_err(|_error| RejectReason::MalformedToken)
+}
+
+/// The header is untrusted: any field outside the reviewed set rejects the token.
+fn parse_header(token: &str) -> Result<TokenHeader, RejectReason> {
+    let (header, _, _) = segments(token)?;
+    serde_json::from_slice(&decode_segment(header)?).map_err(|_error| RejectReason::MalformedToken)
+}
+
+fn validate_header(header: &TokenHeader) -> Result<(), RejectReason> {
     if header.alg != REQUIRED_ALGORITHM {
         return Err(RejectReason::Algorithm);
     }
@@ -128,32 +151,31 @@ fn validate_header(header: &jsonwebtoken::Header) -> Result<(), RejectReason> {
     if key_id.is_empty() || key_id.len() > MAX_KEY_ID_BYTES || key_id.trim() != key_id {
         return Err(RejectReason::Key);
     }
-    if header.cty.is_some()
-        || header.jku.is_some()
-        || header.jwk.is_some()
-        || header.x5u.is_some()
-        || header.x5c.is_some()
-        || header.x5t.is_some()
-        || header.x5t_s256.is_some()
-        || header.crit.is_some()
-        || header.enc.is_some()
-        || header.zip.is_some()
-        || header.url.is_some()
-        || header.nonce.is_some()
-        || !header.extras.inner().is_empty()
-    {
-        return Err(RejectReason::MalformedToken);
-    }
     Ok(())
 }
 
-fn map_decode_error(error: &jsonwebtoken::errors::Error) -> RejectReason {
-    match error.kind() {
-        ErrorKind::InvalidSignature => RejectReason::Signature,
-        ErrorKind::InvalidAlgorithm | ErrorKind::MissingAlgorithm => RejectReason::Algorithm,
-        ErrorKind::InvalidRsaKey(_) | ErrorKind::InvalidKeyFormat => RejectReason::Key,
-        _ => RejectReason::MalformedToken,
-    }
+/// Verify the RS256 signature over the exact compact segments, then decode claims.
+fn verify_rs256(token: &str, jwk: &PublicJwk) -> Result<OidcClaims, RejectReason> {
+    let (header, claims, signature_bytes) = segments(token)?;
+    let modulus = base64::engine::general_purpose::URL_SAFE_NO_PAD
+        .decode(jwk.modulus.as_str())
+        .map_err(|_error| RejectReason::Key)?;
+    let exponent = base64::engine::general_purpose::URL_SAFE_NO_PAD
+        .decode(jwk.exponent.as_str())
+        .map_err(|_error| RejectReason::Key)?;
+    let signature = decode_segment(signature_bytes)?;
+    let key = signature::RsaPublicKeyComponents {
+        n: modulus.as_slice(),
+        e: exponent.as_slice(),
+    };
+    let signed = format!("{header}.{claims}");
+    key.verify(
+        &signature::RSA_PKCS1_2048_8192_SHA256,
+        signed.as_bytes(),
+        &signature,
+    )
+    .map_err(|_error| RejectReason::Signature)?;
+    serde_json::from_slice(&decode_segment(claims)?).map_err(|_error| RejectReason::MalformedToken)
 }
 
 fn validate_claim_shapes(claims: &OidcClaims) -> Result<(), RejectReason> {

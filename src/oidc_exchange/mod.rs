@@ -42,10 +42,10 @@ pub use shell::{
     exchange,
 };
 
-/// Reviewed `jsonwebtoken` release.
-pub const JSONWEBTOKEN_VERSION: &str = "11.0.0";
-/// Immutable upstream object for the reviewed `jsonwebtoken` release.
-pub const JSONWEBTOKEN_REVISION: &str = "900010fb1be550ec2cfa8c32038eb154f9ef56d7";
+/// Reviewed `ring` release that verifies RS256 signatures.
+pub const RING_VERSION: &str = "0.17.14";
+/// Registry checksum of the reviewed `ring` release.
+pub const RING_CHECKSUM: &str = "a4689e6c2294d81e88dc6261c768b63bc4fcdb852be6d1352498b114f61383b7";
 /// Reviewed Bounded HTTP Radicle repository identifier.
 pub const BOUNDED_HTTP_RID: &str = "rad:z4ARxEt93T6gJTrTZpUyKHMAemPiv";
 /// Immutable reviewed Bounded HTTP implementation object.
