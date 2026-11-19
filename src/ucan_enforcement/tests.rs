@@ -15,7 +15,7 @@ const POLICY_BYTE: u8 = 7;
 const HEX_CHARACTERS_PER_BYTE: usize = 2;
 // The receipt digest binds the imported UCAN source revision, not just policy.
 const EXPECTED_RECEIPT_BLAKE3: &str =
-    "blake3:ad8ae776bd1939f73659f2dd252b29cf2ca8685ae4cf50b55f6ab7f70d8b709d";
+    "blake3:4efaa240ba54aaecd482e0b478993293f886a935516f5fcb0187e661a30280e6";
 
 fn receipt_context() -> ReceiptContext {
     ReceiptContext {
