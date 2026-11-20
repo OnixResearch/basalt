@@ -121,6 +121,7 @@ pub(crate) fn evaluate_action_with_profile<'request>(
     let boundaries = UcanEnforcementBoundaries {
         verification_time: services.verification_time,
         key_resolver: services.key_resolver,
+        root_issuers: fixture_roots(),
         proof_store: services.proof_store,
         revocations: services.revocations,
         caveat_policies: services.caveats,

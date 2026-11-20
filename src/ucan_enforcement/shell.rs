@@ -140,6 +140,7 @@ pub fn verify_ucan_enforcement_request<'request>(
     let policy_context = HolderInvocationPolicyContext::new(
         boundaries.caveat_policies,
         &prepared.profile,
+        boundaries.root_issuers,
         boundaries.replay,
         boundaries.holder_limits,
     );

@@ -43,6 +43,7 @@ fn boundaries<'a>(
     UcanEnforcementBoundaries {
         verification_time: VerificationTime::from_unix_seconds(now),
         key_resolver: &fixture.keys,
+        root_issuers: fixture_roots(),
         proof_store: &fixture.proofs,
         revocations,
         caveat_policies: &DenyUnknownCaveats,

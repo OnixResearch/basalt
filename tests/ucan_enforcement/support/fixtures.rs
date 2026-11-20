@@ -142,3 +142,18 @@ pub(crate) const fn other_nonce() -> HolderInvocationNonce {
         [OTHER_NONCE_BYTE; basalt::ucan::core::holder_invocation::HOLDER_INVOCATION_NONCE_BYTES],
     )
 }
+
+static FIXTURE_ROOTS: std::sync::LazyLock<basalt::ucan::TrustedRootIssuers> =
+    std::sync::LazyLock::new(|| {
+        basalt::ucan::TrustedRootIssuers::new(vec![
+            signer(ISSUER_SEED_BYTE)
+                .issuer()
+                .expect("fixture root DID must derive"),
+        ])
+    });
+
+/// The only fixture key allowed to sign proof-less tokens. Delegate, holder
+/// and wrong-issuer keys stay resolvable but are not roots.
+pub(crate) fn fixture_roots() -> &'static basalt::ucan::TrustedRootIssuers {
+    &FIXTURE_ROOTS
+}

@@ -3,8 +3,8 @@ use super::types::UcanEnforcementReason;
 use std::fmt;
 use ucan::{
     AuthorizationDenialReason, HolderInvocationError, HolderInvocationReplayError,
-    KeyResolverError, OperationProfileAdmissionError, ProofStoreError, TokenError,
-    VerificationLimitError,
+    KeyResolverError, OperationProfileAdmissionError, ProofStoreError, RootIssuerAdmissionError,
+    TokenError, VerificationLimitError,
 };
 
 /// Typed fail-closed adapter error with redacted evidence only.
@@ -133,6 +133,12 @@ pub(super) const fn holder_error_reason(error: &HolderInvocationError) -> UcanEn
         | HolderInvocationError::InvalidHolderSignature => UcanEnforcementReason::HolderDenied,
         HolderInvocationError::OperationProfile { source } => profile_error_reason(*source),
         HolderInvocationError::Replay { source } => replay_error_reason(*source),
+        HolderInvocationError::RootIssuer {
+            source: RootIssuerAdmissionError::Untrusted,
+        } => UcanEnforcementReason::RootIssuerDenied,
+        HolderInvocationError::RootIssuer {
+            source: RootIssuerAdmissionError::Backend { .. },
+        } => UcanEnforcementReason::BackendUnavailable,
     }
 }
 

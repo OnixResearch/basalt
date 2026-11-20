@@ -23,7 +23,7 @@ The repository uses a small functional core and imperative shell. Nickel owns po
 Basalt is pre-1.0 and under active development; public APIs may change between
 revisions. Its UCAN dependency uses a checked-in reviewed snapshot.
 
-The snapshot records integrated UCAN commit `417f74662b9de2de3bdabe93ad5db996e1bd2861`.
+The snapshot records integrated UCAN commit `8e9f931a49a184e9cb7add96ce4f61255bbe8e44`.
 That revision is published on the UCAN `main` branch. The repository-owned snapshot remains the durable build boundary.
 
 `Cargo.toml` contains package metadata for downstream discovery. The crate retains the `AGPL-3.0-or-later` license and `publish = false`.
@@ -335,7 +335,9 @@ See [`docs/durable-authority-state.md`](docs/durable-authority-state.md).
 
 `basalt::ucan_enforcement` verifies one raw holder-signed invocation for one exact normalized request.
 
-The caller injects key, proof, revocation, caveat, replay, time, and limit boundaries. The request cannot contain caller-supplied capability grants.
+The caller injects key, root-issuer, proof, revocation, caveat, replay, time, and limit boundaries. The request cannot contain caller-supplied capability grants.
+
+`UcanEnforcementBoundaries::root_issuers` decides which issuers may sign proof-less tokens. The key resolver must also resolve holder keys, so a resolvable key is never a root on that basis alone. A chain that ends at an unadmitted issuer is denied as `root-issuer-denied` before the holder signature or replay.
 
 Keep bearer text in `CompactToken`. Pass only borrowed `as_str()` views, and never copy bearer text into arguments, logs, or serde values.
 
