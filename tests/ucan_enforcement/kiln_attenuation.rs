@@ -1237,30 +1237,68 @@ fn kiln_v1_wide_grants_need_explicit_delegate_and_v1_can_be_refused() {
     let verifier = verifier(&policy, &reference, &roots, 0);
     let mut request = implementation(Operation::Dispatch, HOLDER_SEED_BYTE, PROJECT, "attempt-a");
     request.framing = ImplementationFraming::V1;
-    for (held, expected) in [
-        (vec![("kiln://", "kiln/dispatch")], (Err(Denied), 0)),
+    for (held, leaf_resource, expected) in [
+        (
+            vec![("kiln://", "kiln/dispatch")],
+            "kiln://implementation/v1/",
+            (Err(Denied), 0),
+        ),
         (
             vec![("kiln://", "kiln/dispatch"), ("kiln://", DELEGATE)],
+            "kiln://implementation/v1/",
             (Ok(()), 1),
+        ),
+        // A wide v1 leaf is admitted when every hop holds `kiln/delegate`.
+        (
+            vec![("kiln://", "kiln/dispatch"), ("kiln://", DELEGATE)],
+            "kiln://",
+            (Ok(()), 1),
+        ),
+        (
+            vec![("kiln://", "kiln/dispatch")],
+            "kiln://",
+            (Err(Denied), 0),
         ),
     ] {
         let wide = issue(ISSUER_SEED_BYTE, DELEGATE_SEED_BYTE, &held, None);
         let leaf = issue(
             DELEGATE_SEED_BYTE,
             HOLDER_SEED_BYTE,
-            &[("kiln://implementation/v1/", "kiln/dispatch")],
+            &[(leaf_resource, "kiln/dispatch")],
             Some(&wide),
         );
         let fixture = chain(HOLDER_SEED_BYTE, leaf, vec![wide]);
         assert_eq!(admit(&verifier, &request, &fixture), expected);
     }
 
-    // Closing the compatibility window refuses v1 and drops v1 grants from sessions.
+    // A wide v1 leaf issued directly by a trusted root is admitted, and its covering
+    // grant stays in the effective set.
+    let direct = issue(
+        ISSUER_SEED_BYTE,
+        HOLDER_SEED_BYTE,
+        &[("kiln://", "kiln/dispatch")],
+        None,
+    );
+    let fixture = chain(HOLDER_SEED_BYTE, direct, Vec::new());
+    let legacy = session(&verifier, &request, &fixture);
+    assert_eq!(
+        resources(legacy.effective_capabilities()),
+        vec!["kiln://".to_owned()]
+    );
+
+    // Closing the compatibility window refuses new v1 requests and revalidation of a
+    // v1 session minted while v1 was accepted.
     let closed = Verifier {
         implementation_v1: LegacyFraming::Refuse,
         ..verifier
     };
     assert_eq!(closed.enforcement(&request).map(|_| ()), Err(Denied));
+    let replay = RecordingReplay::new();
+    let bounds = boundaries(&fixture, &replay, &NoRevocations);
+    verifier.revalidate(&legacy, &bounds).unwrap();
+    assert_eq!(closed.revalidate(&legacy, &bounds), Err(Denied));
+
+    // A v2 session never exposes a v1 grant, whatever the window.
     let current = implementation(Operation::Dispatch, HOLDER_SEED_BYTE, PROJECT, "attempt-a");
     let exact = closed.enforcement(&current).unwrap();
     let direct = issue(
@@ -1273,13 +1311,13 @@ fn kiln_v1_wide_grants_need_explicit_delegate_and_v1_can_be_refused() {
         None,
     );
     let fixture = chain(HOLDER_SEED_BYTE, direct, Vec::new());
-    let open = session(&verifier, &current, &fixture);
-    assert_eq!(resources(open.effective_capabilities()).len(), 2);
-    let shut = session(&closed, &current, &fixture);
-    assert_eq!(
-        resources(shut.effective_capabilities()),
-        vec![exact.resource().to_owned()]
-    );
+    for session_verifier in [&verifier, &closed] {
+        let admitted = session(session_verifier, &current, &fixture);
+        assert_eq!(
+            resources(admitted.effective_capabilities()),
+            vec![exact.resource().to_owned()]
+        );
+    }
 }
 
 #[test]
@@ -1651,5 +1689,246 @@ fn kiln_source_attempt_context_grant_admits_only_its_attempt_and_fence() {
     assert_eq!(
         admit_source(&verifier, &refenced, &fixture),
         (Err(Denied), 0)
+    );
+}
+
+#[test]
+// r[verify basalt.kiln_authority.effective_scope.scenario.deployment]
+fn kiln_effective_capabilities_stay_in_the_current_deployment_and_scope() {
+    let policy = default_policy().unwrap();
+    let reference = policy_ref();
+    let roots = [did(ISSUER_SEED_BYTE)];
+    let verifier = Verifier {
+        generation: 8,
+        ..verifier(&policy, &reference, &roots, 1)
+    };
+    let attempt = SourceAttempt {
+        attempt: "attempt-a".into(),
+        fence: 5,
+    };
+    let scope_at = |audience: &str,
+                    generation: u64,
+                    repository: &str,
+                    attempt: Option<&SourceAttempt>,
+                    components: &[&str]| {
+        SourceScope {
+            audience,
+            generation,
+            repository,
+            attempt,
+            path: &path(components),
+            terminal: None,
+        }
+        .prefix()
+        .unwrap()
+    };
+    let current_a = scope_at(AUDIENCE, 8, REPOSITORY, None, &["a"]);
+    let sibling = scope_at(AUDIENCE, 8, REPOSITORY, None, &["b"]);
+    // After a 7→8 bump: a repository-wide grant still pinned to generation 7.
+    let stale = scope_at(AUDIENCE, 7, REPOSITORY, None, &[]);
+    let foreign = scope_at("kiln-service-b", 8, REPOSITORY, None, &[]);
+    let other_repository = scope_at(AUDIENCE, 8, "Other/repo", None, &[]);
+    let other_context = scope_at(AUDIENCE, 8, REPOSITORY, Some(&attempt), &[]);
+    let all = [
+        &current_a,
+        &sibling,
+        &stale,
+        &foreign,
+        &other_repository,
+        &other_context,
+    ];
+    let held: Vec<(&str, &str)> = all
+        .iter()
+        .flat_map(|resource| {
+            [
+                (resource.as_str(), "kiln/source/read"),
+                (resource.as_str(), SOURCE_DELEGATE),
+            ]
+        })
+        .collect();
+    let ceiling = issue(ISSUER_SEED_BYTE, DELEGATE_SEED_BYTE, &held, None);
+    let granted: Vec<(&str, &str)> = all
+        .iter()
+        .map(|resource| (resource.as_str(), "kiln/source/read"))
+        .collect();
+    let leaf = issue(
+        DELEGATE_SEED_BYTE,
+        HOLDER_SEED_BYTE,
+        &granted,
+        Some(&ceiling),
+    );
+    let fixture = chain(HOLDER_SEED_BYTE, leaf, vec![ceiling]);
+    let mut request = source(
+        SourceOperation::ReadContent,
+        HOLDER_SEED_BYTE,
+        &["a", "x"],
+        PathScope::Entry,
+    );
+    request.generation = 8;
+    let admitted = source_session(&verifier, &request, &fixture);
+    assert_eq!(
+        resources(admitted.effective_capabilities()),
+        vec![current_a.clone(), sibling.clone()]
+    );
+}
+
+#[test]
+// r[verify basalt.kiln_authority.effective_scope.scenario.deployment]
+fn kiln_implementation_effective_capabilities_stay_in_the_current_deployment() {
+    let policy = default_policy().unwrap();
+    let reference = policy_ref();
+    let roots = [did(ISSUER_SEED_BYTE)];
+    let verifier = Verifier {
+        generation: 8,
+        ..verifier(&policy, &reference, &roots, 1)
+    };
+    let project_at = |audience: &str, generation: u64| {
+        ImplementationScope {
+            audience,
+            generation,
+            project: Some(PROJECT),
+            work: None,
+            work_version: None,
+            attempt: None,
+            fence: None,
+        }
+        .prefix()
+        .unwrap()
+    };
+    let attempt_at = |name: &str| {
+        ImplementationScope {
+            audience: AUDIENCE,
+            generation: 8,
+            project: Some(PROJECT),
+            work: Some(WORK),
+            work_version: Some(3),
+            attempt: Some(name),
+            fence: Some(5),
+        }
+        .prefix()
+        .unwrap()
+    };
+    let current = project_at(AUDIENCE, 8);
+    let stale = project_at(AUDIENCE, 7);
+    let foreign = project_at("kiln-service-b", 8);
+    let ceiling = issue(
+        ISSUER_SEED_BYTE,
+        DELEGATE_SEED_BYTE,
+        &[
+            (&current, "kiln/dispatch"),
+            (&current, DELEGATE),
+            (&stale, "kiln/dispatch"),
+            (&stale, DELEGATE),
+            (&foreign, "kiln/dispatch"),
+            (&foreign, DELEGATE),
+        ],
+        None,
+    );
+    let attempt_a = attempt_at("attempt-a");
+    let attempt_b = attempt_at("attempt-b");
+    let leaf = issue(
+        DELEGATE_SEED_BYTE,
+        HOLDER_SEED_BYTE,
+        &[
+            (&attempt_a, "kiln/dispatch"),
+            (&attempt_b, "kiln/dispatch"),
+            (&stale, "kiln/dispatch"),
+            (&foreign, "kiln/dispatch"),
+        ],
+        Some(&ceiling),
+    );
+    let fixture = chain(HOLDER_SEED_BYTE, leaf, vec![ceiling]);
+    let mut request = implementation(Operation::Dispatch, HOLDER_SEED_BYTE, PROJECT, "attempt-a");
+    request.generation = 8;
+    let admitted = session(&verifier, &request, &fixture);
+    assert_eq!(
+        resources(admitted.effective_capabilities()),
+        vec![attempt_a, attempt_b]
+    );
+}
+
+/// Counts key resolutions, which every token and proof verification performs.
+struct CountingKeys<'a> {
+    inner: &'a KeyResolutionContext,
+    calls: std::cell::Cell<u32>,
+}
+
+impl KeyResolver for CountingKeys<'_> {
+    fn resolve_key(&self, issuer: &IssuerDid) -> Result<Ed25519PublicKey, KeyResolverError> {
+        self.calls.set(self.calls.get() + 1);
+        self.inner.resolve_key(issuer)
+    }
+}
+
+#[test]
+// r[verify basalt.kiln_authority.effective_scope.scenario.memoized]
+fn kiln_admission_verifies_proofs_once_regardless_of_grant_count() {
+    let policy = default_policy().unwrap();
+    let reference = policy_ref();
+    let roots = [did(ISSUER_SEED_BYTE)];
+    let verifier = verifier(&policy, &reference, &roots, 1);
+    let project = project_prefix(PROJECT);
+    let ceiling = issue(
+        ISSUER_SEED_BYTE,
+        DELEGATE_SEED_BYTE,
+        &[(&project, "kiln/dispatch"), (&project, DELEGATE)],
+        None,
+    );
+    let request = implementation(Operation::Dispatch, HOLDER_SEED_BYTE, PROJECT, "attempt-0");
+    let exact = verifier.enforcement(&request).unwrap();
+    let binding = bind_enforcement_action(request.operation.action(), &exact).unwrap();
+    // Returns (key resolutions, replay calls, effective grant count or None if denied).
+    let run = |grants: usize, forged: bool| {
+        let capabilities = (0..grants)
+            .map(|index| {
+                CapabilityDocument::new(
+                    attempt_prefix(&format!("attempt-{index}")),
+                    "kiln/dispatch".into(),
+                )
+                .unwrap()
+            })
+            .collect();
+        let leaf = issue_documents(
+            DELEGATE_SEED_BYTE,
+            HOLDER_SEED_BYTE,
+            capabilities,
+            &[&ceiling],
+        );
+        let fixture = chain(HOLDER_SEED_BYTE, leaf, vec![copy(&ceiling)]);
+        let signature = if forged {
+            let other = implementation(Operation::Dispatch, HOLDER_SEED_BYTE, PROJECT, "attempt-1");
+            let other_exact = verifier.enforcement(&other).unwrap();
+            let other_binding =
+                bind_enforcement_action(other.operation.action(), &other_exact).unwrap();
+            sign_operation(&fixture, &other_exact, nonce(), other_binding)
+        } else {
+            sign_operation(&fixture, &exact, nonce(), binding)
+        };
+        let counting = CountingKeys {
+            inner: &fixture.keys,
+            calls: std::cell::Cell::new(0),
+        };
+        let replay = RecordingReplay::new();
+        let mut bounds = boundaries(&fixture, &replay, &NoRevocations);
+        bounds.key_resolver = &counting;
+        let admitted = verifier
+            .verify(request.clone(), &invocation(&fixture, &signature), &bounds)
+            .ok()
+            .map(|session| session.effective_capabilities().as_slice().len());
+        (counting.calls.get(), replay.calls.get(), admitted)
+    };
+    let (one, one_replay, one_admitted) = run(1, false);
+    let (many, many_replay, many_admitted) = run(64, false);
+    assert_eq!((one_replay, one_admitted), (1, Some(1)));
+    assert_eq!((many_replay, many_admitted), (1, Some(64)));
+    assert_eq!(
+        many, one,
+        "key resolutions must not grow with the grant count"
+    );
+    let (forged, forged_replay, forged_admitted) = run(64, true);
+    assert_eq!((forged_replay, forged_admitted), (0, None));
+    assert!(
+        forged <= one,
+        "a forged signature stops before any chain walk"
     );
 }

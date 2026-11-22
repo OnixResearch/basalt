@@ -155,13 +155,46 @@ request, because the prefixes differ.
 
 ## Effective capabilities
 
-`Session::effective_capabilities` and `SourceSession::effective_capabilities` contain
-only those leaf capabilities whose own resource, evaluated as a request, passes its
-family's chain rule: implementation v2, source v1, or v1 while it is accepted. Grants
-outside those families, grants wider than one family, and leaf grants the chain rule
-would deny are omitted. For example, a delegator holding `kiln/source/delegate` only over
-`a` may name `secret` in a leaf token; that grant never appears in the set. The set is
+`Session::effective_capabilities` and `SourceSession::effective_capabilities` contain two
+kinds of leaf capability:
+
+1. **Covering grants**: every leaf grant whose resource is a byte prefix of the admitted
+   request. These authorized the request and passed the chain rule, so they are always
+   kept, including wide v1 grants such as `kiln://`. An admitted request therefore never
+   has an empty set.
+2. **Scoped grants**: any other leaf grant that both
+   - starts with the session's scope prefix, and
+   - passes the same family's chain rule when evaluated with its own resource.
+
+   The scope prefix is:
+   - for an implementation v2 session, `kiln://implementation/v2/` + `text(audience)` +
+     `number(generation)` of the verifier;
+   - for a source session, `kiln://source/v1/` + `text(audience)` + `number(generation)`
+     + `text(repository)` + the request's context (`n/`, or `a/` with attempt and fence).
+
+   A v1 session has no scope prefix and exposes only covering grants.
+
+So grants pinned to another generation or audience, another repository, another source
+context, or another family never appear. A delegator holding `kiln/source/delegate` only
+over `a` may name `secret` in a leaf token; that grant never appears either. The set is
 computed before replay and is not transferable authority.
+
+The consumer still owns these checks:
+- mapping the set onto its own scope types;
+- the ability of each grant;
+- matching an implementation grant to the current project, work, attempt and fence;
+- view ceilings;
+- the snapshot a share is bound to.
+
+A session stores the set from admission. Revalidation does not recompute it.
+- Under `LegacyFraming::Refuse`, a v1 session fails revalidation outright.
+- v2 and source sessions never contain v1 grants.
+
+Admission and revalidation resolve and verify each distinct proof once, keyed by proof
+reference, and run every per-grant chain check over that cached graph. Admission first
+runs the full UCAN enforcement path, including the holder signature, against a replay
+port that refuses after recording success. A forged signature therefore stops before any
+Basalt chain walk, and the single consuming replay remains the last step.
 
 A subtree grant cannot pin a snapshot, because the snapshot is framed after the terminal
 marker. Kiln must enforce a share's snapshot itself.

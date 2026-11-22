@@ -154,11 +154,11 @@ impl SourceSession {
     pub const fn request(&self) -> &SourceRequest {
         &self.request
     }
-    /// Leaf capabilities that each pass the full chain rule of their own family when
-    /// evaluated as a request resource (implementation v2, source v1, or v1 while it is
-    /// accepted). Grants outside those families, wider than one family, or failing the
-    /// rule are omitted. These observations are not transferable authority; do not log
-    /// payloads.
+    /// Leaf grants that cover the admitted request, plus other leaf grants under this
+    /// request's `kiln://source/v1/<audience>/<generation>/<repository>/<context>`
+    /// prefix that pass the chain rule with their own resource. Ability, view ceiling and
+    /// snapshot checks stay the consumer's job. These observations are not transferable
+    /// authority; do not log payloads.
     #[must_use]
     pub const fn effective_capabilities(&self) -> &ucan::CapabilitySet {
         &self.grant.effective

@@ -194,11 +194,11 @@ impl Session {
     pub const fn request(&self) -> &Request {
         &self.request
     }
-    /// Leaf capabilities that each pass the full chain rule of their own family when
-    /// evaluated as a request resource (implementation v2, source v1, or v1 while it is
-    /// accepted). Grants outside those families, wider than one family, or failing the
-    /// rule are omitted. These observations are not transferable authority; do not log
-    /// payloads.
+    /// Leaf grants that cover the admitted request, plus other leaf grants under this
+    /// deployment's `kiln://implementation/v2/<audience>/<generation>/` prefix that pass
+    /// the chain rule with their own resource (v1 sessions expose covering grants only).
+    /// Ability, project/work/attempt matching and scope mapping stay the consumer's job.
+    /// These observations are not transferable authority; do not log payloads.
     #[must_use]
     pub const fn effective_capabilities(&self) -> &ucan::CapabilitySet {
         &self.grant.effective
@@ -307,6 +307,37 @@ struct Bound {
     enforcement: EnforcementRequest,
     action: EnforcementAction,
     rule: ChainRule,
+    /// Prefix every non-covering effective grant must start with: the v2 deployment
+    /// (`audience/generation`) or the source repository and context. `None` for v1,
+    /// whose sessions expose only grants covering the admitted request.
+    scope: Option<String>,
+}
+
+/// Verified proof DAG for one admission or revalidation. Each distinct proof is
+/// resolved and verified once; chain predicates then run over these cached results.
+struct ProofGraph {
+    /// Index 0 is the leaf token.
+    tokens: Vec<ucan::VerifiedToken>,
+    parents: Vec<Vec<usize>>,
+    /// Proof-edge traversals allowed per chain walk (`max_proof_count`), so a DAG with
+    /// shared parents cannot expand into an unbounded number of paths.
+    walk_budget: usize,
+}
+
+/// Non-consuming replay port for the pre-walk holder probe. It records that every
+/// earlier check passed, then refuses, so the probe can never mint authority.
+struct ProbeReplay {
+    reached: std::cell::Cell<bool>,
+}
+
+impl ucan::HolderInvocationReplayAdmission for ProbeReplay {
+    fn admit_holder_invocation(
+        &self,
+        _candidate: &ucan::HolderInvocationReplayCandidate<'_>,
+    ) -> Result<(), ucan::HolderInvocationReplayError> {
+        self.reached.set(true);
+        Err(ucan::HolderInvocationReplayError::Denied)
+    }
 }
 
 impl Verifier<'_> {
@@ -359,19 +390,28 @@ impl Verifier<'_> {
             return Err(Denied);
         }
         let action = request.operation.action();
-        let (resource, rule) = match request.framing {
+        let (resource, rule, scope) = match request.framing {
             ImplementationFraming::V1 => {
                 if self.implementation_v1 == LegacyFraming::Refuse {
                     return Err(Denied);
                 }
                 self.admit_contract(action, framing::IMPLEMENTATION_V1)?;
-                (framing::implementation_v1(request)?, ChainRule::Legacy)
+                (
+                    framing::implementation_v1(request)?,
+                    ChainRule::Legacy,
+                    None,
+                )
             }
             ImplementationFraming::V2 => {
                 self.admit_contract(action, framing::IMPLEMENTATION_V2)?;
                 (
                     framing::implementation_v2(request)?,
                     ChainRule::Delegated(framing::IMPLEMENTATION_V2_FAMILY),
+                    Some(framing::implementation_v2_prefix(
+                        self.audience,
+                        self.generation,
+                        &[],
+                    )?),
                 )
             }
         };
@@ -379,6 +419,7 @@ impl Verifier<'_> {
             enforcement: EnforcementRequest::new(action.contract_id(), resource, action.ability()),
             action,
             rule,
+            scope,
         })
     }
 
@@ -392,10 +433,19 @@ impl Verifier<'_> {
         let action = request.operation.action();
         self.admit_contract(action, framing::SOURCE_V1)?;
         let resource = framing::source_v1(request)?;
+        let scope = framing::source_prefix(
+            self.audience,
+            self.generation,
+            &request.repository,
+            request.attempt.as_ref(),
+            &[],
+            None,
+        )?;
         Ok(Bound {
             enforcement: EnforcementRequest::new(action.contract_id(), resource, action.ability()),
             action,
             rule: ChainRule::Delegated(framing::SOURCE_V1_FAMILY),
+            scope: Some(scope),
         })
     }
 
@@ -491,14 +541,6 @@ impl Verifier<'_> {
         if verified.audience().as_str() != subject {
             return Err(Denied);
         }
-        self.check_chain(
-            &verified,
-            bound.enforcement.resource(),
-            bound.rule,
-            boundaries,
-        )?;
-        // Computed before the consuming replay so a failure burns no nonce.
-        let effective = self.checked_effective(&verified, boundaries)?;
         let selected = self.selected_policy(bound.action);
         let raw = UcanEnforcementRequest::new(
             &bound.enforcement,
@@ -508,6 +550,13 @@ impl Verifier<'_> {
             invocation.nonce,
             invocation.holder_signature,
         );
+        // Check the holder signature, policy and UCAN authorization before any Basalt
+        // chain walk, without consuming replay.
+        self.probe_holder(&selected, &raw, boundaries)?;
+        let graph = Self::load_graph(verified, boundaries)?;
+        self.check_chain(&graph, bound.enforcement.resource(), bound.rule)?;
+        // Computed before the consuming replay so a failure burns no nonce.
+        let effective = self.checked_effective(&graph, bound)?;
         let live = verify_ucan_enforcement_request(self.policy, &selected, &raw, boundaries)
             .map_err(|_| Denied)?;
         let expires_unix_s = live
@@ -522,6 +571,36 @@ impl Verifier<'_> {
             effective,
             decision_id,
         })
+    }
+
+    /// Run the full UCAN enforcement path with a replay port that refuses after
+    /// recording that every earlier check passed. No authority is minted and no replay
+    /// state is consumed.
+    fn probe_holder(
+        &self,
+        selected: &BasaltPolicyRef,
+        raw: &UcanEnforcementRequest<'_, '_>,
+        boundaries: &UcanEnforcementBoundaries<'_>,
+    ) -> Result<(), Denied> {
+        let probe = ProbeReplay {
+            reached: std::cell::Cell::new(false),
+        };
+        let probing = UcanEnforcementBoundaries {
+            verification_time: boundaries.verification_time,
+            key_resolver: boundaries.key_resolver,
+            proof_store: boundaries.proof_store,
+            revocations: boundaries.revocations,
+            caveat_policies: boundaries.caveat_policies,
+            replay: &probe,
+            verification_limits: boundaries.verification_limits,
+            holder_limits: boundaries.holder_limits,
+        };
+        let minted = verify_ucan_enforcement_request(self.policy, selected, raw, &probing).is_ok();
+        if minted || !probe.reached.get() {
+            Err(Denied)
+        } else {
+            Ok(())
+        }
     }
 
     fn recheck(
@@ -544,7 +623,6 @@ impl Verifier<'_> {
             boundaries.verification_limits,
         )
         .map_err(|_| Denied)?;
-        self.check_chain(&verified, enforcement.resource(), bound.rule, boundaries)?;
         if verified.audience().as_str() != subject
             || !verified
                 .authorize_with_policies(
@@ -556,6 +634,8 @@ impl Verifier<'_> {
         {
             return Err(Denied);
         }
+        let graph = Self::load_graph(verified, boundaries)?;
+        self.check_chain(&graph, enforcement.resource(), bound.rule)?;
         // No capability DTO supplied by the caller reaches policy enforcement.
         let local = EnforcementRequest::new(
             enforcement.contract(),
@@ -575,38 +655,90 @@ impl Verifier<'_> {
         Ok(())
     }
 
-    /// The chain rule for a capability resource, by its family.
-    fn rule_for(&self, resource: &str) -> Option<ChainRule> {
-        if resource.starts_with(framing::IMPLEMENTATION_V2) {
-            Some(ChainRule::Delegated(framing::IMPLEMENTATION_V2_FAMILY))
-        } else if resource.starts_with(framing::SOURCE_V1) {
-            Some(ChainRule::Delegated(framing::SOURCE_V1_FAMILY))
-        } else if resource.starts_with(framing::IMPLEMENTATION_V1)
-            && self.implementation_v1 == LegacyFraming::Accept
-        {
-            Some(ChainRule::Legacy)
-        } else {
-            None
+    /// Resolve and verify every distinct proof reachable from the leaf exactly once.
+    /// Each proof edge spends one unit of the proof-count limit.
+    fn load_graph(
+        leaf: ucan::VerifiedToken,
+        boundaries: &UcanEnforcementBoundaries<'_>,
+    ) -> Result<ProofGraph, Denied> {
+        let mut graph = ProofGraph {
+            tokens: vec![leaf],
+            parents: vec![Vec::new()],
+            walk_budget: boundaries.verification_limits.max_proof_count(),
+        };
+        let mut known: std::collections::HashMap<ucan::ProofReference, usize> =
+            std::collections::HashMap::new();
+        let mut pending = vec![0_usize];
+        let mut budget = boundaries.verification_limits.max_proof_count();
+        while let Some(node) = pending.pop() {
+            let references = graph.tokens[node].proofs().as_slice().to_vec();
+            for reference in references {
+                budget = budget.checked_sub(1).ok_or(Denied)?;
+                let parent = if let Some(&index) = known.get(&reference) {
+                    index
+                } else {
+                    let token = Self::verify_proof(&reference, boundaries)?;
+                    let index = graph.tokens.len();
+                    graph.tokens.push(token);
+                    graph.parents.push(Vec::new());
+                    known.insert(reference, index);
+                    pending.push(index);
+                    index
+                };
+                graph.parents[node].push(parent);
+            }
         }
+        Ok(graph)
     }
 
-    /// Keep only leaf capabilities whose own resource passes its family's chain rule.
+    fn verify_proof(
+        reference: &ucan::ProofReference,
+        boundaries: &UcanEnforcementBoundaries<'_>,
+    ) -> Result<ucan::VerifiedToken, Denied> {
+        let proof = boundaries
+            .proof_store
+            .resolve_proof(reference)
+            .map_err(|_| Denied)?;
+        let proof_token = match &proof {
+            ucan::ProofToken::Borrowed(token) => *token,
+            ucan::ProofToken::Owned(token) => token,
+        };
+        if ucan::proof_reference(proof_token) != *reference {
+            return Err(Denied);
+        }
+        verify_compact_token_str_with_resolvers_and_revocations(
+            proof_token.as_str(),
+            boundaries.verification_time,
+            boundaries.key_resolver,
+            boundaries.proof_store,
+            boundaries.revocations,
+            boundaries.verification_limits,
+        )
+        .map_err(|_| Denied)
+    }
+
+    /// Keep the leaf grants that cover the admitted request (they authorized it and
+    /// passed the chain rule), plus any other leaf grant that lies under the session's
+    /// scope prefix and passes the same chain rule with its own resource. Because the
+    /// enforcement path already authorized the request, the covering set is non-empty.
     // r[impl basalt.kiln_authority.effective_scope]
     fn checked_effective(
         &self,
-        verified: &ucan::VerifiedToken,
-        boundaries: &UcanEnforcementBoundaries<'_>,
+        graph: &ProofGraph,
+        bound: &Bound,
     ) -> Result<ucan::CapabilitySet, Denied> {
-        let checked = verified
+        let resource = bound.enforcement.resource();
+        let checked = graph.tokens[0]
             .effective_delegation()
             .capabilities()
             .as_slice()
             .iter()
             .filter(|grant| {
-                self.rule_for(&grant.resource).is_some_and(|rule| {
-                    self.check_chain(verified, &grant.resource, rule, boundaries)
-                        .is_ok()
-                })
+                resource.starts_with(grant.resource.as_str())
+                    || bound.scope.as_deref().is_some_and(|scope| {
+                        grant.resource.starts_with(scope)
+                            && self.check_chain(graph, &grant.resource, bound.rule).is_ok()
+                    })
             })
             .cloned()
             .collect();
@@ -615,17 +747,16 @@ impl Verifier<'_> {
 
     fn check_chain(
         &self,
-        leaf: &ucan::VerifiedToken,
+        graph: &ProofGraph,
         resource: &str,
         rule: ChainRule,
-        boundaries: &UcanEnforcementBoundaries<'_>,
     ) -> Result<(), Denied> {
         let mut walk = Walk {
-            remaining: boundaries.verification_limits.max_proof_count(),
+            remaining: graph.walk_budget,
             wide: false,
             undelegated: false,
         };
-        self.check_roots(leaf, resource, rule, boundaries, &mut walk, 0)?;
+        self.check_roots(graph, 0, resource, rule, &mut walk, 0)?;
         if walk.wide && walk.undelegated {
             Err(Denied)
         } else {
@@ -641,13 +772,14 @@ impl Verifier<'_> {
     // r[impl basalt.kiln_authority.delegation.chain]
     fn check_roots(
         &self,
-        token: &ucan::VerifiedToken,
+        graph: &ProofGraph,
+        node: usize,
         resource: &str,
         rule: ChainRule,
-        boundaries: &UcanEnforcementBoundaries<'_>,
         walk: &mut Walk,
         depth: usize,
     ) -> Result<(), Denied> {
+        let token = &graph.tokens[node];
         match rule {
             ChainRule::Delegated(family) => {
                 if !aligned_grants(token, resource, family) {
@@ -662,7 +794,8 @@ impl Verifier<'_> {
                 }
             }
         }
-        if token.proofs().as_slice().is_empty() {
+        let parents = &graph.parents[node];
+        if parents.is_empty() {
             return if self
                 .trusted_roots
                 .iter()
@@ -678,47 +811,19 @@ impl Verifier<'_> {
         {
             return Err(Denied);
         }
-        let mut parents = Vec::with_capacity(token.proofs().as_slice().len());
-        for reference in token.proofs().as_slice() {
-            walk.remaining = walk.remaining.checked_sub(1).ok_or(Denied)?;
-            let proof = boundaries
-                .proof_store
-                .resolve_proof(reference)
-                .map_err(|_| Denied)?;
-            let proof_token = match &proof {
-                ucan::ProofToken::Borrowed(token) => *token,
-                ucan::ProofToken::Owned(token) => token,
-            };
-            if ucan::proof_reference(proof_token) != *reference {
-                return Err(Denied);
-            }
-            let raw = match &proof {
-                ucan::ProofToken::Borrowed(token) => token.as_str(),
-                ucan::ProofToken::Owned(token) => token.as_str(),
-            };
-            let parent = verify_compact_token_str_with_resolvers_and_revocations(
-                raw,
-                boundaries.verification_time,
-                boundaries.key_resolver,
-                boundaries.proof_store,
-                boundaries.revocations,
-                boundaries.verification_limits,
-            )
-            .map_err(|_| Denied)?;
-            parents.push(parent);
-        }
+        walk.remaining = walk.remaining.checked_sub(parents.len()).ok_or(Denied)?;
         let delegate = match rule {
             ChainRule::Legacy => framing::IMPLEMENTATION_DELEGATE_ABILITY,
             ChainRule::Delegated(family) => family.delegate,
         };
-        if !delegation_permitted(token, &parents, resource, delegate) {
+        if !delegation_permitted(token, graph, parents, resource, delegate) {
             match rule {
                 ChainRule::Delegated(_) => return Err(Denied),
                 ChainRule::Legacy => walk.undelegated = true,
             }
         }
-        for parent in &parents {
-            self.check_roots(parent, resource, rule, boundaries, walk, depth)?;
+        for &parent in parents {
+            self.check_roots(graph, parent, resource, rule, walk, depth)?;
         }
         Ok(())
     }
@@ -748,17 +853,22 @@ fn aligned_grants(token: &ucan::VerifiedToken, resource: &str, family: Family) -
 /// Wildcard abilities never count as the explicit delegate ability.
 fn delegation_permitted(
     token: &ucan::VerifiedToken,
-    parents: &[ucan::VerifiedToken],
+    graph: &ProofGraph,
+    parents: &[usize],
     resource: &str,
     delegate: &str,
 ) -> bool {
     covering(token, resource).all(|grant| {
-        parents.iter().any(|parent| {
-            parent.capabilities().as_slice().iter().any(|held| {
-                held.ability == delegate
-                    && held.caveats.is_empty()
-                    && grant.resource.starts_with(held.resource.as_str())
-            })
+        parents.iter().any(|&parent| {
+            graph.tokens[parent]
+                .capabilities()
+                .as_slice()
+                .iter()
+                .any(|held| {
+                    held.ability == delegate
+                        && held.caveats.is_empty()
+                        && grant.resource.starts_with(held.resource.as_str())
+                })
         })
     })
 }

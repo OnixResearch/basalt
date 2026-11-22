@@ -66,21 +66,45 @@ grant it. Requiring every covering grant to pin the generation means a wide gran
 `kiln://implementation/v1/`. If any covering grant in a v1 chain is wider than that
 family, every delegator in the chain must hold explicit `kiln/delegate` over the grants
 it issued. `Verifier::implementation_v1 = LegacyFraming::Refuse` closes the window: v1
-requests deny and v1 grants leave the effective set. The default is `Accept`.
+requests deny and a v1 session minted under `Accept` fails revalidation. The default is
+`Accept`.
 
 **Rationale:** Without this, a holder of a wide non-v1 grant and no delegate ability
 could re-delegate through the v1 framing. Existing v1 chains that stay inside the v1
 family keep verifying unchanged.
 
-### Decision: Effective capabilities are checked per grant
+### Decision: Effective capabilities are covering grants plus scoped, checked grants
 
-**Choice:** A session's `effective_capabilities()` keeps only leaf capabilities whose own
-resource passes its family's chain rule (v2, source, or v1 while accepted). It omits
-grants outside those families, grants wider than one family, and grants that fail the
-rule. The set is computed before the consuming replay.
+**Choice:** A session's `effective_capabilities()` keeps:
 
-**Rationale:** Kiln builds receiver scope from this set. A leaf grant that the chain rule
-would deny as a request must not appear as scope.
+- every leaf grant covering the admitted request, always. These authorized it and passed
+  the chain rule, so an admitted request never has an empty set and wide v1 grants keep
+  working;
+- any other leaf grant that starts with the session's scope prefix and passes the same
+  chain rule with its own resource.
+
+The scope prefix is the v2 deployment (`kiln://implementation/v2/<audience>/<generation>/`)
+or the source repository and context
+(`kiln://source/v1/<audience>/<generation>/<repository>/<context>`). v1 sessions keep
+covering grants only. The set is computed before the consuming replay.
+
+**Rationale:** Kiln builds receiver scope from this set, and its `{path, operations}`
+scope carries no generation, audience, repository or context. A grant pinned to an older
+generation, another audience, another repository or another context must therefore not
+appear. Neither may a grant that the chain rule would deny as a request. Project, work,
+attempt and ability matching remain Kiln's.
+
+### Decision: Verify each proof once; probe the holder before walking
+
+**Choice:** Admission first runs the full UCAN enforcement path, including the holder
+signature, against a replay port that records success and then refuses. It then loads
+the proof DAG once, memoized by proof reference, and runs every per-grant chain predicate
+over the cached tokens. Each walk is bounded by `max_proof_count` edge traversals. The
+real enforcement call with the caller's replay port is last.
+
+**Rationale:** Per-grant walks previously re-verified every proof for up to 64 grants,
+before the holder signature had been checked. The probe never mints authority and
+consumes no replay. It costs one extra UCAN verification per valid admission.
 
 ### Decision: Source scope order
 

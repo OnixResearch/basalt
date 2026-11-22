@@ -116,8 +116,8 @@ r[basalt.kiln_authority.attenuable.scenario.v1_wide]
 
 r[basalt.kiln_authority.attenuable.scenario.v1_refused]
 - GIVEN a verifier configured with `LegacyFraming::Refuse`
-- WHEN a v1 request is framed, or a v2 session's leaf also carries a v1 grant
-- THEN the v1 request MUST deny
+- WHEN a v1 request is framed, a v1 session minted under `Accept` is revalidated, or a v2 session's leaf also carries a v1 grant
+- THEN the v1 request and the revalidation MUST deny
 - AND the v1 grant MUST NOT appear in the session's effective capabilities
 
 ### Requirement: Explicit delegation chain rule
@@ -201,10 +201,14 @@ r[basalt.kiln_authority.delegation.chain.scenario.multi_proof]
 ### Requirement: Checked effective capabilities
 
 r[basalt.kiln_authority.effective_scope] A session's effective capabilities MUST contain
-only leaf capabilities whose own resource, evaluated as a request, passes its family's
-chain rule (implementation v2, source v1, or v1 while accepted). Grants outside those
-families, grants wider than one family and grants the rule would deny MUST be omitted.
-The set MUST be computed before replay is consumed.
+every leaf grant that covers the admitted request. They MAY contain any other leaf grant
+only when that grant starts with the session's scope prefix and passes the same chain rule
+with its own resource. The scope prefix is the v2 deployment prefix (family, verifier
+audience, verifier generation) for implementation sessions, and the source repository
+and context prefix for source sessions. v1 sessions MUST expose covering grants only. An
+admitted request MUST NOT be denied because no other grant qualified. The set MUST be
+computed before replay is consumed, and each distinct proof MUST be verified at most
+once per admission or revalidation.
 
 #### Scenario: Unchecked leaf grants are omitted
 
@@ -213,6 +217,22 @@ r[basalt.kiln_authority.effective_scope.scenario.unchecked]
 - WHEN the delegator grants a holder discover over `a` and over `secret`, and the holder is admitted on `a`
 - THEN the session's effective capabilities MUST NOT include the `secret` grant
 - AND a request on `secret` MUST deny
+
+#### Scenario: Grants outside the current deployment and scope are omitted
+
+r[basalt.kiln_authority.effective_scope.scenario.deployment]
+- GIVEN a leaf that, beside the admitted grant, carries chain-valid grants pinned to an earlier generation, a foreign audience, another repository or another source context
+- WHEN the session is admitted after the generation bump
+- THEN none of those grants MUST appear in its effective capabilities
+- AND a sibling grant under the same scope prefix MUST appear
+
+#### Scenario: Proof verification does not grow with grant count
+
+r[basalt.kiln_authority.effective_scope.scenario.memoized]
+- GIVEN leaves with 1 and with 64 grants over the same delegated chain
+- WHEN each is admitted
+- THEN both admissions MUST perform the same number of key resolutions
+- AND a forged holder signature MUST deny before any chain walk without consuming replay
 
 ### Requirement: Closed Kiln source operations
 
