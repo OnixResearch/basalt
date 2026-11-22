@@ -28,7 +28,8 @@ pub enum ReplayFailure {
 
 /// Caller-owned consumptive replay capability.
 pub trait ReplayPort {
-    /// Atomically reserve one replay key until its expiration.
+    /// Atomically reserve one replay key until `expires_at_seconds`, the last
+    /// time at which the same OIDC token could still be accepted.
     ///
     /// # Errors
     ///
@@ -217,7 +218,7 @@ fn exchange_inner(
         }
     })?;
     let replay_outcome = replay
-        .commit(&plan.replay_key, plan.expires_at_seconds)
+        .commit(&plan.replay_key, plan.replay_expires_at_seconds)
         .map_err(|class| ExchangeFailure {
             receipt: Box::new(receipt_for_failure(
                 policy,

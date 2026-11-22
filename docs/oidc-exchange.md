@@ -14,7 +14,7 @@ Lattice or another client shell.
 - workflow and Git reference prefixes;
 - explicit clock skew, token age, UCAN lifetime, network, body, key, cache, and refresh limits;
 - one versioned Mantle capability vocabulary;
-- one-time exchange with an issuer-provided `jti`.
+- one-time exchange with an issuer-provided `jti`: one exchange per OIDC token.
 
 The generated policy contains no private key, provider credential, OIDC token,
 or secret value.
@@ -31,7 +31,7 @@ an operation does not grant it to an existing caller.
 4. The pure core fixes RS256 and verifies the signature with the selected public RSA key.
 5. The core checks issuer, audience, `exp`, `nbf`, `iat`, repository, workflow, commit, and reference.
 6. The core attenuates the requested Mantle audience, project, operation, resource, and lifetime.
-7. The shell commits one replay key derived from public facts and the exact request.
+7. The shell commits one replay key over the OIDC issuer and `jti` only.
 8. The caller-owned UCAN signer issues one token through the reviewed UCAN library.
 
 Signature validity does not grant authority by itself.
@@ -46,8 +46,8 @@ project, operation, resource, or lifetime attenuation.
 The receiver must still verify a holder-signed invocation. Choosing a recipient
 does not prove possession of that holder's private key. Receipt capability
 identities bind the selected recipient without retaining bearer material.
-Changing recipients does not change the one-time exchange replay key and cannot
-make the same OIDC exchange reusable.
+The replay key names only the OIDC issuer and `jti`, so changing recipients,
+operations or resources cannot exchange the same OIDC token twice.
 
 For Mantle invocation signing, `mantle::canonical_enforcement` constructs the
 exact bounded request without inventing receiver policy, issuer trust, or a
@@ -80,9 +80,15 @@ OIDC public keys are accepted only while the bounded JWKS cache is fresh. A
 removed key becomes unusable after the next required refresh. Basalt does not
 claim instant provider revocation.
 
-The replay port must atomically reserve the planned key until UCAN expiration.
-A duplicate or unavailable store denies issuance. The receipt cannot recreate
-replay authority.
+The replay key is `(iss, jti)` alone: one OIDC token admits exactly one
+exchange, whatever operation, resource or holder a later request names. A
+client that needs several grants mints a fresh OIDC token per exchange.
+
+The replay port must atomically reserve the key until
+`max(exp, iat + max_token_age_seconds) + clock_skew_seconds`, the last moment
+the same token could still pass verification. The UCAN lifetime does not bound
+the reservation. A duplicate or unavailable store denies issuance. The receipt
+cannot recreate replay authority.
 
 ## Evidence
 

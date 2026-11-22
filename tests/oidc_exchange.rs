@@ -7,15 +7,15 @@
 
 #![cfg(feature = "oidc-exchange")]
 
-use std::collections::{BTreeSet, VecDeque};
+use std::collections::{BTreeMap, VecDeque};
 use std::sync::OnceLock;
 
 use basalt::oidc_exchange::{
-    DocumentFailure, DocumentKind, DocumentPort, DocumentResponse, ExchangeFailureClass,
-    ExchangeOutcome, ExchangeRequest, IssuerAdmission, JwksCache, KeyLoadFailure, MantleOperation,
-    OidcPolicy, PublicJwk, RejectReason, ReplayCommit, ReplayFailure, ReplayKey, ReplayPort,
-    exchange, inspect_token_key_id, load_verification_key, parse_policy,
-    signer_verification_digest, validate_receipt_redaction, verify_and_plan,
+    DocumentFailure, DocumentKind, DocumentPort, DocumentResponse, ExchangeFailure,
+    ExchangeFailureClass, ExchangeOutcome, ExchangeRequest, ExchangeResult, IssuerAdmission,
+    JwksCache, KeyLoadFailure, MantleOperation, OidcPolicy, PublicJwk, RejectReason, ReplayCommit,
+    ReplayFailure, ReplayKey, ReplayPort, exchange, inspect_token_key_id, load_verification_key,
+    parse_policy, signer_verification_digest, validate_receipt_redaction, verify_and_plan,
 };
 use basalt::secretspec_issuer::{
     ISSUER_RESOLUTION_RESULT_SCHEMA, IssuerKeyDeclaration, IssuerResolutionReason,
@@ -37,6 +37,11 @@ const POLICY_JSON: &str = include_str!("../contracts/oidc-exchange/generated/pol
 const CLAIMS_JSON: &str = include_str!("fixtures/oidc/github-claims.json");
 const NOW_SECONDS: u64 = 1_700_000_060;
 const TOKEN_EXPIRATION_SECONDS: u64 = 1_700_000_300;
+const TOKEN_ISSUED_AT_SECONDS: u64 = 1_700_000_000;
+/// `max(exp, iat + 600 s token age) + 30 s skew` for the fixture claims.
+const FIXTURE_REPLAY_RESERVED_UNTIL_SECONDS: u64 = 1_700_000_630;
+/// A token that outlives the 300 s UCAN lifetime: `exp = iat + 900`.
+const LONG_TOKEN_EXPIRATION_SECONDS: u64 = 1_700_000_900;
 const REQUEST_LIFETIME_SECONDS: u64 = 120;
 const CACHE_FRESH_SECONDS: u64 = 60;
 const EXPIRED_TOKEN_SECONDS: u64 = 1_699_999_000;
@@ -94,6 +99,67 @@ fn valid_token_with_key(key_id: &str) -> String {
 
 fn valid_token() -> String {
     valid_token_with_key("fixture-rsa")
+}
+
+/// A distinct OIDC token: same identity claims, its own `jti` and expiry.
+fn token_with_jti(jti: &str, expiration_seconds: u64) -> String {
+    let mut fields = claims();
+    fields["jti"] = serde_json::json!(jti);
+    fields["exp"] = serde_json::json!(expiration_seconds);
+    let mut header = Header::new(Algorithm::RS256);
+    header.kid = Some("fixture-rsa".to_owned());
+    token_with(&fields, &header)
+}
+
+/// One exchange service: policy, key cache, documents, replay store and signer.
+struct Harness {
+    policy: OidcPolicy,
+    cache: JwksCache,
+    documents: ScriptedDocuments,
+    replay: MemoryReplay,
+    signer: Ed25519InMemorySigner,
+    issuer: IssuerAdmission,
+}
+
+impl Harness {
+    /// Key documents stay fresh for the policy maximum, so one load serves all.
+    fn new(policy: OidcPolicy) -> Self {
+        let mut discovery = discovery_response(&policy);
+        discovery.fresh_seconds = policy.cache.max_fresh_seconds;
+        let documents = ScriptedDocuments::new(vec![
+            Ok(discovery),
+            Ok(jwks_response("fixture-rsa", policy.cache.max_fresh_seconds)),
+        ]);
+        let signer = Ed25519InMemorySigner::from_seed_bytes([UCAN_TEST_SEED_BYTE; 32]);
+        let issuer = issuer_admission(&signer);
+        Self {
+            policy,
+            cache: JwksCache::default(),
+            documents,
+            replay: MemoryReplay::default(),
+            signer,
+            issuer,
+        }
+    }
+
+    fn exchange(
+        &mut self,
+        token: &str,
+        now_seconds: u64,
+        request: &ExchangeRequest,
+    ) -> Result<ExchangeResult, ExchangeFailure> {
+        exchange(
+            token,
+            now_seconds,
+            &self.policy,
+            request,
+            &mut self.cache,
+            &mut self.documents,
+            &mut self.replay,
+            &self.issuer,
+            &self.signer,
+        )
+    }
 }
 
 fn issuer_admission(signer: &dyn TokenSigner) -> IssuerAdmission {
@@ -181,27 +247,34 @@ impl DocumentPort for ScriptedDocuments {
     }
 }
 
+/// In-memory replay store that frees a key once its reservation has passed.
 #[derive(Default)]
 struct MemoryReplay {
-    committed: BTreeSet<String>,
+    committed: BTreeMap<String, u64>,
     calls: usize,
     failure: Option<ReplayFailure>,
+    now_seconds: u64,
 }
 
 impl ReplayPort for MemoryReplay {
     fn commit(
         &mut self,
         key: &ReplayKey,
-        _expires_at_seconds: u64,
+        expires_at_seconds: u64,
     ) -> Result<ReplayCommit, ReplayFailure> {
         self.calls = self.calls.saturating_add(1);
         if let Some(failure) = self.failure {
             return Err(failure);
         }
-        if self.committed.insert(key.as_str().to_owned()) {
-            Ok(ReplayCommit::Fresh)
-        } else {
-            Ok(ReplayCommit::Duplicate)
+        match self.committed.get(key.as_str()) {
+            Some(reserved_until) if *reserved_until > self.now_seconds => {
+                Ok(ReplayCommit::Duplicate)
+            }
+            _ => {
+                self.committed
+                    .insert(key.as_str().to_owned(), expires_at_seconds);
+                Ok(ReplayCommit::Fresh)
+            }
         }
     }
 }
@@ -241,6 +314,10 @@ fn valid_github_token_produces_one_exact_attenuated_plan() {
         NOW_SECONDS + REQUEST_LIFETIME_SECONDS
     );
     assert!(plan.expires_at_seconds <= TOKEN_EXPIRATION_SECONDS);
+    assert_eq!(
+        plan.replay_expires_at_seconds,
+        FIXTURE_REPLAY_RESERVED_UNTIL_SECONDS
+    );
     assert!(plan.subject.identity.starts_with("blake3:"));
 }
 
@@ -721,6 +798,73 @@ fn exchange_issues_verifiable_ucan_once_and_fails_closed_on_replay_or_outage() {
     assert_eq!(
         failure.class,
         ExchangeFailureClass::Replay(ReplayFailure::Unavailable)
+    );
+}
+
+// r[verify ucan_token_flow.oidc.replay_boundary]
+#[test]
+fn one_oidc_token_admits_exactly_one_exchange_until_it_can_no_longer_be_accepted() {
+    let mut harness = Harness::new(policy());
+    harness.replay.now_seconds = NOW_SECONDS;
+    let token = valid_token();
+    harness
+        .exchange(&token, NOW_SECONDS, &request())
+        .expect("first exchange issues");
+    let mut other_operation = request();
+    other_operation.operation = MantleOperation::StatusRead;
+    let mut other_resource = request();
+    other_resource.resource = "mantle://projects/onix-stack/builds/other".to_owned();
+    for (label, candidate) in [("operation", other_operation), ("resource", other_resource)] {
+        let duplicate = harness
+            .exchange(&token, NOW_SECONDS, &candidate)
+            .expect_err("a second exchange of one OIDC token must be denied");
+        assert_eq!(duplicate.class, ExchangeFailureClass::Duplicate, "{label}");
+    }
+    let fresh = token_with_jti("fixture-exchange-2", TOKEN_EXPIRATION_SECONDS);
+    harness
+        .exchange(&fresh, NOW_SECONDS, &request())
+        .expect("a fresh token is accepted");
+    assert_eq!(
+        harness
+            .replay
+            .committed
+            .values()
+            .copied()
+            .collect::<Vec<_>>(),
+        vec![FIXTURE_REPLAY_RESERVED_UNTIL_SECONDS; 2]
+    );
+
+    // The old reservation ended with the UCAN (at most 300 s); this token outlives it.
+    let long = token_with_jti("fixture-exchange-long", LONG_TOKEN_EXPIRATION_SECONDS);
+    let mut full_lifetime = request();
+    full_lifetime.lifetime_seconds = harness.policy.time.max_ucan_lifetime_seconds;
+    let issued = harness
+        .exchange(&long, NOW_SECONDS, &full_lifetime)
+        .expect("long-lived token exchanges once");
+    assert_eq!(issued.receipt.outcome, ExchangeOutcome::Issued);
+    let later = NOW_SECONDS + harness.policy.time.max_ucan_lifetime_seconds + 40;
+    assert!(
+        verify_and_plan(
+            &long,
+            &public_jwk("fixture-rsa"),
+            later,
+            &harness.policy,
+            &full_lifetime
+        )
+        .is_ok(),
+        "the token must still be acceptable after the UCAN window"
+    );
+    harness.replay.now_seconds = later;
+    let late = harness
+        .exchange(&long, later, &full_lifetime)
+        .expect_err("re-exchange after the UCAN window must be denied");
+    assert_eq!(late.class, ExchangeFailureClass::Duplicate);
+    let expected_reservation = LONG_TOKEN_EXPIRATION_SECONDS
+        .max(TOKEN_ISSUED_AT_SECONDS + harness.policy.time.max_token_age_seconds)
+        + harness.policy.time.clock_skew_seconds;
+    assert_eq!(
+        harness.replay.committed.values().copied().max(),
+        Some(expected_reservation)
     );
 }
 

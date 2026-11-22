@@ -262,11 +262,14 @@ pub struct IssuancePlan {
     pub not_before_seconds: u64,
     /// Issuance expiration time.
     pub expires_at_seconds: u64,
-    /// Replay key derived from public facts only.
+    /// Replay key over the OIDC issuer and `jti` only: one exchange per token.
     pub replay_key: ReplayKey,
+    /// End of the replay reservation: `max(exp, iat + max_token_age) + skew`,
+    /// the latest time at which the same OIDC token could still be accepted.
+    pub replay_expires_at_seconds: u64,
 }
 
-/// BLAKE3 replay identity over public token and request facts.
+/// BLAKE3 replay identity over the OIDC issuer and `jti`.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ReplayKey(String);
 
