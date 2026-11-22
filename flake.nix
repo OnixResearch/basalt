@@ -422,7 +422,9 @@
               cd ${./.}
               expected_url='https://seed.radicle.garden/z4ARxEt93T6gJTrTZpUyKHMAemPiv.git'
               expected_revision='5abc2b93e0f288aba251a0750ce2d716eb9757fc'
-              expected_jwt_revision='900010fb1be550ec2cfa8c32038eb154f9ef56d7'
+              expected_ring_version='0.17.14'
+              expected_ring_version_pattern='0\.17\.14'
+              expected_ring_checksum='a4689e6c2294d81e88dc6261c768b63bc4fcdb852be6d1352498b114f61383b7'
               expected_jwt_checksum='881733cbc631fc9e472e24447ce32a64bedf2da498d6d8570b08edc87de71f65'
               nickel typecheck contracts/oidc-exchange/source-boundary.ncl
               nickel export --format json contracts/oidc-exchange/source-boundary.ncl > "$TMPDIR/sources.json"
@@ -434,8 +436,20 @@
               done
               rg --fixed-strings "bounded-http = { git = \"$expected_url\", rev = \"$expected_revision\", optional = true }" Cargo.toml
               test "$(rg --fixed-strings --count-matches "rev=$expected_revision#$expected_revision" Cargo.lock)" -eq 2
-              rg --fixed-strings 'jsonwebtoken = { version = "=11.0.0", default-features = false, features = ["rust_crypto"] }' Cargo.toml
-              rg --fixed-strings "$expected_jwt_revision" contracts/oidc-exchange/source-contracts.ncl
+              awk '/^\[dependencies\]/ { runtime = 1; next } /^\[/ { runtime = 0 } runtime' Cargo.toml > "$TMPDIR/runtime-dependencies.toml"
+              awk '/^\[dev-dependencies\]/ { dev = 1; next } /^\[/ { dev = 0 } dev' Cargo.toml > "$TMPDIR/dev-dependencies.toml"
+              # The runtime RS256 primitive is exactly the ring release the source contract pins.
+              rg --fixed-strings --line-regexp "ring = \"=$expected_ring_version\"" "$TMPDIR/runtime-dependencies.toml"
+              rg --fixed-strings "ring_version = \"$expected_ring_version\"," contracts/oidc-exchange/source-contracts.ncl
+              rg --fixed-strings "ring_checksum = \"$expected_ring_checksum\"," contracts/oidc-exchange/source-contracts.ncl
+              rg --fixed-strings "\"crate_checksum\": \"$expected_ring_checksum\"" "$TMPDIR/sources.json"
+              rg --multiline "^name = \"ring\"\nversion = \"$expected_ring_version_pattern\"\nsource = \"registry\+https://github\.com/rust-lang/crates\.io-index\"\nchecksum = \"$expected_ring_checksum\"$" Cargo.lock
+              # jsonwebtoken only mints test tokens: an exact dev-dependency, never in the runtime closure.
+              rg --fixed-strings 'jsonwebtoken = { version = "=11.0.0", default-features = false, features = ["rust_crypto"] }' "$TMPDIR/dev-dependencies.toml"
+              if rg '^jsonwebtoken' "$TMPDIR/runtime-dependencies.toml"; then
+                echo 'jsonwebtoken returned to the runtime dependencies' >&2
+                exit 1
+              fi
               rg --fixed-strings "$expected_jwt_checksum" Cargo.lock
               if rg 'github.com/OnixResearch/bounded-http|path = "\.\./bounded-http"|branch = ' Cargo.toml; then
                 echo 'unsafe Bounded HTTP fallback found' >&2
