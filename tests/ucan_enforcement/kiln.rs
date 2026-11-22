@@ -1,6 +1,6 @@
 use crate::support::*;
 use basalt::authority_core::BasaltPolicyRef;
-use basalt::kiln::{Denied, Invocation, Operation, Request, Verifier};
+use basalt::kiln::{Denied, ImplementationFraming, Invocation, Operation, Request, Verifier};
 
 const ALL_OPERATIONS: [Operation; 9] = [
     Operation::ClaimAcquire,
@@ -32,6 +32,7 @@ fn request(operation: Operation) -> Request {
         } else {
             [0; 32]
         },
+        framing: ImplementationFraming::V1,
     }
 }
 fn boundaries<'a>(
@@ -72,6 +73,7 @@ const fn verifier<'a>(
         generation: 7,
         audience: "kiln-service-a",
         trusted_roots: roots,
+        max_delegation_depth: 1,
     }
 }
 fn fixture(verifier: &Verifier<'_>, request: &Request) -> (InvocationFixture, SignerSignature) {
@@ -428,4 +430,29 @@ fn kiln_policy_without_the_selected_contract_denies_before_replay() {
             .is_err()
     );
     assert_eq!(replay.calls.get(), 0);
+}
+
+#[test]
+// r[verify basalt.kiln_authority.attenuable.scenario.v1_stable]
+fn kiln_v1_framing_bytes_and_serialized_requests_are_unchanged() {
+    let policy = default_policy().unwrap();
+    let reference = policy_ref();
+    let roots = [signer(ISSUER_SEED_BYTE).issuer().unwrap().as_str().into()];
+    let verifier = verifier(&policy, &reference, &roots);
+    let mut fixed = request(Operation::CandidateSubmit);
+    fixed.subject = "did:key:z6Mkholder".into();
+    // Frozen bytes recorded from the pre-v2 framing at basalt 1c142e2.
+    assert_eq!(
+        verifier.enforcement(&fixed).unwrap().resource(),
+        "kiln://implementation/v1/18/6469643a6b65793a7a364d6b686f6c646572/\
+         14/6b696c6e2d736572766963652d61/17/4f6e697852657365617263682f6b696c6e/\
+         24/6b696c6e2e696d706c656d656e746174696f6e2e776f726b/9/617474656d70742d61/\
+         18/63616e6469646174652f617070726f766564/3/5/7/\
+         2929292929292929292929292929292929292929292929292929292929292929/\
+         2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b"
+    );
+    let mut legacy = serde_json::to_value(&fixed).unwrap();
+    legacy.as_object_mut().unwrap().remove("framing");
+    let decoded: Request = serde_json::from_value(legacy).unwrap();
+    assert!(decoded == fixed);
 }

@@ -47,6 +47,27 @@ fn packaged_policy_carries_every_kiln_contract() {
     ] {
         let entry = policy.contract(contract).expect("Kiln contract must exist");
         assert!(entry.permits_resource("kiln://implementation/v1/"));
+        assert!(entry.permits_resource("kiln://implementation/v2/"));
+        assert!(!entry.permits_resource("kiln://source/v1/"));
         assert!(entry.permits_ability(ability));
     }
+    for (contract, ability) in [
+        ("kiln-source-discover", "kiln/source/discover"),
+        ("kiln-source-read", "kiln/source/read"),
+        ("kiln-source-history", "kiln/source/history"),
+        ("kiln-source-prepare", "kiln/source/prepare"),
+        ("kiln-source-modify", "kiln/source/modify"),
+        ("kiln-source-create", "kiln/source/create"),
+        ("kiln-source-delegate", "kiln/source/delegate"),
+        ("kiln-source-result", "kiln/source/result"),
+    ] {
+        let entry = policy
+            .contract(contract)
+            .expect("Kiln source contract must exist");
+        assert!(entry.permits_resource("kiln://source/v1/"));
+        assert!(!entry.permits_resource("kiln://implementation/v2/"));
+        assert!(entry.permits_ability(ability));
+    }
+    // No contract exists for the chain-only implementation delegate ability.
+    assert!(policy.contract("kiln-delegate").is_none());
 }

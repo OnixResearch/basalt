@@ -195,6 +195,8 @@ pub(super) const REQUIRED_PACKAGE_FILES: &[&str] = &[
     "src/cli_fs.rs",
     "src/durable_authority.rs",
     "src/kiln.rs",
+    "src/kiln/framing.rs",
+    "src/kiln/source.rs",
     "src/lib.rs",
     "src/license_consumption.rs",
     "src/license_consumption_identity.rs",
