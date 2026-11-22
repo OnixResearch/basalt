@@ -106,8 +106,7 @@ pub fn compute_event_id(event: &NostrEvent) -> Result<NostrEventId, Verification
 pub fn verify_event(event: &NostrEvent) -> Result<VerifiedNostrEvent, VerificationIssue> {
     let public_key = NostrPublicKey::parse(&event.pubkey)?;
     let field = k256::FieldBytes::from(*public_key.as_bytes());
-    let verifying_key =
-        VerifyingKey::from_bytes(&field).map_err(|_error| VerificationIssue::InvalidPublicKeyPoint)?;
+    let verifying_key = VerifyingKey::from_bytes(&field).map_err(|_error| VerificationIssue::InvalidPublicKeyPoint)?;
     let supplied_id = NostrEventId::parse(&event.id)?;
     let computed_id = compute_event_id(event)?;
     if supplied_id != computed_id {
@@ -142,8 +141,7 @@ pub fn verify_bip340_message(
 ) -> Result<(), VerificationIssue> {
     let public_key = NostrPublicKey::parse(public_key_hex)?;
     let field = k256::FieldBytes::from(*public_key.as_bytes());
-    let verifying_key =
-        VerifyingKey::from_bytes(&field).map_err(|_error| VerificationIssue::InvalidPublicKeyPoint)?;
+    let verifying_key = VerifyingKey::from_bytes(&field).map_err(|_error| VerificationIssue::InvalidPublicKeyPoint)?;
     let signature_bytes = decode_signature(signature_hex)?;
     let signature = Signature::try_from(signature_bytes.as_slice())
         .map_err(|_error| VerificationIssue::InvalidSignatureEncoding)?;

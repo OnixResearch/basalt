@@ -40,9 +40,9 @@ const UNKNOWN_COMMAND: &str = "/document/unknown";
 const ROOT_COMMAND: &str = "/document";
 const SOURCE_EVIDENCE_JSON: &str =
     include_str!("../contracts/ucan-v1-profile/generated/source-evidence.json");
-const EXPECTED_RUNTIME_REVISION: &str = "417f74662b9de2de3bdabe93ad5db996e1bd2861";
+const EXPECTED_RUNTIME_REVISION: &str = "fca62a6ed6895689ff18112b497bc7a986516c20";
 const EXPECTED_SOURCE_MANIFEST: &str =
-    "7e9a33d3d0ca5ee2a9e85402d9a5be4ebd5da73bd6e3ea7488f7f611a5b4f9e4";
+    "9c094231b4d458e63f137a5f3ed464909504bbc234ebc44710c1460d075ceb24";
 
 struct KeyMap(BTreeMap<String, [u8; ed25519_dalek::PUBLIC_KEY_LENGTH]>);
 
