@@ -726,6 +726,10 @@ fn exchange_issues_verifiable_ucan_once_and_fails_closed_on_replay_or_outage() {
 
 // r[verify ucan_token_flow.oidc.holder_recipient]
 #[test]
+#[allow(
+    clippy::similar_names,
+    reason = "issuer admission and issued UCAN are distinct security fixtures"
+)]
 fn explicit_recipient_preserves_service_attenuation_and_one_time_exchange() {
     let policy = policy();
     let token = valid_token();
@@ -741,9 +745,18 @@ fn explicit_recipient_preserves_service_attenuation_and_one_time_exchange() {
         Ok(jwks_response("fixture-rsa", CACHE_FRESH_SECONDS)),
     ]);
     let issued = basalt::oidc_exchange::exchange_to_recipient(
-        &token, NOW_SECONDS, &policy, &request, &mut cache, &mut documents,
-        &mut replay, &issuer, &signer, &recipient,
-    ).expect("exchange to holder");
+        &token,
+        NOW_SECONDS,
+        &policy,
+        &request,
+        &mut cache,
+        &mut documents,
+        &mut replay,
+        &issuer,
+        &signer,
+        &recipient,
+    )
+    .expect("exchange to holder");
     let context = VerificationContext::new(
         VerificationTime::from_unix_seconds(NOW_SECONDS),
         KeyResolutionContext::new(vec![signer.verification_key().expect("issuer key")]),
@@ -755,33 +768,72 @@ fn explicit_recipient_preserves_service_attenuation_and_one_time_exchange() {
     assert_eq!(grants.len(), 1);
     assert_eq!(grants[0].resource, request.resource);
     assert_eq!(grants[0].ability, request.operation.ability());
-    assert_eq!(verified.effective_delegation().time_bounds().expires_at_seconds(),
-        NOW_SECONDS + REQUEST_LIFETIME_SECONDS);
+    assert_eq!(
+        verified
+            .effective_delegation()
+            .time_bounds()
+            .expires_at_seconds(),
+        NOW_SECONDS + REQUEST_LIFETIME_SECONDS
+    );
 
     let other = ucan::AudienceDid::from(signer.issuer().expect("other holder DID"));
     let duplicate = basalt::oidc_exchange::exchange_to_recipient(
-        &token, NOW_SECONDS, &policy, &request, &mut cache, &mut documents,
-        &mut replay, &issuer, &signer, &other,
-    ).expect_err("changing holder must not bypass replay");
+        &token,
+        NOW_SECONDS,
+        &policy,
+        &request,
+        &mut cache,
+        &mut documents,
+        &mut replay,
+        &issuer,
+        &signer,
+        &other,
+    )
+    .expect_err("changing holder must not bypass replay");
     assert_eq!(duplicate.class, ExchangeFailureClass::Duplicate);
 
     let second = basalt::oidc_exchange::exchange_to_recipient(
-        &token, NOW_SECONDS, &policy, &request, &mut cache, &mut documents,
-        &mut MemoryReplay::default(), &issuer, &signer, &other,
-    ).expect("independent replay fixture");
-    assert_ne!(issued.receipt.granted_capability_identity, second.receipt.granted_capability_identity);
+        &token,
+        NOW_SECONDS,
+        &policy,
+        &request,
+        &mut cache,
+        &mut documents,
+        &mut MemoryReplay::default(),
+        &issuer,
+        &signer,
+        &other,
+    )
+    .expect("independent replay fixture");
+    assert_ne!(
+        issued.receipt.granted_capability_identity,
+        second.receipt.granted_capability_identity
+    );
 
-    let mut wrong_service = request.clone();
+    let mut wrong_service = request;
     wrong_service.audience = recipient.as_str().to_owned();
     let mut unused_replay = MemoryReplay::default();
     let failure = basalt::oidc_exchange::exchange_to_recipient(
-        &token, NOW_SECONDS, &policy, &wrong_service, &mut cache, &mut documents,
-        &mut unused_replay, &issuer, &signer, &recipient,
-    ).expect_err("holder cannot replace service policy audience");
-    assert_eq!(failure.class, ExchangeFailureClass::Verification(RejectReason::CapabilityAudience));
+        &token,
+        NOW_SECONDS,
+        &policy,
+        &wrong_service,
+        &mut cache,
+        &mut documents,
+        &mut unused_replay,
+        &issuer,
+        &signer,
+        &recipient,
+    )
+    .expect_err("holder cannot replace service policy audience");
+    assert_eq!(
+        failure.class,
+        ExchangeFailureClass::Verification(RejectReason::CapabilityAudience)
+    );
     assert_eq!(unused_replay.calls, 0);
     let receipt = serde_json::to_string(&issued.receipt).expect("redacted receipt");
-    validate_receipt_redaction(&receipt, &[&token, issued.token.as_str()]).expect("no bearer evidence");
+    validate_receipt_redaction(&receipt, &[&token, issued.token.as_str()])
+        .expect("no bearer evidence");
 }
 
 #[test]
@@ -791,8 +843,10 @@ fn events_and_results_require_explicit_policy_selection() {
     for operation in [MantleOperation::EventRead, MantleOperation::ResultRead] {
         let mut request = request();
         request.operation = operation;
-        assert_eq!(verify_and_plan(&token, &key, NOW_SECONDS, &policy(), &request),
-            Err(RejectReason::CapabilityOperation));
+        assert_eq!(
+            verify_and_plan(&token, &key, NOW_SECONDS, &policy(), &request),
+            Err(RejectReason::CapabilityOperation)
+        );
         let mut document: Value = serde_json::from_str(POLICY_JSON).expect("policy fixture");
         document["capability"]["operations"] = serde_json::json!([operation]);
         let selected = parse_policy(&serde_json::to_string(&document).expect("selected policy"))
@@ -801,8 +855,10 @@ fn events_and_results_require_explicit_policy_selection() {
             .expect("selected read operation");
         assert_eq!(plan.operation, operation);
         request.operation = MantleOperation::BuildSubmit;
-        assert_eq!(verify_and_plan(&token, &key, NOW_SECONDS, &selected, &request),
-            Err(RejectReason::CapabilityOperation));
+        assert_eq!(
+            verify_and_plan(&token, &key, NOW_SECONDS, &selected, &request),
+            Err(RejectReason::CapabilityOperation)
+        );
     }
 }
 

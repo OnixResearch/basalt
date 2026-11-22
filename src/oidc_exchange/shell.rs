@@ -1,7 +1,9 @@
 use ucan::{AudienceDid, CompactToken, TokenSigner};
 
 use super::core::verify_and_plan;
-use super::issue::{IssueFailure, IssuerAdmission, issue_plan, issue_plan_to_recipient, validate_issuer_admission};
+use super::issue::{
+    IssueFailure, IssuerAdmission, issue_plan, issue_plan_to_recipient, validate_issuer_admission,
+};
 use super::model::{ExchangeRequest, OidcPolicy, RejectReason, ReplayKey};
 use super::network::{DocumentPort, JwksCache, KeyLoadFailure, load_verification_key};
 use super::receipt::{ExchangeReceipt, bind_recipient, receipt_for_failure, receipt_for_success};
@@ -103,7 +105,18 @@ pub fn exchange(
     issuer: &IssuerAdmission,
     signer: &dyn TokenSigner,
 ) -> Result<ExchangeResult, ExchangeFailure> {
-    exchange_inner(token, now_seconds, policy, request, cache, documents, replay, issuer, signer, None)
+    exchange_inner(
+        token,
+        now_seconds,
+        policy,
+        request,
+        cache,
+        documents,
+        replay,
+        issuer,
+        signer,
+        None,
+    )
 }
 
 // r[impl ucan_token_flow.oidc.holder_recipient]
@@ -116,7 +129,10 @@ pub fn exchange(
 ///
 /// # Errors
 /// Returns the same fail-closed, redacted failures as [`exchange`].
-#[allow(clippy::too_many_arguments, reason = "explicit ports keep exchange authority visible")]
+#[allow(
+    clippy::too_many_arguments,
+    reason = "explicit ports keep exchange authority visible"
+)]
 pub fn exchange_to_recipient(
     token: &str,
     now_seconds: u64,
@@ -129,7 +145,18 @@ pub fn exchange_to_recipient(
     signer: &dyn TokenSigner,
     recipient: &AudienceDid,
 ) -> Result<ExchangeResult, ExchangeFailure> {
-    match exchange_inner(token, now_seconds, policy, request, cache, documents, replay, issuer, signer, Some(recipient)) {
+    match exchange_inner(
+        token,
+        now_seconds,
+        policy,
+        request,
+        cache,
+        documents,
+        replay,
+        issuer,
+        signer,
+        Some(recipient),
+    ) {
         Ok(mut result) => {
             bind_recipient(&mut result.receipt, recipient);
             Ok(result)
@@ -141,7 +168,10 @@ pub fn exchange_to_recipient(
     }
 }
 
-#[allow(clippy::too_many_arguments, reason = "explicit ports keep exchange authority visible")]
+#[allow(
+    clippy::too_many_arguments,
+    reason = "explicit ports keep exchange authority visible"
+)]
 fn exchange_inner(
     token: &str,
     now_seconds: u64,
@@ -208,19 +238,20 @@ fn exchange_inner(
             )),
         });
     }
-    let issued = match recipient {
-        Some(recipient) => issue_plan_to_recipient(&plan, recipient, issuer, signer),
-        None => issue_plan(&plan, issuer, signer),
-    };
-    let token = issued.map_err(|class| ExchangeFailure {
-        receipt: Box::new(receipt_for_failure(
-            policy,
-            request,
-            issue_failure_reason(class),
-            Some(plan.key_id.as_str()),
-        )),
-        class: ExchangeFailureClass::Issue(class),
-    })?;
+    let token = recipient
+        .map_or_else(
+            || issue_plan(&plan, issuer, signer),
+            |recipient| issue_plan_to_recipient(&plan, recipient, issuer, signer),
+        )
+        .map_err(|class| ExchangeFailure {
+            receipt: Box::new(receipt_for_failure(
+                policy,
+                request,
+                issue_failure_reason(class),
+                Some(plan.key_id.as_str()),
+            )),
+            class: ExchangeFailureClass::Issue(class),
+        })?;
     let receipt = receipt_for_success(policy, &plan);
     Ok(ExchangeResult { token, receipt })
 }
