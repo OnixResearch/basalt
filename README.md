@@ -155,6 +155,9 @@ roots, current policy and replay before returning an opaque `Session`.
 Build submission, input upload, store read, project declaration, individual
 read operations, owned-attempt cancellation, publication and administration
 remain distinct grants. A serialized `Request` or receipt cannot mint a session.
+Grant tooling that issues Mantle prefix grants must end each prefix at a field
+boundary, because the generation is not length-prefixed; see
+[`docs/oidc-exchange.md`](docs/oidc-exchange.md#grant-issuance-and-mantle-resource-framing).
 
 Call `Verifier::revalidate` with fresh verification, revocation and caveat
 observations before each effect. Revalidation does not consume replay again.

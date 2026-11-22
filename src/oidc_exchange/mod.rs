@@ -25,9 +25,9 @@ pub use issue::{
     validate_issuer_admission,
 };
 pub use model::{
-    CachePolicy, CapabilityPolicy, ExchangeRequest, IssuancePlan, MantleOperation, NetworkPolicy,
-    OidcPolicy, PolicyError, PublicJwk, RejectReason, ReplayKey, ReplayPolicy, TimePolicy,
-    VerifiedSubject, parse_policy,
+    CachePolicy, CapabilityPolicy, ExchangeRequest, HolderDelivery, IssuancePlan, MantleOperation,
+    NetworkPolicy, OidcPolicy, PolicyError, PublicJwk, RejectReason, ReplayKey, ReplayPolicy,
+    TimePolicy, VerifiedSubject, parse_policy,
 };
 pub use network::{
     BoundedHttpDocumentPort, DocumentFailure, DocumentKind, DocumentPort, DocumentResponse,

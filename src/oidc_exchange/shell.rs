@@ -1,10 +1,11 @@
-use ucan::{AudienceDid, CompactToken, TokenSigner};
+use ucan::{CompactToken, TokenSigner};
 
-use super::core::verify_and_plan;
+use super::core::{bind_holder_request, verify_and_plan};
 use super::issue::{
     IssueFailure, IssuerAdmission, issue_plan, issue_plan_to_recipient, validate_issuer_admission,
+    validate_recipient,
 };
-use super::model::{ExchangeRequest, OidcPolicy, RejectReason, ReplayKey};
+use super::model::{ExchangeRequest, HolderDelivery, OidcPolicy, RejectReason, ReplayKey};
 use super::network::{DocumentPort, JwksCache, KeyLoadFailure, load_verification_key};
 use super::receipt::{ExchangeReceipt, bind_recipient, receipt_for_failure, receipt_for_success};
 
@@ -121,15 +122,20 @@ pub fn exchange(
 }
 
 // r[impl ucan_token_flow.oidc.holder_recipient]
-/// Exchange for an explicit holder without replacing the policy's service audience.
+/// Exchange for an explicit holder, bound to one exact native Mantle request.
 ///
-/// The resource and operation remain attenuated by the admitted service policy.
-/// The recipient is a delivery binding, not a proof of holder possession. The
-/// receiver must verify a holder-signed invocation before dispatch. Replay keeps
-/// the original request key, so changing recipients cannot repeat an exchange.
+/// Before key load and replay, `holder.request` must name `holder.recipient`
+/// as its subject, the policy's service audience and project, and the ability
+/// of `request.operation`; `request.resource` must equal its canonical
+/// resource. The issued UCAN names the recipient and carries exactly that
+/// canonical resource, so the admitted service and project stay bound into
+/// the grant. A recipient equal to the issuing signer is refused. The
+/// recipient is a delivery binding, not proof of holder possession: the
+/// receiver must verify a holder-signed invocation before dispatch.
 ///
 /// # Errors
-/// Returns the same fail-closed, redacted failures as [`exchange`].
+/// Returns the same fail-closed, redacted failures as [`exchange`]; receipts
+/// bind the recipient.
 #[allow(
     clippy::too_many_arguments,
     reason = "explicit ports keep exchange authority visible"
@@ -144,7 +150,7 @@ pub fn exchange_to_recipient(
     replay: &mut dyn ReplayPort,
     issuer: &IssuerAdmission,
     signer: &dyn TokenSigner,
-    recipient: &AudienceDid,
+    holder: &HolderDelivery<'_>,
 ) -> Result<ExchangeResult, ExchangeFailure> {
     match exchange_inner(
         token,
@@ -156,17 +162,39 @@ pub fn exchange_to_recipient(
         replay,
         issuer,
         signer,
-        Some(recipient),
+        Some(holder),
     ) {
         Ok(mut result) => {
-            bind_recipient(&mut result.receipt, recipient);
+            bind_recipient(&mut result.receipt, holder.recipient);
             Ok(result)
         }
         Err(mut failure) => {
-            bind_recipient(&mut failure.receipt, recipient);
+            bind_recipient(&mut failure.receipt, holder.recipient);
             Err(failure)
         }
     }
+}
+
+/// Admit the holder binding with no effects; returns the canonical resource.
+fn admit_holder(
+    policy: &OidcPolicy,
+    request: &ExchangeRequest,
+    signer: &dyn TokenSigner,
+    holder: &HolderDelivery<'_>,
+) -> Result<String, ExchangeFailure> {
+    validate_recipient(holder.recipient, signer).map_err(|class| ExchangeFailure {
+        receipt: Box::new(receipt_for_failure(
+            policy,
+            request,
+            issue_failure_reason(class),
+            None,
+        )),
+        class: ExchangeFailureClass::Issue(class),
+    })?;
+    bind_holder_request(policy, request, holder).map_err(|class| ExchangeFailure {
+        receipt: Box::new(receipt_for_failure(policy, request, class.as_str(), None)),
+        class: ExchangeFailureClass::Verification(class),
+    })
 }
 
 #[allow(
@@ -183,7 +211,7 @@ fn exchange_inner(
     replay: &mut dyn ReplayPort,
     issuer: &IssuerAdmission,
     signer: &dyn TokenSigner,
-    recipient: Option<&AudienceDid>,
+    holder: Option<&HolderDelivery<'_>>,
 ) -> Result<ExchangeResult, ExchangeFailure> {
     validate_issuer_admission(issuer, signer).map_err(|class| ExchangeFailure {
         receipt: Box::new(receipt_for_failure(
@@ -194,6 +222,9 @@ fn exchange_inner(
         )),
         class: ExchangeFailureClass::Issue(class),
     })?;
+    let holder_resource = holder
+        .map(|holder| admit_holder(policy, request, signer, holder))
+        .transpose()?;
     let key =
         load_verification_key(token, now_seconds, policy, cache, documents).map_err(|class| {
             ExchangeFailure {
@@ -206,7 +237,7 @@ fn exchange_inner(
                 class: ExchangeFailureClass::KeyLoad(class),
             }
         })?;
-    let plan = verify_and_plan(token, &key, now_seconds, policy, request).map_err(|class| {
+    let mut plan = verify_and_plan(token, &key, now_seconds, policy, request).map_err(|class| {
         ExchangeFailure {
             receipt: Box::new(receipt_for_failure(
                 policy,
@@ -217,6 +248,10 @@ fn exchange_inner(
             class: ExchangeFailureClass::Verification(class),
         }
     })?;
+    if let Some(resource) = holder_resource {
+        // Equal to the admitted request resource; never a caller-chosen prefix.
+        plan.resource = resource;
+    }
     let replay_outcome = replay
         .commit(&plan.replay_key, plan.replay_expires_at_seconds)
         .map_err(|class| ExchangeFailure {
@@ -239,10 +274,10 @@ fn exchange_inner(
             )),
         });
     }
-    let token = recipient
+    let token = holder
         .map_or_else(
             || issue_plan(&plan, issuer, signer),
-            |recipient| issue_plan_to_recipient(&plan, recipient, issuer, signer),
+            |holder| issue_plan_to_recipient(&plan, holder.recipient, issuer, signer),
         )
         .map_err(|class| ExchangeFailure {
             receipt: Box::new(receipt_for_failure(

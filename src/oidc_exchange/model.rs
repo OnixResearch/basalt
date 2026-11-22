@@ -1,4 +1,8 @@
 use serde::{Deserialize, Serialize};
+use ucan::AudienceDid;
+
+use crate::authority_core::BasaltPolicyRef;
+use crate::mantle;
 
 const OIDC_POLICY_SCHEMA: &str = "basalt.oidc-exchange.policy.v1";
 const REQUIRED_ALGORITHM: &str = "RS256";
@@ -137,7 +141,8 @@ pub struct CachePolicy {
 pub struct CapabilityPolicy {
     /// Vocabulary schema.
     pub vocabulary: String,
-    /// Exact Mantle UCAN audience DID.
+    /// Exact Mantle service audience. Legacy exchange issues the UCAN to it;
+    /// holder delivery requires the holder's Mantle request to name it.
     pub audience: String,
     /// Exact project identifier.
     pub project: String,
@@ -211,6 +216,21 @@ pub struct ExchangeRequest {
     pub lifetime_seconds: u64,
 }
 
+/// Exact native Mantle request that a holder-delivered grant must cover.
+///
+/// The exchange issues only the canonical resource of `request` and only to
+/// `recipient`, after `request` names the recipient as its subject and the
+/// policy's service audience, project and operation.
+#[derive(Clone, Copy)]
+pub struct HolderDelivery<'a> {
+    /// Holder DID: the issued UCAN audience and the Mantle request subject.
+    pub recipient: &'a AudienceDid,
+    /// Typed Mantle request that the holder will sign.
+    pub request: &'a mantle::Request,
+    /// Policy artifact reference that the receiver binds into the resource.
+    pub policy_ref: &'a BasaltPolicyRef,
+}
+
 /// One admitted public RSA JWK.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PublicJwk {
@@ -250,7 +270,7 @@ pub struct IssuancePlan {
     pub policy_identity: String,
     /// OIDC key identifier.
     pub key_id: String,
-    /// Exact UCAN audience.
+    /// Exact service audience; the UCAN audience unless delivered to a holder.
     pub audience: String,
     /// Exact granted project.
     pub project: String,
@@ -321,6 +341,8 @@ pub enum RejectReason {
     CapabilityOperation,
     /// Requested resource is outside policy.
     CapabilityResource,
+    /// The holder's Mantle request subject is not the delivery recipient.
+    CapabilityHolder,
     /// Requested lifetime exceeds policy or OIDC validity.
     CapabilityLifetime,
     /// Required replay facts are absent.
@@ -348,6 +370,7 @@ impl RejectReason {
             Self::CapabilityProject => "capability-project",
             Self::CapabilityOperation => "capability-operation",
             Self::CapabilityResource => "capability-resource",
+            Self::CapabilityHolder => "capability-holder",
             Self::CapabilityLifetime => "capability-lifetime",
             Self::ReplayFacts => "replay-facts",
         }

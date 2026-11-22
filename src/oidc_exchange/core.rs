@@ -3,8 +3,10 @@ use ring::signature;
 use serde::Deserialize;
 
 use super::model::{
-    ExchangeRequest, IssuancePlan, OidcPolicy, PublicJwk, RejectReason, ReplayKey, VerifiedSubject,
+    ExchangeRequest, HolderDelivery, IssuancePlan, OidcPolicy, PublicJwk, RejectReason, ReplayKey,
+    VerifiedSubject,
 };
+use crate::mantle::canonical_enforcement;
 
 const REQUIRED_TOKEN_TYPE: &str = "JWT";
 const REQUIRED_ALGORITHM: &str = "RS256";
@@ -322,6 +324,40 @@ fn resource_is_within(resource: &str, prefix: &str) -> bool {
         && (prefix.ends_with('/')
             || resource.len() == prefix.len()
             || resource.as_bytes().get(prefix.len()) == Some(&b'/'))
+}
+
+/// Bind holder delivery to one exact native Mantle request before any effect.
+///
+/// The holder's request must name the recipient as subject and the policy's
+/// service audience and project, with the requested operation's ability. The
+/// requested resource must equal the request's canonical resource exactly, so
+/// a bare or truncated prefix never reaches the signer. Returns that resource.
+pub(super) fn bind_holder_request(
+    policy: &OidcPolicy,
+    request: &ExchangeRequest,
+    holder: &HolderDelivery<'_>,
+) -> Result<String, RejectReason> {
+    let mantle = holder.request;
+    if mantle.subject != holder.recipient.as_str() {
+        return Err(RejectReason::CapabilityHolder);
+    }
+    if mantle.audience != policy.capability.audience
+        || request.audience != policy.capability.audience
+    {
+        return Err(RejectReason::CapabilityAudience);
+    }
+    if mantle.project != policy.capability.project || request.project != policy.capability.project {
+        return Err(RejectReason::CapabilityProject);
+    }
+    if mantle.operation.action().ability() != request.operation.ability() {
+        return Err(RejectReason::CapabilityOperation);
+    }
+    let canonical = canonical_enforcement(mantle, holder.policy_ref)
+        .map_err(|_denied| RejectReason::CapabilityResource)?;
+    if request.resource != canonical.resource {
+        return Err(RejectReason::CapabilityResource);
+    }
+    Ok(canonical.resource)
 }
 
 fn subject_identity(claims: &OidcClaims) -> String {

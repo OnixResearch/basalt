@@ -2,6 +2,28 @@
 
 ## Unreleased
 
+### Added
+
+- `oidc_exchange::exchange_to_recipient` issues the UCAN to a holder rather
+  than to the policy's Mantle service. It takes a `HolderDelivery`: the
+  recipient `AudienceDid`, the typed `mantle::Request` the holder will sign,
+  and the receiver's `BasaltPolicyRef`. Before key load and replay it requires
+  that:
+  - the request's subject is the recipient;
+  - its audience and project are the policy's;
+  - its ability matches the operation;
+  - `ExchangeRequest.resource` equals the request's canonical resource.
+
+  The UCAN carries exactly that resource. A subject that is not the recipient
+  is denied with `RejectReason::CapabilityHolder` (`capability-holder`). A
+  recipient equal to the issuing signer is denied with `IssueFailure::Audience`.
+  The legacy `exchange` still issues to the policy's service audience.
+- `mantle::canonical_enforcement(request, policy_ref)` builds the canonical
+  signing request without receiver policy or trust roots.
+  `Verifier::enforcement` checks its deployment bindings and then uses it.
+- `MantleOperation::{EventRead, ResultRead}` can be selected explicitly in OIDC
+  policy. The shipped default operation set is unchanged.
+
 ### Changed
 
 - The OIDC exchange is one-time per OIDC token (issue #7). The replay key now
@@ -13,6 +35,11 @@
   `max(exp, iat + max_token_age_seconds) + clock_skew_seconds`, and no longer
   only until the issued UCAN expires. `IssuancePlan` gains
   `replay_expires_at_seconds`, which is the value passed to `ReplayPort::commit`.
+
+### Documented
+
+- Mantle prefix grants must end at a field boundary, because `generation` has
+  no length prefix (issue #10).
 
 ### Upgrade notes
 
