@@ -86,13 +86,19 @@
           "duplicate-entry"
           "malformed-ability"
         ];
+        validOidcPolicyFixtures = [
+          "explicit-read-operations"
+        ];
         invalidOidcPolicyFixtures = [
           "algorithm-confusion"
+          "duplicate-operation"
+          "empty-operations"
           "redirect-enabled"
           "replay-disabled"
           "stale-cache"
           "token-digest-replay"
           "type-mismatch"
+          "unsupported-operation"
           "weakened-non-claims"
           "zero-key-limit"
         ];
@@ -398,6 +404,16 @@
               nickel export --format json contracts/oidc-exchange/policy.ncl > "$TMPDIR/policy.json"
               cmp "$TMPDIR/policy.json" contracts/oidc-exchange/generated/policy.json
               b3sum "$TMPDIR/policy.json" > "$TMPDIR/policy.blake3"
+              for fixture in ${builtins.concatStringsSep " " validOidcPolicyFixtures}; do
+                nickel export --format json "contracts/oidc-exchange/fixtures/valid/$fixture.ncl" > "$TMPDIR/$fixture.json"
+              done
+              # Explicitly selected read operations survive export; defaults never add them.
+              grep -q '"event-read"' "$TMPDIR/explicit-read-operations.json"
+              grep -q '"result-read"' "$TMPDIR/explicit-read-operations.json"
+              if grep -q -e '"event-read"' -e '"result-read"' "$TMPDIR/policy.json"; then
+                echo "default OIDC policy selects a read operation implicitly" >&2
+                exit 1
+              fi
               for fixture in ${builtins.concatStringsSep " " invalidOidcPolicyFixtures}; do
                 if nickel export --format json "contracts/oidc-exchange/fixtures/invalid/$fixture.ncl" > /dev/null 2>"$TMPDIR/$fixture.err"; then
                   echo "invalid OIDC policy fixture passed: $fixture" >&2

@@ -35,6 +35,20 @@
   `max(exp, iat + max_token_age_seconds) + clock_skew_seconds`, and no longer
   only until the issued UCAN expires. `IssuancePlan` gains
   `replay_expires_at_seconds`, which is the value passed to `ReplayPort::commit`.
+- The OIDC Nickel contract rejects a duplicated capability operation, as
+  `parse_policy` already did. New fixtures cover:
+  - an explicit `event-read` and `result-read` selection;
+  - an unsupported operation;
+  - an empty operation list;
+  - a duplicated operation.
+
+### Fixed
+
+- The invalid OIDC policy fixtures failed because their helper recursed
+  infinitely, not because the contract rejected them. Nickel record fields are
+  recursive, so `algorithm = algorithm` referred to the field itself. The helper
+  now gives its parameters names that differ from the fields, and the policy
+  contract rejects every invalid fixture.
 
 ### Documented
 
