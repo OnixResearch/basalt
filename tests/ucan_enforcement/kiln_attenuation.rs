@@ -1,8 +1,9 @@
 use crate::support::*;
 use basalt::authority_core::BasaltPolicyRef;
 use basalt::kiln::{
-    Denied, ImplementationFraming, ImplementationScope, Invocation, Operation, PathScope, Request,
-    SourceAttempt, SourceOperation, SourceRequest, SourceScope, Verifier,
+    Denied, ImplementationFraming, ImplementationScope, Invocation, LegacyFraming, Operation,
+    PathScope, Request, Session, SourceAttempt, SourceOperation, SourceRequest, SourceScope,
+    SourceSession, Verifier,
 };
 
 const AUDIENCE: &str = "kiln-service-a";
@@ -54,6 +55,7 @@ const fn verifier<'a>(
         audience: AUDIENCE,
         trusted_roots: roots,
         max_delegation_depth,
+        implementation_v1: LegacyFraming::Accept,
     }
 }
 
@@ -175,9 +177,26 @@ fn issue(
             CapabilityDocument::new((*resource).into(), (*ability).into()).unwrap()
         })
         .collect();
-    let proofs = parent.map_or_else(ProofReferences::empty, |parent| {
-        ProofReferences::from_references(vec![proof_reference(parent)])
-    });
+    issue_documents(issuer, audience, capabilities, parent.as_slice())
+}
+
+/// Issue one hop with explicit capability documents and any number of parents.
+fn issue_documents(
+    issuer: u8,
+    audience: u8,
+    capabilities: Vec<CapabilityDocument>,
+    parents: &[&CompactToken],
+) -> CompactToken {
+    let proofs = if parents.is_empty() {
+        ProofReferences::empty()
+    } else {
+        ProofReferences::from_references(
+            parents
+                .iter()
+                .map(|parent| proof_reference(parent))
+                .collect(),
+        )
+    };
     issue_token_with_signer(
         &signer(issuer),
         &AudienceDid::from(signer(audience).issuer().unwrap()),
@@ -1086,5 +1105,551 @@ fn kiln_source_unknown_operations_and_malformed_paths_deny() {
     assert_eq!(
         missing.source_enforcement(&request).map(|_| ()),
         Err(Denied)
+    );
+}
+
+/// Verify one implementation request and return its live session.
+fn session(verifier: &Verifier<'_>, request: &Request, fixture: &InvocationFixture) -> Session {
+    let exact = verifier.enforcement(request).unwrap();
+    let binding = bind_enforcement_action(request.operation.action(), &exact).unwrap();
+    let signature = sign_operation(fixture, &exact, nonce(), binding);
+    let replay = RecordingReplay::new();
+    verifier
+        .verify(
+            request.clone(),
+            &invocation(fixture, &signature),
+            &boundaries(fixture, &replay, &NoRevocations),
+        )
+        .unwrap()
+}
+
+/// Verify one source request and return its live session.
+fn source_session(
+    verifier: &Verifier<'_>,
+    request: &SourceRequest,
+    fixture: &InvocationFixture,
+) -> SourceSession {
+    let exact = verifier.source_enforcement(request).unwrap();
+    let binding = bind_enforcement_action(request.operation.action(), &exact).unwrap();
+    let signature = sign_operation(fixture, &exact, nonce(), binding);
+    let replay = RecordingReplay::new();
+    verifier
+        .verify_source(
+            request.clone(),
+            &invocation(fixture, &signature),
+            &boundaries(fixture, &replay, &NoRevocations),
+        )
+        .unwrap()
+}
+
+fn resources(capabilities: &CapabilitySet) -> Vec<String> {
+    capabilities
+        .as_slice()
+        .iter()
+        .map(|capability| capability.resource.clone())
+        .collect()
+}
+
+#[test]
+// r[verify basalt.kiln_authority.effective_scope.scenario.unchecked]
+fn kiln_effective_capabilities_omit_grants_the_chain_rule_rejects() {
+    let policy = default_policy().unwrap();
+    let reference = policy_ref();
+    let roots = [did(ISSUER_SEED_BYTE)];
+    let verifier = verifier(&policy, &reference, &roots, 1);
+
+    // Source: delegate held only over `a`, yet the leaf also names `secret`.
+    let repository = source_prefix(&[], None);
+    let subtree_a = source_prefix(&["a"], None);
+    let subtree_secret = source_prefix(&["secret"], None);
+    let ceiling = issue(
+        ISSUER_SEED_BYTE,
+        DELEGATE_SEED_BYTE,
+        &[
+            (&repository, "kiln/source/discover"),
+            (&subtree_a, SOURCE_DELEGATE),
+        ],
+        None,
+    );
+    let leaf = issue(
+        DELEGATE_SEED_BYTE,
+        HOLDER_SEED_BYTE,
+        &[
+            (&subtree_a, "kiln/source/discover"),
+            (&subtree_secret, "kiln/source/discover"),
+        ],
+        Some(&ceiling),
+    );
+    let fixture = chain(HOLDER_SEED_BYTE, leaf, vec![copy(&ceiling)]);
+    let request = source(
+        SourceOperation::Discover,
+        HOLDER_SEED_BYTE,
+        &["a"],
+        PathScope::Subtree,
+    );
+    let admitted = source_session(&verifier, &request, &fixture);
+    assert_eq!(
+        resources(admitted.effective_capabilities()),
+        vec![subtree_a]
+    );
+    let secret = source(
+        SourceOperation::Discover,
+        HOLDER_SEED_BYTE,
+        &["secret"],
+        PathScope::Subtree,
+    );
+    assert_eq!(admit_source(&verifier, &secret, &fixture), (Err(Denied), 0));
+
+    // Implementation v2: delegate held only over attempt-a, leaf also names attempt-b.
+    let project = project_prefix(PROJECT);
+    let attempt_a = attempt_prefix("attempt-a");
+    let attempt_b = attempt_prefix("attempt-b");
+    let ceiling = issue(
+        ISSUER_SEED_BYTE,
+        DELEGATE_SEED_BYTE,
+        &[(&project, "kiln/dispatch"), (&attempt_a, DELEGATE)],
+        None,
+    );
+    let leaf = issue(
+        DELEGATE_SEED_BYTE,
+        HOLDER_SEED_BYTE,
+        &[(&attempt_a, "kiln/dispatch"), (&attempt_b, "kiln/dispatch")],
+        Some(&ceiling),
+    );
+    let fixture = chain(HOLDER_SEED_BYTE, leaf, vec![copy(&ceiling)]);
+    let request = implementation(Operation::Dispatch, HOLDER_SEED_BYTE, PROJECT, "attempt-a");
+    let admitted = session(&verifier, &request, &fixture);
+    assert_eq!(
+        resources(admitted.effective_capabilities()),
+        vec![attempt_a]
+    );
+    let other = implementation(Operation::Dispatch, HOLDER_SEED_BYTE, PROJECT, "attempt-b");
+    assert_eq!(admit(&verifier, &other, &fixture), (Err(Denied), 0));
+}
+
+#[test]
+// r[verify basalt.kiln_authority.attenuable.scenario.v1_wide]
+// r[verify basalt.kiln_authority.attenuable.scenario.v1_refused]
+fn kiln_v1_wide_grants_need_explicit_delegate_and_v1_can_be_refused() {
+    let policy = default_policy().unwrap();
+    let reference = policy_ref();
+    let roots = [did(ISSUER_SEED_BYTE)];
+    let verifier = verifier(&policy, &reference, &roots, 0);
+    let mut request = implementation(Operation::Dispatch, HOLDER_SEED_BYTE, PROJECT, "attempt-a");
+    request.framing = ImplementationFraming::V1;
+    for (held, expected) in [
+        (vec![("kiln://", "kiln/dispatch")], (Err(Denied), 0)),
+        (
+            vec![("kiln://", "kiln/dispatch"), ("kiln://", DELEGATE)],
+            (Ok(()), 1),
+        ),
+    ] {
+        let wide = issue(ISSUER_SEED_BYTE, DELEGATE_SEED_BYTE, &held, None);
+        let leaf = issue(
+            DELEGATE_SEED_BYTE,
+            HOLDER_SEED_BYTE,
+            &[("kiln://implementation/v1/", "kiln/dispatch")],
+            Some(&wide),
+        );
+        let fixture = chain(HOLDER_SEED_BYTE, leaf, vec![wide]);
+        assert_eq!(admit(&verifier, &request, &fixture), expected);
+    }
+
+    // Closing the compatibility window refuses v1 and drops v1 grants from sessions.
+    let closed = Verifier {
+        implementation_v1: LegacyFraming::Refuse,
+        ..verifier
+    };
+    assert_eq!(closed.enforcement(&request).map(|_| ()), Err(Denied));
+    let current = implementation(Operation::Dispatch, HOLDER_SEED_BYTE, PROJECT, "attempt-a");
+    let exact = closed.enforcement(&current).unwrap();
+    let direct = issue(
+        ISSUER_SEED_BYTE,
+        HOLDER_SEED_BYTE,
+        &[
+            (exact.resource(), "kiln/dispatch"),
+            ("kiln://implementation/v1/", "kiln/dispatch"),
+        ],
+        None,
+    );
+    let fixture = chain(HOLDER_SEED_BYTE, direct, Vec::new());
+    let open = session(&verifier, &current, &fixture);
+    assert_eq!(resources(open.effective_capabilities()).len(), 2);
+    let shut = session(&closed, &current, &fixture);
+    assert_eq!(
+        resources(shut.effective_capabilities()),
+        vec![exact.resource().to_owned()]
+    );
+}
+
+#[test]
+// r[verify basalt.kiln_authority.delegation.chain.scenario.generation]
+fn kiln_attenuable_grants_must_pin_the_generation() {
+    let policy = default_policy().unwrap();
+    let reference = policy_ref();
+    let roots = [did(ISSUER_SEED_BYTE)];
+    let verifier = Verifier {
+        generation: 8,
+        ..verifier(&policy, &reference, &roots, 1)
+    };
+    let mut request = implementation(Operation::Dispatch, HOLDER_SEED_BYTE, PROJECT, "attempt-a");
+    request.generation = 8;
+    let audience_wide = format!(
+        "kiln://implementation/v2/{}/{}/",
+        AUDIENCE.len(),
+        hex(AUDIENCE)
+    );
+    assert!(
+        verifier
+            .enforcement(&request)
+            .unwrap()
+            .resource()
+            .starts_with(&audience_wide)
+    );
+    for wide in [
+        audience_wide.as_str(),
+        "kiln://implementation/v2/",
+        "kiln://",
+    ] {
+        let direct = issue(
+            ISSUER_SEED_BYTE,
+            HOLDER_SEED_BYTE,
+            &[(wide, "kiln/dispatch")],
+            None,
+        );
+        let fixture = chain(HOLDER_SEED_BYTE, direct, Vec::new());
+        assert_eq!(admit(&verifier, &request, &fixture), (Err(Denied), 0));
+    }
+    let pinned = ImplementationScope {
+        audience: AUDIENCE,
+        generation: 8,
+        project: Some(PROJECT),
+        work: None,
+        work_version: None,
+        attempt: None,
+        fence: None,
+    }
+    .prefix()
+    .unwrap();
+    let direct = issue(
+        ISSUER_SEED_BYTE,
+        HOLDER_SEED_BYTE,
+        &[(&pinned, "kiln/dispatch")],
+        None,
+    );
+    let fixture = chain(HOLDER_SEED_BYTE, direct, Vec::new());
+    assert_eq!(admit(&verifier, &request, &fixture), (Ok(()), 1));
+
+    let mut read = source(
+        SourceOperation::ReadContent,
+        HOLDER_SEED_BYTE,
+        &["a"],
+        PathScope::Entry,
+    );
+    read.generation = 8;
+    let source_audience = format!("kiln://source/v1/{}/{}/", AUDIENCE.len(), hex(AUDIENCE));
+    for wide in [source_audience.as_str(), "kiln://source/v1/", "kiln://"] {
+        let direct = issue(
+            ISSUER_SEED_BYTE,
+            HOLDER_SEED_BYTE,
+            &[(wide, "kiln/source/read")],
+            None,
+        );
+        let fixture = chain(HOLDER_SEED_BYTE, direct, Vec::new());
+        assert_eq!(admit_source(&verifier, &read, &fixture), (Err(Denied), 0));
+    }
+    let pinned = SourceScope {
+        audience: AUDIENCE,
+        generation: 8,
+        repository: REPOSITORY,
+        attempt: None,
+        path: &[],
+        terminal: None,
+    }
+    .prefix()
+    .unwrap();
+    let direct = issue(
+        ISSUER_SEED_BYTE,
+        HOLDER_SEED_BYTE,
+        &[(&pinned, "kiln/source/read")],
+        None,
+    );
+    let fixture = chain(HOLDER_SEED_BYTE, direct, Vec::new());
+    assert_eq!(admit_source(&verifier, &read, &fixture), (Ok(()), 1));
+}
+
+#[test]
+// r[verify basalt.kiln_authority.delegation.chain.scenario.missing_delegate]
+fn kiln_wide_root_grant_cannot_bypass_the_delegate_rule() {
+    let policy = default_policy().unwrap();
+    let reference = policy_ref();
+    let roots = [did(ISSUER_SEED_BYTE)];
+    let verifier = verifier(&policy, &reference, &roots, 1);
+    let request = implementation(Operation::Dispatch, HOLDER_SEED_BYTE, PROJECT, "attempt-a");
+    let exact = verifier.enforcement(&request).unwrap();
+    for held in [
+        vec![("kiln://", "kiln/dispatch")],
+        vec![("kiln://", "kiln/dispatch"), ("kiln://", DELEGATE)],
+    ] {
+        let wide = issue(ISSUER_SEED_BYTE, DELEGATE_SEED_BYTE, &held, None);
+        let leaf = issue(
+            DELEGATE_SEED_BYTE,
+            HOLDER_SEED_BYTE,
+            &[(exact.resource(), "kiln/dispatch")],
+            Some(&wide),
+        );
+        let fixture = chain(HOLDER_SEED_BYTE, leaf, vec![wide]);
+        assert_eq!(admit(&verifier, &request, &fixture), (Err(Denied), 0));
+    }
+}
+
+#[test]
+// r[verify basalt.kiln_authority.delegation.chain.scenario.caveated]
+fn kiln_caveated_delegate_is_not_explicit() {
+    let policy = default_policy().unwrap();
+    let reference = policy_ref();
+    let roots = [did(ISSUER_SEED_BYTE)];
+    let verifier = verifier(&policy, &reference, &roots, 1);
+    let project = project_prefix(PROJECT);
+    let request = implementation(Operation::Dispatch, HOLDER_SEED_BYTE, PROJECT, "attempt-a");
+    let exact = verifier.enforcement(&request).unwrap();
+    let caveat = CaveatDocument::new(
+        CAVEAT_DOMAIN.to_owned(),
+        CAVEAT_TYPE.to_owned(),
+        CAVEAT_KEY.to_owned(),
+        CAVEAT_PAYLOAD.to_vec(),
+    )
+    .unwrap();
+    let ceiling = issue_documents(
+        ISSUER_SEED_BYTE,
+        DELEGATE_SEED_BYTE,
+        vec![
+            CapabilityDocument::new(project.clone(), "kiln/dispatch".into()).unwrap(),
+            CapabilityDocument::with_caveats(project, DELEGATE.into(), vec![caveat]).unwrap(),
+        ],
+        &[],
+    );
+    let leaf = issue(
+        DELEGATE_SEED_BYTE,
+        HOLDER_SEED_BYTE,
+        &[(exact.resource(), "kiln/dispatch")],
+        Some(&ceiling),
+    );
+    let fixture = chain(HOLDER_SEED_BYTE, leaf, vec![ceiling]);
+    assert_eq!(admit(&verifier, &request, &fixture), (Err(Denied), 0));
+}
+
+#[test]
+// r[verify basalt.kiln_authority.delegation.chain.scenario.depth]
+fn kiln_revalidation_applies_the_current_depth_limit() {
+    let policy = default_policy().unwrap();
+    let reference = policy_ref();
+    let roots = [did(ISSUER_SEED_BYTE)];
+    let deep = verifier(&policy, &reference, &roots, 2);
+    let shallow = verifier(&policy, &reference, &roots, 1);
+    let project = project_prefix(PROJECT);
+    let work = work_prefix();
+    let request = implementation(Operation::Dispatch, HOLDER_SEED_BYTE, PROJECT, "attempt-a");
+    let exact = deep.enforcement(&request).unwrap();
+    let ceiling = issue(
+        ISSUER_SEED_BYTE,
+        DELEGATE_SEED_BYTE,
+        &[(&project, "kiln/dispatch"), (&project, DELEGATE)],
+        None,
+    );
+    let middle = issue(
+        DELEGATE_SEED_BYTE,
+        SECOND_DELEGATE_SEED_BYTE,
+        &[(&work, "kiln/dispatch"), (&work, DELEGATE)],
+        Some(&ceiling),
+    );
+    let leaf = issue(
+        SECOND_DELEGATE_SEED_BYTE,
+        HOLDER_SEED_BYTE,
+        &[(exact.resource(), "kiln/dispatch")],
+        Some(&middle),
+    );
+    let fixture = chain(HOLDER_SEED_BYTE, leaf, vec![ceiling, middle]);
+    let admitted = session(&deep, &request, &fixture);
+    let replay = RecordingReplay::new();
+    let bounds = boundaries(&fixture, &replay, &NoRevocations);
+    deep.revalidate(&admitted, &bounds).unwrap();
+    assert_eq!(shallow.revalidate(&admitted, &bounds), Err(Denied));
+    assert_eq!(replay.calls.get(), 0);
+}
+
+#[test]
+// r[verify basalt.kiln_authority.delegation.chain.scenario.multi_proof]
+fn kiln_multi_proof_tokens_check_every_path_and_any_parent_delegate() {
+    let policy = default_policy().unwrap();
+    let reference = policy_ref();
+    let roots = [did(ISSUER_SEED_BYTE)];
+    let project = project_prefix(PROJECT);
+    let request = implementation(Operation::Dispatch, HOLDER_SEED_BYTE, PROJECT, "attempt-a");
+    let exact = verifier(&policy, &reference, &roots, 2)
+        .enforcement(&request)
+        .unwrap();
+    // The delegator's dispatch comes from one parent and its delegate from another,
+    // which is one hop longer.
+    let direct = issue(
+        ISSUER_SEED_BYTE,
+        DELEGATE_SEED_BYTE,
+        &[(&project, "kiln/dispatch")],
+        None,
+    );
+    let upper = issue(
+        ISSUER_SEED_BYTE,
+        SECOND_DELEGATE_SEED_BYTE,
+        &[(&project, "kiln/dispatch"), (&project, DELEGATE)],
+        None,
+    );
+    let lower = issue(
+        SECOND_DELEGATE_SEED_BYTE,
+        DELEGATE_SEED_BYTE,
+        &[(&project, DELEGATE)],
+        Some(&upper),
+    );
+    let leaf = issue_documents(
+        DELEGATE_SEED_BYTE,
+        HOLDER_SEED_BYTE,
+        vec![CapabilityDocument::new(exact.resource().into(), "kiln/dispatch".into()).unwrap()],
+        &[&direct, &lower],
+    );
+    let fixture = chain(HOLDER_SEED_BYTE, leaf, vec![copy(&direct), upper, lower]);
+    assert_eq!(
+        admit(
+            &verifier(&policy, &reference, &roots, 2),
+            &request,
+            &fixture
+        ),
+        (Ok(()), 1)
+    );
+    // The longer path through the delegate-carrying parent exceeds depth 1.
+    assert_eq!(
+        admit(
+            &verifier(&policy, &reference, &roots, 1),
+            &request,
+            &fixture
+        ),
+        (Err(Denied), 0)
+    );
+    // Without the delegate-carrying parent, the same grant denies.
+    let alone = issue(
+        DELEGATE_SEED_BYTE,
+        HOLDER_SEED_BYTE,
+        &[(exact.resource(), "kiln/dispatch")],
+        Some(&direct),
+    );
+    let fixture = chain(HOLDER_SEED_BYTE, alone, vec![direct]);
+    assert_eq!(
+        admit(
+            &verifier(&policy, &reference, &roots, 2),
+            &request,
+            &fixture
+        ),
+        (Err(Denied), 0)
+    );
+}
+
+#[test]
+// r[verify basalt.kiln_authority.delegation.chain.scenario.aligned]
+fn kiln_source_grants_must_stop_on_component_boundaries() {
+    let policy = default_policy().unwrap();
+    let reference = policy_ref();
+    let roots = [did(ISSUER_SEED_BYTE)];
+    let verifier = verifier(&policy, &reference, &roots, 1);
+    let request = source(
+        SourceOperation::ReadContent,
+        HOLDER_SEED_BYTE,
+        &["docs", "x"],
+        PathScope::Entry,
+    );
+    let exact = verifier.source_enforcement(&request).unwrap();
+    let docs = source_prefix(&["docs"], None);
+    // Cut inside the `docs` component: it would also cover `doc` siblings by bytes.
+    let partial = &docs[..docs.len() - 3];
+    assert!(exact.resource().starts_with(partial));
+    let ceiling = issue(
+        ISSUER_SEED_BYTE,
+        DELEGATE_SEED_BYTE,
+        &[(partial, "kiln/source/read"), (partial, SOURCE_DELEGATE)],
+        None,
+    );
+    let leaf = issue(
+        DELEGATE_SEED_BYTE,
+        HOLDER_SEED_BYTE,
+        &[(exact.resource(), "kiln/source/read")],
+        Some(&ceiling),
+    );
+    let fixture = chain(HOLDER_SEED_BYTE, leaf, vec![ceiling]);
+    assert_eq!(
+        admit_source(&verifier, &request, &fixture),
+        (Err(Denied), 0)
+    );
+    let direct = issue(
+        ISSUER_SEED_BYTE,
+        HOLDER_SEED_BYTE,
+        &[(partial, "kiln/source/read")],
+        None,
+    );
+    let fixture = chain(HOLDER_SEED_BYTE, direct, Vec::new());
+    assert_eq!(
+        admit_source(&verifier, &request, &fixture),
+        (Err(Denied), 0)
+    );
+}
+
+#[test]
+// r[verify basalt.kiln_authority.source_path.scenario.attempt_context]
+fn kiln_source_attempt_context_grant_admits_only_its_attempt_and_fence() {
+    let policy = default_policy().unwrap();
+    let reference = policy_ref();
+    let roots = [did(ISSUER_SEED_BYTE)];
+    let verifier = verifier(&policy, &reference, &roots, 1);
+    let attempt = SourceAttempt {
+        attempt: "attempt-a".into(),
+        fence: 5,
+    };
+    let grant = SourceScope {
+        audience: AUDIENCE,
+        generation: GENERATION,
+        repository: REPOSITORY,
+        attempt: Some(&attempt),
+        path: &path(&["a"]),
+        terminal: None,
+    }
+    .prefix()
+    .unwrap();
+    let direct = issue(
+        ISSUER_SEED_BYTE,
+        HOLDER_SEED_BYTE,
+        &[(&grant, "kiln/source/read")],
+        None,
+    );
+    let fixture = chain(HOLDER_SEED_BYTE, direct, Vec::new());
+    let mut request = source(
+        SourceOperation::ReadContent,
+        HOLDER_SEED_BYTE,
+        &["a", "b"],
+        PathScope::Entry,
+    );
+    request.attempt = Some(attempt.clone());
+    assert_eq!(admit_source(&verifier, &request, &fixture), (Ok(()), 1));
+
+    let mut operator = request.clone();
+    operator.attempt = None;
+    assert_eq!(
+        admit_source(&verifier, &operator, &fixture),
+        (Err(Denied), 0)
+    );
+
+    let mut refenced = request;
+    refenced.attempt = Some(SourceAttempt {
+        fence: 6,
+        ..attempt
+    });
+    assert_eq!(
+        admit_source(&verifier, &refenced, &fixture),
+        (Err(Denied), 0)
     );
 }

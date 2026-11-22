@@ -194,8 +194,11 @@ impl Session {
     pub const fn request(&self) -> &Request {
         &self.request
     }
-    /// Signed effective caveats for non-consuming receiver policy construction.
-    /// These observations are not transferable authority; do not log payloads.
+    /// Leaf capabilities that each pass the full chain rule of their own family when
+    /// evaluated as a request resource (implementation v2, source v1, or v1 while it is
+    /// accepted). Grants outside those families, wider than one family, or failing the
+    /// rule are omitted. These observations are not transferable authority; do not log
+    /// payloads.
     #[must_use]
     pub const fn effective_capabilities(&self) -> &ucan::CapabilitySet {
         &self.grant.effective
@@ -252,6 +255,16 @@ impl std::fmt::Debug for Session {
     }
 }
 
+/// Whether the frozen `kiln://implementation/v1/` framing is still admitted.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum LegacyFraming {
+    /// Admit v1 requests during the compatibility window.
+    #[default]
+    Accept,
+    /// Close the window: v1 requests deny and v1 grants leave the effective set.
+    Refuse,
+}
+
 /// Operator-loaded policy/configuration, never caller-supplied admission facts.
 /// The artifact reference must name these exact reviewed policy bytes.
 pub struct Verifier<'a> {
@@ -264,24 +277,29 @@ pub struct Verifier<'a> {
     /// Maximum delegation hops below a trusted root for attenuable families: `0` admits
     /// only root-issued tokens. The frozen v1 framing does not consult it.
     pub max_delegation_depth: u8,
+    /// Whether v1 requests are still admitted.
+    pub implementation_v1: LegacyFraming,
 }
 
 /// Delegation rule required by the framing family of one bound request.
 #[derive(Clone, Copy)]
 enum ChainRule {
-    /// Frozen v1: any verified chain that reaches a trusted root.
+    /// Frozen v1: any verified chain that reaches a trusted root. If any covering grant
+    /// in the chain is wider than the v1 family, every delegator also needs explicit
+    /// `kiln/delegate`.
     Legacy,
-    /// Attenuable family: explicit delegate ability, aligned grants and bounded depth.
+    /// Attenuable family: explicit delegate ability, aligned generation-pinned grants
+    /// and bounded depth.
     Delegated(Family),
 }
 
-impl ChainRule {
-    const fn family(self) -> Option<Family> {
-        match self {
-            Self::Legacy => None,
-            Self::Delegated(family) => Some(family),
-        }
-    }
+/// Accumulated facts from one chain walk.
+struct Walk {
+    remaining: usize,
+    /// A v1 chain carries a covering grant wider than `kiln://implementation/v1/`.
+    wide: bool,
+    /// A v1 delegator issued a covering grant without explicit `kiln/delegate`.
+    undelegated: bool,
 }
 
 /// One admitted canonical binding and the chain rule its framing requires.
@@ -343,6 +361,9 @@ impl Verifier<'_> {
         let action = request.operation.action();
         let (resource, rule) = match request.framing {
             ImplementationFraming::V1 => {
+                if self.implementation_v1 == LegacyFraming::Refuse {
+                    return Err(Denied);
+                }
                 self.admit_contract(action, framing::IMPLEMENTATION_V1)?;
                 (framing::implementation_v1(request)?, ChainRule::Legacy)
             }
@@ -470,7 +491,14 @@ impl Verifier<'_> {
         if verified.audience().as_str() != subject {
             return Err(Denied);
         }
-        self.check_chain(&verified, bound, boundaries)?;
+        self.check_chain(
+            &verified,
+            bound.enforcement.resource(),
+            bound.rule,
+            boundaries,
+        )?;
+        // Computed before the consuming replay so a failure burns no nonce.
+        let effective = self.checked_effective(&verified, boundaries)?;
         let selected = self.selected_policy(bound.action);
         let raw = UcanEnforcementRequest::new(
             &bound.enforcement,
@@ -487,7 +515,6 @@ impl Verifier<'_> {
             .effective_time_bounds()
             .expires_at_seconds();
         let decision_id = live.receipt().receipt_blake3.clone();
-        let effective = verified.effective_delegation().capabilities().clone();
         Ok(Grant {
             token,
             policy_ref: selected.artifact_ref,
@@ -517,7 +544,7 @@ impl Verifier<'_> {
             boundaries.verification_limits,
         )
         .map_err(|_| Denied)?;
-        self.check_chain(&verified, bound, boundaries)?;
+        self.check_chain(&verified, enforcement.resource(), bound.rule, boundaries)?;
         if verified.audience().as_str() != subject
             || !verified
                 .authorize_with_policies(
@@ -548,36 +575,92 @@ impl Verifier<'_> {
         Ok(())
     }
 
+    /// The chain rule for a capability resource, by its family.
+    fn rule_for(&self, resource: &str) -> Option<ChainRule> {
+        if resource.starts_with(framing::IMPLEMENTATION_V2) {
+            Some(ChainRule::Delegated(framing::IMPLEMENTATION_V2_FAMILY))
+        } else if resource.starts_with(framing::SOURCE_V1) {
+            Some(ChainRule::Delegated(framing::SOURCE_V1_FAMILY))
+        } else if resource.starts_with(framing::IMPLEMENTATION_V1)
+            && self.implementation_v1 == LegacyFraming::Accept
+        {
+            Some(ChainRule::Legacy)
+        } else {
+            None
+        }
+    }
+
+    /// Keep only leaf capabilities whose own resource passes its family's chain rule.
+    // r[impl basalt.kiln_authority.effective_scope]
+    fn checked_effective(
+        &self,
+        verified: &ucan::VerifiedToken,
+        boundaries: &UcanEnforcementBoundaries<'_>,
+    ) -> Result<ucan::CapabilitySet, Denied> {
+        let checked = verified
+            .effective_delegation()
+            .capabilities()
+            .as_slice()
+            .iter()
+            .filter(|grant| {
+                self.rule_for(&grant.resource).is_some_and(|rule| {
+                    self.check_chain(verified, &grant.resource, rule, boundaries)
+                        .is_ok()
+                })
+            })
+            .cloned()
+            .collect();
+        ucan::CapabilitySet::new(checked).map_err(|_| Denied)
+    }
+
     fn check_chain(
         &self,
         leaf: &ucan::VerifiedToken,
-        bound: &Bound,
+        resource: &str,
+        rule: ChainRule,
         boundaries: &UcanEnforcementBoundaries<'_>,
     ) -> Result<(), Denied> {
-        let mut remaining = boundaries.verification_limits.max_proof_count();
-        self.check_roots(leaf, bound, boundaries, &mut remaining, 0)
+        let mut walk = Walk {
+            remaining: boundaries.verification_limits.max_proof_count(),
+            wide: false,
+            undelegated: false,
+        };
+        self.check_roots(leaf, resource, rule, boundaries, &mut walk, 0)?;
+        if walk.wide && walk.undelegated {
+            Err(Denied)
+        } else {
+            Ok(())
+        }
     }
 
     /// Walk every proof path to a trusted root. Attenuable families also require
-    /// segment-aligned covering grants, an explicit delegate capability held by every
-    /// intermediate delegator over each covering grant it issued, and bounded depth.
+    /// aligned, generation-pinned covering grants, an explicit delegate capability held
+    /// by every intermediate delegator over each covering grant it issued, and bounded
+    /// depth. v1 records whether a wide grant or an undelegated hop occurs.
     // r[impl basalt.kiln_authority.delegation]
     // r[impl basalt.kiln_authority.delegation.chain]
     fn check_roots(
         &self,
         token: &ucan::VerifiedToken,
-        bound: &Bound,
+        resource: &str,
+        rule: ChainRule,
         boundaries: &UcanEnforcementBoundaries<'_>,
-        remaining: &mut usize,
+        walk: &mut Walk,
         depth: usize,
     ) -> Result<(), Denied> {
-        let resource = bound.enforcement.resource();
-        if bound
-            .rule
-            .family()
-            .is_some_and(|family| !aligned_grants(token, resource, family))
-        {
-            return Err(Denied);
+        match rule {
+            ChainRule::Delegated(family) => {
+                if !aligned_grants(token, resource, family) {
+                    return Err(Denied);
+                }
+            }
+            ChainRule::Legacy => {
+                if covering(token, resource)
+                    .any(|grant| !grant.resource.starts_with(framing::IMPLEMENTATION_V1))
+                {
+                    walk.wide = true;
+                }
+            }
         }
         if token.proofs().as_slice().is_empty() {
             return if self
@@ -591,12 +674,13 @@ impl Verifier<'_> {
             };
         }
         let depth = depth + 1;
-        if bound.rule.family().is_some() && depth > usize::from(self.max_delegation_depth) {
+        if matches!(rule, ChainRule::Delegated(_)) && depth > usize::from(self.max_delegation_depth)
+        {
             return Err(Denied);
         }
         let mut parents = Vec::with_capacity(token.proofs().as_slice().len());
         for reference in token.proofs().as_slice() {
-            *remaining = remaining.checked_sub(1).ok_or(Denied)?;
+            walk.remaining = walk.remaining.checked_sub(1).ok_or(Denied)?;
             let proof = boundaries
                 .proof_store
                 .resolve_proof(reference)
@@ -623,15 +707,18 @@ impl Verifier<'_> {
             .map_err(|_| Denied)?;
             parents.push(parent);
         }
-        if bound
-            .rule
-            .family()
-            .is_some_and(|family| !delegation_permitted(token, &parents, resource, family))
-        {
-            return Err(Denied);
+        let delegate = match rule {
+            ChainRule::Legacy => framing::IMPLEMENTATION_DELEGATE_ABILITY,
+            ChainRule::Delegated(family) => family.delegate,
+        };
+        if !delegation_permitted(token, &parents, resource, delegate) {
+            match rule {
+                ChainRule::Delegated(_) => return Err(Denied),
+                ChainRule::Legacy => walk.undelegated = true,
+            }
         }
         for parent in &parents {
-            self.check_roots(parent, bound, boundaries, remaining, depth)?;
+            self.check_roots(parent, resource, rule, boundaries, walk, depth)?;
         }
         Ok(())
     }
@@ -649,8 +736,9 @@ fn covering<'t>(
         .filter(move |grant| resource.starts_with(grant.resource.as_str()))
 }
 
-/// Every grant covering the request stops on a segment boundary of its family, so it
-/// cannot also cover a sibling whose framed bytes share a partial segment.
+/// Every grant covering the request pins the family generation and stops on a segment
+/// boundary, so it cannot survive a generation bump or cover a sibling whose framed
+/// bytes share a partial segment.
 fn aligned_grants(token: &ucan::VerifiedToken, resource: &str, family: Family) -> bool {
     covering(token, resource).all(|grant| family.aligned(&grant.resource))
 }
@@ -662,12 +750,12 @@ fn delegation_permitted(
     token: &ucan::VerifiedToken,
     parents: &[ucan::VerifiedToken],
     resource: &str,
-    family: Family,
+    delegate: &str,
 ) -> bool {
     covering(token, resource).all(|grant| {
         parents.iter().any(|parent| {
             parent.capabilities().as_slice().iter().any(|held| {
-                held.ability == family.delegate
+                held.ability == delegate
                     && held.caveats.is_empty()
                     && grant.resource.starts_with(held.resource.as_str())
             })

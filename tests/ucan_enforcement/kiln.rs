@@ -74,6 +74,7 @@ const fn verifier<'a>(
         audience: "kiln-service-a",
         trusted_roots: roots,
         max_delegation_depth: 1,
+        implementation_v1: basalt::kiln::LegacyFraming::Accept,
     }
 }
 fn fixture(verifier: &Verifier<'_>, request: &Request) -> (InvocationFixture, SignerSignature) {

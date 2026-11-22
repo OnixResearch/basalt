@@ -131,20 +131,40 @@ a byte prefix of the request resource:
    - Source v1 uses `kiln/source/delegate`.
 
    A wildcard ability, the other family's delegate ability, or a delegate capability over
-   a sibling prefix does not count. A trusted root needs no delegate capability.
-2. **Aligned grants.** Every covering grant in the chain must either be wider than the
-   family prefix, such as `kiln://`, or stop on a segment boundary of the family grammar.
-   A grant cut inside a segment would also cover unrelated siblings, so it denies.
+   a sibling prefix does not count. A trusted root needs no delegate capability. A token
+   with several proofs passes if any of its parents holds the delegate.
+2. **Pinned, aligned grants.** Every covering grant in the chain, including root-issued
+   ones, must be inside the family, pin the audience and generation, and stop on a
+   segment boundary of the family grammar. A grant such as `kiln://`, the bare family
+   prefix, or an audience-only prefix denies, so no grant survives a generation bump. A
+   grant cut inside a segment would also cover unrelated siblings, so it denies too.
 3. **Depth.** The number of tokens with proofs on any path from the leaf to a root must
    not exceed `Verifier::max_delegation_depth`. With `0`, only root-issued leaves are
-   admitted.
+   admitted. Revalidation applies the verifier's current limit.
 
 UCAN still enforces signatures, audience linkage, time and revocation of every proof, and
 capability attenuation. A child can only narrow the resource and keep the ability.
 
 `kiln://implementation/v1/` keeps its compatibility rule: any verified chain reaching a
-trusted root, with no delegate, alignment or depth requirement. A v1 grant never covers a
-v2 or source request, because the prefixes differ.
+trusted root, with no alignment or depth requirement. However, if any covering grant in a
+v1 chain is wider than `kiln://implementation/v1/` (for example `kiln://`), every
+delegator in that chain must hold explicit `kiln/delegate` over the grants it issued.
+`Verifier::implementation_v1 = LegacyFraming::Refuse` closes the compatibility window:
+v1 requests deny. The default is `Accept`. A v1 grant never covers a v2 or source
+request, because the prefixes differ.
+
+## Effective capabilities
+
+`Session::effective_capabilities` and `SourceSession::effective_capabilities` contain
+only those leaf capabilities whose own resource, evaluated as a request, passes its
+family's chain rule: implementation v2, source v1, or v1 while it is accepted. Grants
+outside those families, grants wider than one family, and leaf grants the chain rule
+would deny are omitted. For example, a delegator holding `kiln/source/delegate` only over
+`a` may name `secret` in a leaf token; that grant never appears in the set. The set is
+computed before replay and is not transferable authority.
+
+A subtree grant cannot pin a snapshot, because the snapshot is framed after the terminal
+marker. Kiln must enforce a share's snapshot itself.
 
 ## Exact binding
 
@@ -183,7 +203,8 @@ Callers own keys, proof loading, revocation currentness, monotonic time, durable
 storage and effect recovery. Kiln owns current work/fence/policy facts, claims, budgets,
 grant issuance and lineage records, view restriction and handles, verification
 acceptance, publication, integration and lifecycle completion. Kiln also configures
-`max_delegation_depth` from its reviewed authority configuration. Lattice owns execution
+`max_delegation_depth` and `implementation_v1` from its reviewed authority
+configuration. Lattice owns execution
 admission and confinement.
 
 ## Non-claims

@@ -86,16 +86,22 @@ pub(super) const SOURCE_V1_FAMILY: Family = Family {
 };
 
 impl Family {
-    /// Return whether a grant resource is either wider than the whole family or stops
-    /// exactly on a segment boundary. A grant that ends inside a segment would cover
-    /// unrelated siblings (`project` → `projectx`), so it never authorizes.
+    /// Return whether a grant resource is inside this family, pins the audience and
+    /// generation, and stops exactly on a segment boundary. A grant that ends inside a
+    /// segment would cover unrelated siblings (`project` → `projectx`), and a grant that
+    /// stops before the generation would survive a generation bump, so neither
+    /// authorizes. Every family grammar starts with `text(audience) number(generation)`.
     pub(super) fn aligned(self, grant: &str) -> bool {
-        grant.strip_prefix(self.prefix).map_or_else(
-            || self.prefix.starts_with(grant),
-            |rest| walk(rest.as_bytes(), self.grammar),
-        )
+        grant
+            .strip_prefix(self.prefix)
+            .and_then(|rest| text(rest.as_bytes()))
+            .and_then(number)
+            .is_some_and(|rest| walk(rest, &self.grammar[PINNED_SEGMENTS..]))
     }
 }
+
+/// Audience and generation: the segments every attenuable grant must pin.
+const PINNED_SEGMENTS: usize = 2;
 
 /// Admit one bounded ASCII request field (the v1 field rule).
 pub(super) fn admit_text(field: &str) -> Result<(), Denied> {
@@ -407,12 +413,17 @@ mod tests {
     use super::{IMPLEMENTATION_V2_FAMILY, SOURCE_V1_FAMILY};
 
     #[test]
-    fn segment_boundaries_are_the_only_aligned_prefixes() {
+    fn segment_boundaries_after_the_generation_are_the_only_aligned_prefixes() {
         let family = IMPLEMENTATION_V2_FAMILY;
-        assert!(family.aligned("kiln://"));
-        assert!(family.aligned("kiln://implementation/v2/"));
-        assert!(family.aligned("kiln://implementation/v2/1/61/"));
+        // Wider than the family, or stopping before the generation, never aligns.
+        assert!(!family.aligned(""));
+        assert!(!family.aligned("kiln://"));
+        assert!(!family.aligned("kiln://implementation/v2/"));
+        assert!(!family.aligned("kiln://implementation/v2/1/61/"));
+        assert!(!family.aligned("kiln://source/v1/1/61/7/"));
         assert!(family.aligned("kiln://implementation/v2/1/61/7/"));
+        assert!(family.aligned("kiln://implementation/v2/1/61/7/1/62/"));
+        assert!(!family.aligned("kiln://implementation/v2/1/61/7/1/6"));
         assert!(!family.aligned("kiln://implementation/v2/1/6"));
         assert!(!family.aligned("kiln://implementation/v2/1/61"));
         assert!(!family.aligned("kiln://implementation/v2/1/"));
@@ -426,6 +437,8 @@ mod tests {
     fn source_paths_align_on_components_and_markers_only() {
         let family = SOURCE_V1_FAMILY;
         let repo = "kiln://source/v1/1/61/7/1/72/";
+        assert!(family.aligned("kiln://source/v1/1/61/7/"));
+        assert!(!family.aligned("kiln://source/v1/1/61/"));
         assert!(family.aligned(repo));
         assert!(family.aligned(&format!("{repo}n/")));
         assert!(family.aligned(&format!("{repo}a/")));

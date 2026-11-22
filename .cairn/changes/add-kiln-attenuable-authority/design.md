@@ -34,25 +34,53 @@ not include the prefix, so existing holder bindings are unchanged.
 Decimal lengths cannot collide with letter markers, so `a/b` cannot alias `a/bc`, and an
 entry grant cannot reach descendants.
 
-### Decision: Chain rule applies only to attenuable families
+### Decision: Chain rule for attenuable families
 
 **Choice:** For v2 and source requests, `check_roots` rejects a chain in any of these
 cases:
 
-- a covering grant, anywhere in the chain, ends inside a segment;
+- a covering grant, anywhere in the chain including root-issued tokens, is wider than the
+  family, stops before the generation segment, or ends inside a segment;
 - a delegator issued a covering grant without holding, from a parent proof, an uncaveated
   capability with exactly the family delegate ability whose resource is a byte prefix of
   that grant;
-- the number of delegation hops exceeds `Verifier::max_delegation_depth`.
+- the number of delegation hops on any proof path exceeds
+  `Verifier::max_delegation_depth`.
+
+A token with several proofs is checked along every path, and the delegate may be held in
+any of its parents.
 
 The implementation family uses `kiln/delegate`, which is chain-only and has no contract.
-The source family uses `kiln/source/delegate`, which is also the invocable `delegate`
-operation.
+The source family deliberately uses `kiln/source/delegate` for both roles: it is the
+invocable `delegate` operation, which Kiln checks before issuing a share, and the chain
+ability every source delegator must hold. One ability means "may share this scope" in
+both places.
 
 **Rationale:** Exact ability equality makes delegation explicit, so a wildcard cannot
-grant it. Checking *covering* grants rather than only family-prefixed ones stops a wide
-grant such as `kiln://` from bypassing the rule. v1 keeps the reviewed compatibility
-behaviour.
+grant it. Requiring every covering grant to pin the generation means a wide grant such as
+`kiln://` can neither bypass the delegate rule nor survive a generation bump.
+
+### Decision: v1 compatibility rule and window
+
+**Choice:** v1 keeps its trusted-root rule while every covering grant stays inside
+`kiln://implementation/v1/`. If any covering grant in a v1 chain is wider than that
+family, every delegator in the chain must hold explicit `kiln/delegate` over the grants
+it issued. `Verifier::implementation_v1 = LegacyFraming::Refuse` closes the window: v1
+requests deny and v1 grants leave the effective set. The default is `Accept`.
+
+**Rationale:** Without this, a holder of a wide non-v1 grant and no delegate ability
+could re-delegate through the v1 framing. Existing v1 chains that stay inside the v1
+family keep verifying unchanged.
+
+### Decision: Effective capabilities are checked per grant
+
+**Choice:** A session's `effective_capabilities()` keeps only leaf capabilities whose own
+resource passes its family's chain rule (v2, source, or v1 while accepted). It omits
+grants outside those families, grants wider than one family, and grants that fail the
+rule. The set is computed before the consuming replay.
+
+**Rationale:** Kiln builds receiver scope from this set. A leaf grant that the chain rule
+would deny as a request must not appear as scope.
 
 ### Decision: Source scope order
 
@@ -60,6 +88,9 @@ behaviour.
 
 **Rationale:** Path ceilings (Kiln C8 `ViewCeiling`) and attempt-bound worker scopes must
 be byte prefixes. A snapshot or view pin can still extend an entry-terminal grant.
+However, a subtree grant (no terminal) cannot pin a snapshot, because the snapshot comes
+after the terminal. Kiln must therefore enforce a share's snapshot itself, for example
+through the request digest and view binding.
 
 ## Risks / Trade-offs
 

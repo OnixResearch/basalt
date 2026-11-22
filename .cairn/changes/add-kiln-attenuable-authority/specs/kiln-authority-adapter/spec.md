@@ -52,6 +52,29 @@ r[basalt.kiln_authority.policy.scenario.packaged]
 - THEN it MUST contain each implementation contract with both implementation prefixes and its ability
 - AND it MUST contain each source contract with the source prefix and its ability
 
+### Requirement: Delegation cannot widen Kiln authority
+
+r[basalt.kiln_authority.delegation] A verified parent MUST be able to delegate a narrower
+Kiln resource and ability to an admitted recipient. A child MUST NOT widen the resource,
+substitute another operation or obtain publication, integration, verification or lifecycle
+authority from claim, dispatch or submission authority. Attenuable families MUST also
+apply the explicit delegation chain rule, and a v1 chain that carries a covering grant
+wider than the v1 family MUST require explicit `kiln/delegate` from every delegator.
+
+#### Scenario: Exact delegated operation is admitted
+
+r[basalt.kiln_authority.delegation.scenario.exact]
+- GIVEN a trusted root granting a Kiln prefix to a delegate
+- WHEN the delegate issues an exact operation resource to the holder
+- THEN the holder's invocation MUST be admitted and revalidated
+
+#### Scenario: Widening denies
+
+r[basalt.kiln_authority.delegation.scenario.widen]
+- GIVEN a parent grant for dispatch or for one scope
+- WHEN a child requests lifecycle completion, publication, or a wider scope
+- THEN verification MUST deny before replay
+
 ## ADDED Requirements
 
 ### Requirement: Attenuable implementation framing
@@ -62,7 +85,8 @@ version, attempt, fence, target, payload digest and candidate. Every segment MUS
 `/`, so that a byte-prefix grant stopping after a segment expresses a deployment, project,
 work or attempt ceiling for any holder. Basalt MUST expose a typed prefix builder that
 denies a later segment without every earlier one. The frozen v1 framing MUST remain
-verifiable, and a v1 grant MUST NOT cover a v2 request.
+verifiable until the operator sets `LegacyFraming::Refuse`, and a v1 grant MUST NOT cover
+a v2 request.
 
 #### Scenario: One ceiling serves different holders
 
@@ -80,6 +104,22 @@ r[basalt.kiln_authority.attenuable.scenario.v1_stable]
 - THEN its resource MUST equal the recorded pre-v2 bytes
 - AND the chain MUST be admitted while the same request framed as v2 denies
 
+#### Scenario: Wide grants cannot escape through v1
+
+r[basalt.kiln_authority.attenuable.scenario.v1_wide]
+- GIVEN a delegator holding dispatch over `kiln://` without `kiln/delegate`
+- WHEN it issues a `kiln://implementation/v1/` grant used with v1 framing
+- THEN verification MUST deny before replay
+- AND the same chain MUST be admitted when the delegator also holds `kiln/delegate` over `kiln://`
+
+#### Scenario: Operators can close the v1 window
+
+r[basalt.kiln_authority.attenuable.scenario.v1_refused]
+- GIVEN a verifier configured with `LegacyFraming::Refuse`
+- WHEN a v1 request is framed, or a v2 session's leaf also carries a v1 grant
+- THEN the v1 request MUST deny
+- AND the v1 grant MUST NOT appear in the session's effective capabilities
+
 ### Requirement: Explicit delegation chain rule
 
 r[basalt.kiln_authority.delegation.chain] For attenuable Kiln families the adapter MUST
@@ -87,13 +127,16 @@ admit a delegated chain only when three rules hold. First, every intermediate de
 holds, from a parent proof, an uncaveated capability whose ability is exactly the family's
 delegate ability (`kiln/delegate` or `kiln/source/delegate`). That capability's resource
 must be a byte prefix of each grant the delegator issued that covers the request. Second,
-every grant in the chain that covers the request either is wider than the family prefix
-or stops on a segment boundary. Third, the chain contains no more delegation hops than the
-operator-configured maximum depth. Wildcard abilities and the other family's delegate
-ability MUST NOT satisfy the rule. Only an operator-trusted root MUST issue a token without
-proofs. This is the compact-profile counterpart of UCAN's rule that the root Delegation
-issuer is the chain subject: a delegator that holds the delegate ability never becomes a
-root. Revalidation MUST apply the same rule.
+every grant in the chain that covers the request, including root-issued grants, lies
+inside the family, pins the audience and generation, and stops on a segment boundary.
+Third, no proof path contains more delegation hops than the operator-configured maximum
+depth. A token with several proofs passes the delegate rule when any of its parents holds
+the delegate, and every one of its proof paths is checked for depth. Wildcard abilities,
+caveated delegate capabilities and the other family's delegate ability MUST NOT satisfy
+the rule. Only an operator-trusted root MUST issue a token without proofs. This is the
+compact-profile counterpart of UCAN's rule that the root Delegation issuer is the chain
+subject: a delegator that holds the delegate ability never becomes a root. Revalidation
+MUST apply the same rule with the verifier's current settings.
 
 #### Scenario: Scoped delegation is admitted
 
@@ -116,6 +159,7 @@ r[basalt.kiln_authority.delegation.chain.scenario.depth]
 - WHEN verification runs
 - THEN it MUST deny before replay
 - AND the same chain MUST be admitted when the maximum allows its depth
+- AND a session admitted at a larger maximum MUST fail revalidation at a smaller one
 
 #### Scenario: Grants cut inside a segment deny
 
@@ -130,6 +174,45 @@ r[basalt.kiln_authority.delegation.chain.scenario.root]
 - GIVEN an attenuable chain whose proof-free root token is issued by an untrusted issuer, or by a delegator that holds the delegate ability
 - WHEN verification runs
 - THEN it MUST deny before replay
+
+#### Scenario: Grants that do not pin the generation deny
+
+r[basalt.kiln_authority.delegation.chain.scenario.generation]
+- GIVEN an audience-wide grant, a family-wide grant or a `kiln://` grant
+- WHEN it covers a request for a later generation
+- THEN verification MUST deny before replay
+- AND a grant pinned at that generation MUST be admitted
+
+#### Scenario: Caveated delegate capability denies
+
+r[basalt.kiln_authority.delegation.chain.scenario.caveated]
+- GIVEN a delegator whose only delegate capability carries a caveat
+- WHEN it issues a covering grant
+- THEN verification MUST deny before replay
+
+#### Scenario: Multi-proof tokens check every path
+
+r[basalt.kiln_authority.delegation.chain.scenario.multi_proof]
+- GIVEN a delegator whose operation grant and delegate capability come from different parents, one of them a hop longer
+- WHEN the configured maximum covers the longer path
+- THEN the chain MUST be admitted
+- AND it MUST deny when the maximum covers only the shorter path or when the delegate-carrying parent is absent
+
+### Requirement: Checked effective capabilities
+
+r[basalt.kiln_authority.effective_scope] A session's effective capabilities MUST contain
+only leaf capabilities whose own resource, evaluated as a request, passes its family's
+chain rule (implementation v2, source v1, or v1 while accepted). Grants outside those
+families, grants wider than one family and grants the rule would deny MUST be omitted.
+The set MUST be computed before replay is consumed.
+
+#### Scenario: Unchecked leaf grants are omitted
+
+r[basalt.kiln_authority.effective_scope.scenario.unchecked]
+- GIVEN a root granting a delegator repository-wide discover plus the delegate ability over `a` only
+- WHEN the delegator grants a holder discover over `a` and over `secret`, and the holder is admitted on `a`
+- THEN the session's effective capabilities MUST NOT include the `secret` grant
+- AND a request on `secret` MUST deny
 
 ### Requirement: Closed Kiln source operations
 
@@ -171,3 +254,10 @@ r[basalt.kiln_authority.source_path.scenario.alias]
 - THEN the subtree grant MUST cover only `a/b` and its descendants
 - AND the entry grant MUST cover only the `a/b` entry
 - AND an operator-context grant MUST NOT cover an attempt-context request
+
+#### Scenario: Attempt-context grants bind attempt and fence
+
+r[basalt.kiln_authority.source_path.scenario.attempt_context]
+- GIVEN an attempt-context source grant for one attempt and fence
+- WHEN requests with that attempt, with no attempt, and with another fence are verified
+- THEN only the first MUST be admitted
