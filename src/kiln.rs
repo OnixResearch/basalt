@@ -313,8 +313,9 @@ struct Bound {
     scope: Option<String>,
 }
 
-/// Verified proof DAG for one admission or revalidation. Each distinct proof is
-/// resolved and verified once; chain predicates then run over these cached results.
+/// Verified proof DAG for one admission or revalidation. Per-grant chain checks share
+/// this one verified proof graph, so proof-verification work does not grow with the
+/// number of leaf grants.
 struct ProofGraph {
     /// Index 0 is the leaf token.
     tokens: Vec<ucan::VerifiedToken>,
@@ -655,7 +656,7 @@ impl Verifier<'_> {
         Ok(())
     }
 
-    /// Resolve and verify every distinct proof reachable from the leaf exactly once.
+    /// Resolve and verify each distinct proof reachable from the leaf into one graph.
     /// Each proof edge spends one unit of the proof-count limit.
     fn load_graph(
         leaf: ucan::VerifiedToken,

@@ -190,8 +190,8 @@ A session stores the set from admission. Revalidation does not recompute it.
 - Under `LegacyFraming::Refuse`, a v1 session fails revalidation outright.
 - v2 and source sessions never contain v1 grants.
 
-Admission and revalidation resolve and verify each distinct proof once, keyed by proof
-reference, and run every per-grant chain check over that cached graph. Admission first
+In admission and revalidation, per-grant chain checks share one verified proof graph, so
+proof-verification work does not grow with the number of leaf grants. Admission first
 runs the full UCAN enforcement path, including the holder signature, against a replay
 port that refuses after recording success. A forged signature therefore stops before any
 Basalt chain walk, and the single consuming replay remains the last step.

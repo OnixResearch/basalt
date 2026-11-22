@@ -207,8 +207,8 @@ with its own resource. The scope prefix is the v2 deployment prefix (family, ver
 audience, verifier generation) for implementation sessions, and the source repository
 and context prefix for source sessions. v1 sessions MUST expose covering grants only. An
 admitted request MUST NOT be denied because no other grant qualified. The set MUST be
-computed before replay is consumed, and each distinct proof MUST be verified at most
-once per admission or revalidation.
+computed before replay is consumed. Per-grant chain checks MUST share one verified proof
+graph, so proof-verification work does not grow with the number of leaf grants.
 
 #### Scenario: Unchecked leaf grants are omitted
 

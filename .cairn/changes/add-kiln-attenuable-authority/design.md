@@ -94,7 +94,7 @@ generation, another audience, another repository or another context must therefo
 appear. Neither may a grant that the chain rule would deny as a request. Project, work,
 attempt and ability matching remain Kiln's.
 
-### Decision: Verify each proof once; probe the holder before walking
+### Decision: Share one verified proof graph; probe the holder before walking
 
 **Choice:** Admission first runs the full UCAN enforcement path, including the holder
 signature, against a replay port that records success and then refuses. It then loads
@@ -103,8 +103,11 @@ over the cached tokens. Each walk is bounded by `max_proof_count` edge traversal
 real enforcement call with the caller's replay port is last.
 
 **Rationale:** Per-grant walks previously re-verified every proof for up to 64 grants,
-before the holder signature had been checked. The probe never mints authority and
-consumes no replay. It costs one extra UCAN verification per valid admission.
+before the holder signature had been checked. Now the per-grant chain checks share one
+verified proof graph, so proof-verification work does not grow with the number of leaf
+grants. Each graph node is still a full recursive UCAN verification, and the other UCAN
+calls re-verify the chain themselves. The probe never mints authority and consumes no
+replay. It costs two extra UCAN verifications per valid admission.
 
 ### Decision: Source scope order
 
