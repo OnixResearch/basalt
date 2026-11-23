@@ -1305,6 +1305,7 @@ fn holder_grant_from_the_exchange_is_admitted_by_the_native_mantle_verifier() {
     let boundaries = UcanEnforcementBoundaries {
         verification_time: VerificationTime::from_unix_seconds(NOW_SECONDS + 1),
         key_resolver: &keys,
+        trusted_roots: &roots,
         proof_store: &proofs,
         revocations: &NoRevocations,
         caveat_policies: &DenyUnknownCaveats,

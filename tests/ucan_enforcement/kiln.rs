@@ -44,6 +44,7 @@ fn boundaries<'a>(
     UcanEnforcementBoundaries {
         verification_time: VerificationTime::from_unix_seconds(now),
         key_resolver: &fixture.keys,
+        trusted_roots: &fixture.trusted_roots,
         proof_store: &fixture.proofs,
         revocations,
         caveat_policies: &DenyUnknownCaveats,
@@ -304,6 +305,7 @@ fn kiln_execution_grant_cannot_be_widened_to_publication_or_lifecycle() {
                 delegate.verification_key().unwrap(),
                 signer(HOLDER_SEED_BYTE).verification_key().unwrap(),
             ]),
+            trusted_roots: roots.to_vec(),
             proofs: ProofCollection::from_tokens(vec![parent]),
         };
         let binding = bind_enforcement_action(widened.action(), &child_exact).unwrap();
@@ -366,6 +368,7 @@ fn kiln_root_delegation_reaches_exact_dispatch_operation() {
             delegate.verification_key().unwrap(),
             signer(HOLDER_SEED_BYTE).verification_key().unwrap(),
         ]),
+        trusted_roots: roots.to_vec(),
         proofs: ProofCollection::from_tokens(vec![parent]),
     };
     let binding = bind_enforcement_action(Operation::Dispatch.action(), &exact).unwrap();

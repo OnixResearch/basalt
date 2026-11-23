@@ -592,6 +592,7 @@ impl Verifier<'_> {
         let probing = UcanEnforcementBoundaries {
             verification_time: boundaries.verification_time,
             key_resolver: boundaries.key_resolver,
+            trusted_roots: boundaries.trusted_roots,
             proof_store: boundaries.proof_store,
             revocations: boundaries.revocations,
             caveat_policies: boundaries.caveat_policies,
@@ -640,6 +641,12 @@ impl Verifier<'_> {
         }
         let graph = Self::load_graph(verified, boundaries)?;
         self.check_chain(&graph, enforcement.resource(), bound.rule)?;
+        crate::ucan_enforcement::shell::verify_trusted_roots(
+            &graph.tokens[0],
+            boundaries.trusted_roots,
+            boundaries,
+        )
+        .map_err(|_| Denied)?;
         // No capability DTO supplied by the caller reaches policy enforcement.
         let local = EnforcementRequest::new(
             enforcement.contract(),

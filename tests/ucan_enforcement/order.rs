@@ -60,6 +60,7 @@ fn final_verification_is_authoritative_and_drops_prospective_authority() {
     };
     let services = TestServices {
         key_resolver: &resolver,
+        trusted_roots: &fixture.trusted_roots,
         proof_store: &fixture.proofs,
         revocations: &NoRevocations,
         caveats: &DenyUnknownCaveats,
@@ -177,6 +178,7 @@ fn invalid_policy_projection_denies_raw_ucan_enforcement_without_burning_nonce()
     let boundaries = UcanEnforcementBoundaries {
         verification_time: VerificationTime::from_unix_seconds(VERIFY_AT_SECONDS),
         key_resolver: &fixture.keys,
+        trusted_roots: &fixture.trusted_roots,
         proof_store: &fixture.proofs,
         revocations: &NoRevocations,
         caveat_policies: &DenyUnknownCaveats,

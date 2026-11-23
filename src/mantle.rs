@@ -269,11 +269,12 @@ impl Verifier<'_> {
         if verified.audience().as_str() != request.subject {
             return Err(Denied);
         }
-        self.check_roots(
+        crate::ucan_enforcement::shell::verify_trusted_roots(
             &verified,
+            self.trusted_roots,
             boundaries,
-            &mut boundaries.verification_limits.max_proof_count(),
-        )?;
+        )
+        .map_err(|_| Denied)?;
         let selected = self.selected_policy(request.operation);
         let raw = UcanEnforcementRequest::new(
             &enforcement,
@@ -343,11 +344,18 @@ impl Verifier<'_> {
             },
         )
         .map_err(|_| Denied)?;
-        self.check_roots(
+        crate::ucan_enforcement::shell::verify_trusted_roots(
             &session.verified,
+            self.trusted_roots,
             boundaries,
-            &mut boundaries.verification_limits.max_proof_count(),
-        )?;
+        )
+        .map_err(|_| Denied)?;
+        crate::ucan_enforcement::shell::verify_trusted_roots(
+            &session.verified,
+            boundaries.trusted_roots,
+            boundaries,
+        )
+        .map_err(|_| Denied)?;
         if session.verified.audience().as_str() != session.request.subject {
             return Err(Denied);
         }
@@ -366,54 +374,6 @@ impl Verifier<'_> {
             .is_allowed()
         {
             return Err(Denied);
-        }
-        Ok(())
-    }
-
-    fn check_roots(
-        &self,
-        token: &ucan::VerifiedToken,
-        boundaries: &UcanEnforcementBoundaries<'_>,
-        remaining: &mut usize,
-    ) -> Result<(), Denied> {
-        if token.proofs().as_slice().is_empty() {
-            return if self
-                .trusted_roots
-                .iter()
-                .any(|root| root == token.issuer().as_str())
-            {
-                Ok(())
-            } else {
-                Err(Denied)
-            };
-        }
-        for reference in token.proofs().as_slice() {
-            *remaining = remaining.checked_sub(1).ok_or(Denied)?;
-            let proof = boundaries
-                .proof_store
-                .resolve_proof(reference)
-                .map_err(|_| Denied)?;
-            let proof_token = match &proof {
-                ucan::ProofToken::Borrowed(token) => *token,
-                ucan::ProofToken::Owned(token) => token,
-            };
-            if ucan::proof_reference(proof_token) != *reference {
-                return Err(Denied);
-            }
-            let raw = match &proof {
-                ucan::ProofToken::Borrowed(token) => token.as_str(),
-                ucan::ProofToken::Owned(token) => token.as_str(),
-            };
-            let parent = verify_compact_token_str_with_resolvers_and_revocations(
-                raw,
-                boundaries.verification_time,
-                boundaries.key_resolver,
-                boundaries.proof_store,
-                boundaries.revocations,
-                boundaries.verification_limits,
-            )
-            .map_err(|_| Denied)?;
-            self.check_roots(&parent, boundaries, remaining)?;
         }
         Ok(())
     }
