@@ -10,8 +10,8 @@ Lattice or another client shell.
 
 - exact GitHub issuer, discovery URL, JWKS URL, and audience;
 - RS256 only;
-- exact repository owner and repository;
-- workflow and Git reference prefixes;
+- exact repository owner, numeric `repository_owner_id`, exact repository, and numeric `repository_id` (binding against renames and re-registration);
+- exact allowlisted `job_workflow_ref` (`file@ref`), exact protected Git references (`allowed_refs`), and required `environment` claim;
 - explicit clock skew, token age, UCAN lifetime, network, body, key, cache, and refresh limits;
 - one versioned Mantle capability vocabulary;
 - one-time exchange with an issuer-provided `jti`: one exchange per OIDC token.

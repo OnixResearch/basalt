@@ -105,7 +105,10 @@
         invalidOidcPolicyFixtures = [
           "algorithm-confusion"
           "duplicate-operation"
+          "empty-environment"
           "empty-operations"
+          "empty-workflow-refs"
+          "non-numeric-repository-id"
           "redirect-enabled"
           "replay-disabled"
           "stale-cache"
@@ -113,6 +116,7 @@
           "type-mismatch"
           "unsupported-operation"
           "weakened-non-claims"
+          "wildcard-ref-prefix"
           "zero-key-limit"
         ];
         invalidOidcSourceFixtures = [

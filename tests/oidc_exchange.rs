@@ -1418,3 +1418,109 @@ fn untrusted_header_only_selects_a_key_and_never_establishes_authority() {
         Ok("fixture-rsa".to_owned())
     );
 }
+
+#[test]
+fn arbitrary_branch_workflow_repo_id_and_environment_claims_fail_closed() {
+    let policy = policy();
+    let key = public_jwk("fixture-rsa");
+    let base = claims();
+    let mut header = Header::new(Algorithm::RS256);
+    header.kid = Some("fixture-rsa".to_owned());
+
+    let cases = [
+        (
+            "feature branch ref",
+            "ref",
+            serde_json::json!("refs/heads/feature"),
+            RejectReason::ClaimMismatch,
+        ),
+        (
+            "different workflow on main",
+            "job_workflow_ref",
+            serde_json::json!("OnixResearch/mantle/.github/workflows/evil.yml@refs/heads/main"),
+            RejectReason::ClaimMismatch,
+        ),
+        (
+            "prefix confusion on workflow ref",
+            "job_workflow_ref",
+            serde_json::json!(
+                "OnixResearch/mantle/.github/workflows/build.yml@refs/heads/main-evil"
+            ),
+            RejectReason::ClaimMismatch,
+        ),
+        (
+            "re-registered repository_id",
+            "repository_id",
+            serde_json::json!("9999999999"),
+            RejectReason::ClaimMismatch,
+        ),
+        (
+            "re-registered repository_owner_id",
+            "repository_owner_id",
+            serde_json::json!("8888888888"),
+            RejectReason::ClaimMismatch,
+        ),
+        (
+            "non-numeric repository_id",
+            "repository_id",
+            serde_json::json!("abc123"),
+            RejectReason::ClaimType,
+        ),
+        (
+            "wrong environment",
+            "environment",
+            serde_json::json!("staging"),
+            RejectReason::ClaimMismatch,
+        ),
+    ];
+
+    for (label, field, value, expected) in cases {
+        let mut mutated = base.clone();
+        mutated[field] = value;
+        let token = token_with(&mutated, &header);
+        assert_eq!(
+            verify_and_plan(token.as_str(), &key, NOW_SECONDS, &policy, &request()),
+            Err(expected),
+            "{label}"
+        );
+    }
+
+    // Missing environment claim must fail closed as malformed token.
+    let mut missing_env = base;
+    missing_env
+        .as_object_mut()
+        .expect("claims object")
+        .remove("environment");
+    let token = token_with(&missing_env, &header);
+    assert_eq!(
+        verify_and_plan(token.as_str(), &key, NOW_SECONDS, &policy, &request()),
+        Err(RejectReason::MalformedToken)
+    );
+}
+
+#[test]
+fn oidc_policy_parser_rejects_broad_prefixes_and_non_numeric_ids() {
+    let base: Value = serde_json::from_str(POLICY_JSON).expect("generated policy JSON");
+
+    let mut wildcard_ref = base.clone();
+    wildcard_ref["claims"]["allowed_refs"] = serde_json::json!(["refs/heads/"]);
+    assert!(parse_policy(&wildcard_ref.to_string()).is_err());
+
+    let mut non_numeric_repo_id = base.clone();
+    non_numeric_repo_id["claims"]["repository_id"] = serde_json::json!("not-numeric");
+    assert!(parse_policy(&non_numeric_repo_id.to_string()).is_err());
+
+    let mut unbound_workflow = base.clone();
+    unbound_workflow["claims"]["job_workflow_refs"] =
+        serde_json::json!(["OnixResearch/mantle/.github/workflows/build.yml@refs/heads/dev"]);
+    assert!(parse_policy(&unbound_workflow.to_string()).is_err());
+
+    let mut prefix_only_workflow = base.clone();
+    prefix_only_workflow["claims"]["job_workflow_refs"] =
+        serde_json::json!(["OnixResearch/mantle/.github/workflows/"]);
+    assert!(parse_policy(&prefix_only_workflow.to_string()).is_err());
+
+    let mut empty_env = base;
+    empty_env["claims"]["environment"] = serde_json::json!("");
+    assert!(parse_policy(&empty_env.to_string()).is_err());
+}
