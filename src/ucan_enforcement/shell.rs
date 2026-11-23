@@ -221,6 +221,12 @@ fn prepare_prospective_authority(
 ) -> Result<ProspectiveAuthority, UcanEnforcementFailure> {
     let operation = prepared.operation;
     let receipt_context = prepared.receipt_context;
+    if !crate::policy_projection::validate_projection(policy).is_accepted() {
+        return Err(failure(
+            UcanEnforcementReason::PolicyDenied,
+            receipt_context,
+        ));
+    }
     let verified = verify_compact_token_str_with_resolvers_and_revocations(
         request.compact_token,
         boundaries.verification_time,

@@ -250,6 +250,9 @@ impl Verifier<'_> {
         invocation: &Invocation<'_>,
         boundaries: &UcanEnforcementBoundaries<'_>,
     ) -> Result<Session, Denied> {
+        if !crate::policy_projection::validate_projection(self.policy).is_accepted() {
+            return Err(Denied);
+        }
         let enforcement = self.enforcement(&request)?;
         let token = ucan::CompactToken::new(invocation.compact_token).map_err(|_| Denied)?;
         // Bind holder identity BEFORE the consuming replay boundary. A credential
@@ -308,6 +311,9 @@ impl Verifier<'_> {
         session: &Session,
         boundaries: &UcanEnforcementBoundaries<'_>,
     ) -> Result<(), Denied> {
+        if !crate::policy_projection::validate_projection(self.policy).is_accepted() {
+            return Err(Denied);
+        }
         if session.policy_ref != self.policy_ref.artifact_ref {
             return Err(Denied);
         }

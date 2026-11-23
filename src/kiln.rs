@@ -372,6 +372,9 @@ impl Verifier<'_> {
     }
 
     fn admit_contract(&self, action: EnforcementAction, prefix: &str) -> Result<(), Denied> {
+        if !crate::policy_projection::validate_projection(self.policy).is_accepted() {
+            return Err(Denied);
+        }
         let Some(contract) = self.policy.contract(action.contract_id()) else {
             return Err(Denied);
         };
